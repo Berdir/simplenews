@@ -257,7 +257,17 @@ function simplenews_update_5000() {
 }
 
 /**
- * Add index to simplenews_subscriptions
+ * Addition of node version to simplenews_newsletters in order to record the
+ * node version which is being send.
+ */
+function simplenews_update_5001() {
+  db_add_field($ret, 'simplenews_newsletters', 'vid', array('type' => 'int', 'type' => 'int', 'not null' => TRUE, 'default' => 0));
+}
+
+/**
+ * Data conversion of block delta
+ * Field type conversions: newsletter priority
+ * Field name change in simplenews_subscriptions table
  */
 function simplenews_update_6000() {
   $ret = array();
@@ -381,14 +391,11 @@ function simplenews_update_6001() {
 }
 
 /**
- * Addition of node version to simplenews_newsletters in order to record the
- * node version which is being send.
  * Addition of nid to simplenews_mail_cache to be able to check the newsletter
  * send status.
  */
 function simplenews_update_6002() {
   $ret = array();
-  db_add_field($ret, 'simplenews_newsletters', 'vid', array('type' => 'int', 'type' => 'int', 'not null' => TRUE, 'default' => 0));
   db_add_field($ret, 'simplenews_mail_cache', 'nid', array('type' => 'int', 'not null' => TRUE, 'default' => 0));
   variable_del('simplenews_time');
   return $ret;
