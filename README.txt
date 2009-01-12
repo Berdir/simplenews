@@ -57,8 +57,6 @@ INSTALLATION
  
     Permission "subscribe to newsletters" is required to view the subscription
     form in the simplenews block or to view the link to the subscription form.
-    Links in the simplenews block (to previous issues and RSS-feed) are only
-    displayed to users who have "view links in block" privileges.
 
  7. SIMPLENEWS BLOCK THEMING
 
