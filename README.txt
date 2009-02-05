@@ -147,4 +147,4 @@ INSTALLATION
 DOCUMENTATION
 -------------
 More help can be found on the help pages: example.com/admin/help/simplenews
-and in the drupal.org handbook: http://drupal.org/project/node/197057
+and in the drupal.org handbook: http://drupal.org/node/197057
