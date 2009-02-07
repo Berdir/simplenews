@@ -500,9 +500,12 @@ function simplenews_form_alter(&$form, $form_state, $form_id) {
       '#value' => t('This is the designated simplenews vocabulary.'),
       '#weight' => -1,
     );
+    $form['content_types']['nodes']['#disabled'] = TRUE;
     $form['content_types']['nodes']['#description'] = t('These content type(s) are used as newsletter. They can also be set in !simplenews_settings.', array('!simplenews_settings' => l('Simplenews settings', 'admin/settings/simplenews')));
     // Free tagging can not be allowed see: simplenews_validate_taxonomy().
     $form['settings']['tags'] = array('#type' => 'value', '#value' => FALSE);
+    // Multiple select does not work with simplenews.
+    $form['settings']['multiple'] = array('#type' => 'value', '#value' => FALSE);
   }
 
   // Simplenews newsletter node form
@@ -520,7 +523,7 @@ function simplenews_form_alter(&$form, $form_state, $form_id) {
       }
       $vocabulary = taxonomy_vocabulary_load(variable_get('simplenews_vid', ''));
       if (!empty($vocabulary) && !isset($vocabulary->nodes[$form['type']['#value']])) {
-        drupal_set_message(t('Invalid node type or vocabulary setting. Please check the <a href="@settings">Simplenews general settings</a>.', array('%name' => $vocabulary->name, '@settings' => url('admin/settings/simplenews'))), 'error');
+        drupal_set_message(t('Invalid vocabulary setting detected. Check and <strong>save</strong> the <a href="@settings">Simplenews general settings</a>.', array('%name' => $vocabulary->name, '@settings' => url('admin/settings/simplenews'))), 'error');
       }
       $form['simplenews'] = array(
         '#type' => 'fieldset',
