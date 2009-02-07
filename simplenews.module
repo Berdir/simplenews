@@ -1697,9 +1697,11 @@ function simplenews_mail_spool($nid = NULL, $vid = NULL, $limit = NULL) {
     foreach ($messages as $key => $message) {
       $result = simplenews_mail_mail($message['nid'], $message['vid'], $message['mail']);
 
-      // Succesfull mail messages are marked in the spool with status send.
-      // Store spool id for the spool status update.
+      // Update spool status if mail is sent succesfully.
+      // This is not optimal for performance but prevents duplicate emails
+      // in case of PHP execution time overrun.
       if ($result) {
+        simplenews_update_spool(array($key), SIMPLENEWS_SPOOL_SEND);
         $mail_sent[] = $key;
       }
 
@@ -1717,10 +1719,7 @@ function simplenews_mail_spool($nid = NULL, $vid = NULL, $limit = NULL) {
       }
     }
 
-    // Update message status in the spool as sent and update newsletter status.
-    if (!empty($mail_sent)) {
-      simplenews_update_spool($mail_sent, SIMPLENEWS_SPOOL_SEND);
-    }
+    // Update sent status for newsletter admin panel.
     simplenews_send_status_update();
 
     // Report sent result and elapsed time. On Windows systems retrusage() is
