@@ -27,7 +27,7 @@ function simplenews_subscription_manager_form(&$form_state, $snid = NULL) {
   }
 
   // If non-admin is trying to edit someone else's subscription, access denied.
-  if ($user->uid && $user->uid != $subscription->uid && !user_access('administer newsletters')) {
+  if ($user->uid && $user->uid != $subscription->uid && !user_access('administer simplenews subscriptions')) {
     drupal_access_denied();
     return;
   }
