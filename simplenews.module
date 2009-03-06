@@ -2391,7 +2391,7 @@ function theme_simplenews_newsletter_subject($name, $title, $language) {
 }
 
 /**
- * Process variables to format the simplenews newsletter footer.
+ * Process variables to format the simplenews newsletter body.
  *
  * $variables contains:
  * - $node
