@@ -665,9 +665,10 @@ function simplenews_cron() {
  */
 function simplenews_taxonomy($op, $type, $term = NULL) {
   if ($op == 'delete' && $term['vid'] == variable_get('simplenews_vid', '')) {
-    switch ($term) {
+    switch ($type) {
       case 'term':
-        db_query('DELETE FROM {simplenews_snid_tid} WHERE tid = %d', $array['tid']);
+        //TODO subscriber is not deleted when last subscription is removed.
+        db_query('DELETE FROM {simplenews_snid_tid} WHERE tid = %d', $term['tid']);
         db_query("DELETE FROM {blocks} WHERE module = '%s' AND delta = '%s'", 'simplenews', $term['tid']);
         drupal_set_message(t('All subscriptions to newsletter %newsletter have been deleted.', array('%newsletter' => $term['name'])));
         break;
