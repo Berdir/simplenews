@@ -55,6 +55,9 @@ function simplenews_subscription_manager_form_validate($form, &$form_state) {
 function simplenews_subscription_manager_form_submit($form, &$form_state) {
   switch ($form_state['values']['op']) {
     case t('Update'):
+      // We first subscribe, then unsubscribe. This prevents deletion of subscriptions
+      // when unsubscribed from the
+      arsort($form_state['values']['newsletters'], SORT_NUMERIC);
       foreach ($form_state['values']['newsletters'] as $tid => $checked) {
         if ($checked) {
           simplenews_subscribe_user($form_state['values']['mail'], $tid, FALSE);
