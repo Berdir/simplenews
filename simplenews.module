@@ -758,10 +758,14 @@ function simplenews_user($op, &$edit, &$account, $category = NULL) {
       }
       break;
     case 'categories':
-      if (user_access('subscribe to newsletters')) {
-        $output[] = array('name' => 'newsletter', 'title' => t('My newsletters'), 'weight' => 10);
-        return $output;
-      }
+      $output[] = array(
+        'name' => 'newsletter',
+        'title' => t('My newsletters'),
+        'weight' => 10,
+        'access callback' => 'user_access',
+        'access arguments' => array('subscribe to newsletters'),
+      );
+      return $output;
       break;
     case 'view':
       global $user;
