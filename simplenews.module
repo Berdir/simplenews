@@ -2131,6 +2131,8 @@ function simplenews_mail_tokens($subscription, $context, $language) {
     $vars = array();
     $vars['!site'] = variable_get('site_name', 'Drupal');
     $vars['!mailto'] = $subscription->mail;
+    $vars['!date'] = format_date(time(), 'medium', '', NULL, $language->language);
+    $vars['!login_uri'] = url('user', array('absolute' => TRUE, 'language' => $language));
   }
   // Replace existing uri and uri_brief to cope with multilingual sites.
   $vars['!uri'] = url('', array('absolute' => TRUE, 'language' => $language));
