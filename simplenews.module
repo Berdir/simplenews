@@ -714,11 +714,86 @@ function simplenews_taxonomy($op, $type, $term = NULL) {
  */
 function simplenews_user($op, &$edit, &$account, $category = NULL) {
   switch ($op) {
+    case 'register':
+      $options = $default_value = $hidden = array();
+
+      // Determine the newsletters to which a user can choose to subscribe.
+      // Determine to which other newsletter a user is automatically subscribed.
+      foreach(simplenews_get_newsletters(variable_get('simplenews_vid', ''), TRUE) as $newsletter) {
+        $subscribe_new_account = variable_get('simplenews_new_account_'. $newsletter->tid, 'none');
+        $opt_inout_method = variable_get('simplenews_opt_inout_'. $term->tid, 'double');
+        if (($subscribe_new_account == 'on' || $subscribe_new_account == 'off') && ($opt_inout_method == 'single' || $opt_inout_method == 'double')) {
+          $options[$newsletter->tid] = check_plain($newsletter->name);
+          $default_value[$newsletter->tid] = $subscribe_new_account == 'on';
+        }
+        else {
+          if ($subscribe_new_account == 'silent' || ($subscribe_new_account == 'on' && $opt_inout_method == 'hidden')) {
+            $hidden[] = $newsletter->tid;            
+          }
+        }
+      }
+
+      $form = array();
+      if (count($options)) {
+        $form['simplenews'] = array(
+          '#type' => 'fieldset',
+          '#description' => t('Select the newsletter(s) to which you wish to subscribe.'),
+          '#weight' => 5,
+        );
+        $form['simplenews']['newsletters'] = array(
+          '#type' => 'checkboxes',
+          '#options' => $options,
+          '#default_value' => $default_value,
+        );
+      }
+      if (count($hidden)) {
+        $form['simplenews_hidden'] = array(
+          '#type' => 'hidden',
+          '#value' => implode(',', $hidden),
+        );
+      }
+      return $form;
+      break;
     case 'insert':
       if ($edit['mail']) {
         $query = "SELECT snid FROM {simplenews_subscriptions} WHERE mail = '%s'";
         if ($result = db_fetch_object(db_query($query, $edit['mail']))) {
           db_query("UPDATE {simplenews_subscriptions} SET uid = %d, language = '%s' WHERE snid = %d", $edit['uid'], $edit['language'], $result->snid);
+        }
+      }
+      break;
+    case 'login':
+      // The user registation form may contain (hidden) form element to
+      // subscribe to newsletters. Data of these elements are stored in
+      // the $account->data variable.
+      // We subscribe the user according to the (hidden) form elements.
+      if (isset($account->data)) {
+        $data = unserialize($account->data);
+        $processed = FALSE;
+
+        // Process hidden (automatic) subscriptions.
+        if (isset($data['simplenews_hidden'])) {
+          foreach(explode(',', $data['simplenews_hidden']) as $tid) {
+            simplenews_subscribe_user($account->mail, $tid, FALSE, 'automatically');
+          }
+          unset($data['simplenews_hidden']);
+          $processed = TRUE;
+        }
+
+        // Process subscription check boxes.
+        if (isset($data['newsletters'])) {
+          foreach(array_keys(array_filter($data['newsletters'])) as $tid) {
+            simplenews_subscribe_user($account->mail, $tid, FALSE, 'website');
+            $newsletters = simplenews_get_newsletters(variable_get('simplenews_vid', ''), TRUE);
+            drupal_set_message(t('You have been subscribed to %newsletter.', array('%newsletter' => $newsletters[$tid]->name)));
+          }
+          unset($data['newsletters']);
+          $processed = TRUE;
+        }
+
+        // If subscription data is processes, we remove it form the data variable.
+        if ($processed) {
+          $account->data = serialize($data);
         }
       }
       break;
@@ -795,8 +870,9 @@ function simplenews_user($op, &$edit, &$account, $category = NULL) {
           '#type' => 'user_profile_category',
           '#title' => t('Newsletters'),
         );
-        $tree = taxonomy_get_tree(variable_get('simplenews_vid', ''));
-        foreach ($tree as $newsletter) {
+        // Collect newsletter to which the current user is subscribed.
+        // 'hidden' newsletters are not listed.
+        foreach (simplenews_get_newsletters(variable_get('simplenews_vid', '')) as $newsletter) {
           if (db_result(db_query('SELECT COUNT(s.uid) FROM {simplenews_subscriptions} s
                                  INNER JOIN {simplenews_snid_tid} t ON s.snid = t.snid
                                  WHERE s.uid = %d AND t.tid = %d AND t.status = %d',
@@ -838,8 +914,9 @@ function simplenews_block($op = 'list', $delta = 0, $edit = array()) {
   switch ($op) {
     case 'list':
       $blocks = array();
-      foreach (taxonomy_get_tree(variable_get('simplenews_vid', '')) as $newsletter) {
+      foreach (simplenews_get_newsletters(variable_get('simplenews_vid', '')) as $newsletter) {
         //TODO: 1. without form -> by role; 2. with form -> user caching with refresh on subscribe/unsubscribe (option as setting) or no caching
+        // Only list a block if the newsletter is not Hidden.
         $blocks[$newsletter->tid] = array(
           'info' => t('Newsletter: @title', array('@title' => $newsletter->name)),
           'cache' => variable_get('simplenews_block_f_'. $newsletter->tid, 1) ? BLOCK_NO_CACHE : BLOCK_CACHE_PER_ROLE,
@@ -897,24 +974,15 @@ function simplenews_block($op = 'list', $delta = 0, $edit = array()) {
     case 'view':
       global $language;
 
-      if ($tree = taxonomy_get_tree(variable_get('simplenews_vid', ''))) {
-        // Only display a block if $delta is a valid newsletter term id.
-        foreach ($tree as $taxonomy) {
-          $tids[] = $taxonomy->tid;
-        }
-        if (in_array($delta, $tids)) {
-          // $delta is validated, the block can be displayed.
-          $newsletter = (array) taxonomy_get_term($delta);
-          // Translate newsletter name if required.
-          if (module_exists('i18ntaxonomy') && i18ntaxonomy_vocabulary(variable_get('simplenews_vid', '')) == I18N_TAXONOMY_LOCALIZE) {
-            $newsletter['name'] = tt('taxonomy:term:'. $newsletter['tid'] .':name', $newsletter['name'], $language->language);
-          }
-          $block = array(
-            'subject' => check_plain($newsletter['name']),
-            'content' => theme(array('simplenews_block__'. $newsletter['tid'], 'simplenews_block'), $newsletter['tid']),
-          );
-          return $block;
-        }
+      $newsletters = simplenews_get_newsletters(variable_get('simplenews_vid', ''));
+      // Only display a block if $delta is a valid newsletter term id.
+      if (in_array($delta, array_keys($newsletters))) {
+        // $delta is validated, the block can be displayed.
+        $block = array(
+          'subject' => check_plain($newsletters['$delta']),
+          'content' => theme(array('simplenews_block__'. $delta, 'simplenews_block'), $delta),
+        );
+        return $block;
       }
       break;
   }
@@ -927,13 +995,11 @@ function simplenews_block($op = 'list', $delta = 0, $edit = array()) {
  * hook_forms() is required to provide unique form id for each block form.
  */
 function simplenews_forms() {
-  if ($taxonomies = taxonomy_get_tree(variable_get('simplenews_vid', ''))) {
-    foreach ($taxonomies as $newsletter) {
-      $forms['simplenews_block_form_'. $newsletter->tid] = array(
-        'callback' => 'simplenews_block_form',
-        'callback arguments' => array($newsletter->tid),
-      );
-    }
+  foreach (simplenews_get_newsletters(variable_get('simplenews_vid', ''), TRUE) as $newsletter) {
+    $forms['simplenews_block_form_'. $newsletter->tid] = array(
+      'callback' => 'simplenews_block_form',
+      'callback arguments' => array($newsletter->tid),
+    );
   }
   return $forms;
 }
@@ -1216,30 +1282,11 @@ function _simplenews_subscription_manager_form($subscription) {
   $default_value = array();
   global $language;
 
-  // Get taxonomy terms for subscription form checkboxes.
-  // With taxonomy translation and 'Per language terms' only the terms of the
-  // current language are listed. With taxonomy translation and 'Localize terms'
-  // all taxonomy terms are listed and translated.
-  if (module_exists('i18ntaxonomy') && i18ntaxonomy_vocabulary(variable_get('simplenews_vid', '')) == I18N_TAXONOMY_TRANSLATE) {
-    // Per language terms.
-    $tterms = i18ntaxonomy_vocabulary_get_terms(variable_get('simplenews_vid', ''), $language->language);
-    foreach ($tterms as $tid => $name) {
-      $options[$tid] = check_plain($name);
-      $default_value[$tid] = FALSE;
-    }
-  }
-  else {
-    foreach (taxonomy_get_tree(variable_get('simplenews_vid', '')) as $newsletter) {
-      if (module_exists('i18ntaxonomy') && i18ntaxonomy_vocabulary(variable_get('simplenews_vid', '')) == I18N_TAXONOMY_LOCALIZE) {
-        // Localize terms.
-        $options[$newsletter->tid] = check_plain(tt('taxonomy:term:'. $newsletter->tid .':name', $newsletter->name, $language->language));;
-      }
-      else {
-        // Untranslated.
-        $options[$newsletter->tid] = check_plain($newsletter->name);
-      }
-      $default_value[$newsletter->tid] = FALSE;
-    }
+  // Get newsletters for subscription form checkboxes.
+  // Newsletters with opt-in/out method 'hidden' will not be listed.
+  foreach(simplenews_get_newsletters(variable_get('simplenews_vid', '')) as $newsletter) {
+    $options[$newsletter->tid] = check_plain($newsletter->name);
+    $default_value[$newsletter->tid] = FALSE;
   }
 
   $form['subscriptions'] = array(
@@ -1370,7 +1417,13 @@ function simplenews_block_form_submit($form, &$form_state) {
   $account = _simplenews_user_load($form_state['values']['mail']);
 
   // If email belongs to the current registered user, don't send confirmation.
-  $confirm = $account->uid && $account->uid == $user->uid ? FALSE : TRUE;
+  // Other addresses receive a confirmation if double opt-in is selected.
+  if ($account->uid && $account->uid == $user->uid) {
+    $confirm = FALSE;
+  }
+  else {
+    $confirm = variable_get('simplenews_opt_inout_'. $tid, 'double') == 'double';
+  }
 
   switch ($form_state['values']['action']) {
     case 'subscribe':
@@ -1567,17 +1620,6 @@ function simplenews_mail($key, &$message, $params) {
       // Check if this node-language pair has been buffered.
       // If not, build the message and store it for later use.
       if (!isset($messages[$nid][$langcode])) {
-
-	// Use the default theme to render the email content.
-	// We temporary clear the $custom_theme to prevent the admin theme
-	// from being used when the newsletter is sent from the
-	// node add/edit form and the admin theme is other than the
-	// default theme. When no $custom_theme is set, the 
-	// After theming the email $custom_theme is restored.
-      	global $custom_theme;
-        $org_cutom_theme = $custom_theme;
-        $custom_theme = '';
-
         $node = drupal_clone($context['node']);
 
         // Add simplenews specific header data
@@ -1589,17 +1631,15 @@ function simplenews_mail($key, &$message, $params) {
         if ($tid = $node->simplenews['tid']) {
           $term = taxonomy_get_term($tid);
           // Translate the newsletter term name if simplenews vocabulary uses Localized terms.
-          if (module_exists('i18ntaxonomy') && i18ntaxonomy_vocabulary(variable_get('simplenews_vid', '')) == I18N_TAXONOMY_LOCALIZE) {
-            $name = tt('taxonomy:term:'. $tid .':name', $term->name, $langcode);
-          }
-          else {
-            $name = $term->name;
-          }
+          $name = _simplenews_tt_newsletter_name($term, $langcode);
         }
         else {
           $name = t('Unassigned newsletter');
         }
-        $subject = theme('simplenews_newsletter_subject', $name, $node->title, $message['language']);
+        //$subject = theme('simplenews_newsletter_subject', $name, $node->title, $message['language']);
+        $subject = variable_get('simplenews_email_subject_'. $term->tid, '[[simplenews-newsletters-name]] [title-raw]');
+        $subject = token_replace($subject, 'simplenews', $context);
+        $subject = token_replace($subject, 'node', $context);
         $subject = str_replace(array("\r", "\n"), '', $subject);
         $message['subject'] = $messages[$nid][$langcode]['subject'] = $subject;
 
@@ -1620,12 +1660,12 @@ function simplenews_mail($key, &$message, $params) {
         // Buffer body text node and language specific
         $messages[$nid][$langcode]['body'] = $body;
 
-        // Build and buffer message footer
-        $footer = theme(array('simplenews_newsletter_footer__'. $context['node']->simplenews['tid'], 'simplenews_newsletter_footer'), $context['node'], $key, $message['language']);
-        $messages[$nid][$langcode]['footer'] = $footer;
+        if (variable_get('simplenews_opt_inout_'. $tid, 'double') != 'hidden') {
+          // Build and buffer message footer
+          $footer = theme(array('simplenews_newsletter_footer__'. $context['node']->simplenews['tid'], 'simplenews_newsletter_footer'), $context['node'], $key, $message['language']);
+          $messages[$nid][$langcode]['footer'] = $footer;
+        }
 
-        // Restore the custom theme.
-        $custom_theme = $org_cutom_theme;
       }
       else {
         // Get message data from buffer
@@ -1999,6 +2039,32 @@ function simplenews_call_actions($op, $subscription) {
 }
 
 /**
+ * Get array of newsletters with names translated.
+ *
+ * If required newsletter names are translated based on the global language.
+ * Hidden newsletters (opt-in/out setting is 'none') are not included.
+ * @param int $vid
+ *   Newsletter vocabulary ID
+ * @param boolean $show_all
+ *   On false hidden newsletters will not be returned.
+ *   On true all newsletter will be returned.
+ * @return array of newsletters objects.
+ */
+function simplenews_get_newsletters($vid, $show_all = FALSE) {
+  $newsletters = array();
+
+  foreach (taxonomy_get_tree($vid) as $term) {
+    if (variable_get('simplenews_opt_inout_'. $term->tid, 'double') != 'none' || $show_all) {
+      $newsletter = new stdClass();
+      $newsletter->tid = $term->tid;
+      $newsletter->name = _simplenews_tt_newsletter_name($term);
+      $newsletters[$term->tid] = $newsletter;
+    }
+  }
+  return $newsletters;
+}
+
+/**
  * Build formatted from-name and email for a mail object.
  *
  * Each newsletter (serie; tid) can have a different from address.
@@ -2233,11 +2299,7 @@ function simplenews_token_values($type, $object = NULL, $options = array()) {
       if (!$newsletter_name) {
         if (isset($node->simplenews['tid'])) {
           if ($term = taxonomy_get_term($node->simplenews['tid'])) {
-            $newsletter_name = $term->name;
-            // Translate newsletter name if required.
-            if (module_exists('i18ntaxonomy') && i18ntaxonomy_vocabulary(variable_get('simplenews_vid', '')) == I18N_TAXONOMY_LOCALIZE) {
-              $newsletter_name = tt('taxonomy:term:'. $newsletter->tid .':name', $newsletter_name, $language);
-            }
+            $newsletter_name = _simplenews_tt_newsletter_name($newsletter, $language);
           }
         }
       }
@@ -2320,6 +2382,28 @@ function simplenews_help($path, $arg) {
       $help = '<p>'. t("'Plain' display settings apply to the content of emails send in plain text format. 'HTML' display settings apply to both HTML and plain text alternative content of emails send in HTML format.") ."</p>\n";
       return $help;
   }
+}
+
+/**
+ * Helper function to translate a newsletter name if required.
+ *
+ * @param <object> $newsletter
+ *   Newsletter object. Typically from taxonomy_get_term().
+ *    $newsletter -> tid    newsletter tid
+ *    $newsletter -> name   newsletter name
+ * @param <string> $langcode
+ *   Optional language code (defaults to current global $language);
+ *
+ * @return <string> translated newsletter name.
+ */
+function _simplenews_tt_newsletter_name($newsletter, $langcode = NULL) {
+  global $language;
+  $langcode = isset($langcode) ? $langcode : $language->language;
+
+  if (module_exists('i18ntaxonomy') && i18ntaxonomy_vocabulary(variable_get('simplenews_vid', '')) == I18N_TAXONOMY_LOCALIZE) {
+    return tt('taxonomy:term:'. $newsletter->tid .':name', $newsletter->name, $langcode);
+  }
+  return $newsletter->name;
 }
 
 /**

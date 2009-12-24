@@ -104,9 +104,9 @@ function simplenews_types_overview() {
   $rows = array();
   $header = array(t('Newsletter name'), t('Subscribers'), t('Operations'));
 
-  foreach (taxonomy_get_tree(variable_get('simplenews_vid', '')) as $term) {
-    $count = simplenews_count_subscriptions($term->tid);
-    $rows[] = array(check_plain($term->name), $count, l(t('edit newsletter'), 'admin/content/simplenews/types/edit/'. $term->tid));
+  foreach (simplenews_get_newsletters(variable_get('simplenews_vid', ''), TRUE) as $newsletter) {
+    $count = simplenews_count_subscriptions($newsletter->tid);
+    $rows[] = array(check_plain($newsletter->name), $count, l(t('edit newsletter'), 'admin/content/simplenews/types/edit/'. $newsletter->tid));
   }
 
   if (count($rows) == 0) {
@@ -170,6 +170,29 @@ function simplenews_admin_types_form(&$form_state, $tid = NULL) {
     '#default_value' => isset($term->weight) ? $term->weight : 0,
   );
 
+  $form['subscription'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Subscription settings'),
+    '#collapsible' => FALSE,
+  );
+  $options = array('none' => t('None'), 'on' => t('Default on'), 'off' => t('Default off'), 'silent' => t('Silent'));
+  $form['subscription']['simplenews_new_account_'. $term->tid] = array(
+    '#type' => 'select',
+    '#title' => t('Subscribe new account'),
+    '#options' => $options,
+    '#default_value' => variable_get('simplenews_new_account_'. $term->tid, 'none'),
+    '#description' => t('None: This newsletter is not listed on the user registration page.<br />Default on: This newsletter is listed on the user registion page and is selected by default.<br />Default off: This newsletter is listed on the user registion page and is not selected by default.<br />Silent: A new user is automatically subscribed to this newsletter. The newsletter is not listed on the user registration page.'),
+  );
+  
+  $options = array('hidden' => t('Hidden'), 'single' => t('Single'), 'double' => t('Double'));
+  $form['subscription']['simplenews_opt_inout_'. $term->tid] = array(
+    '#type' => 'select',
+    '#title' => t('Opt-in/out method'),
+    '#options' => $options,
+    '#default_value' => variable_get('simplenews_opt_inout_'. $term->tid, 'double'),
+    '#description' => t('Hidden: This newsletter does not appear on subscription forms. No unsubscription footer in newsletter.<br /> Single: Users are (un)subscribed immediately.<br />Double: When (un)subscribing at a subscription form, anonymous users receive an (un)subscription confirmation email. Authenticated users are (un)subscribed immediately.'),
+  );
+
   $form['simplenews_sender_information'] = array(
     '#type' => 'fieldset',
     '#title' => t('Sender information'),
@@ -182,6 +205,29 @@ function simplenews_admin_types_form(&$form_state, $tid = NULL) {
     '#maxlength' => 128,
     '#default_value' => variable_get('simplenews_from_name_'. $term->tid, variable_get('simplenews_from_name', variable_get('site_name', 'Drupal'))),
   );
+  $form['simplenews_subject'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Newsletter subject'),
+    '#collapsible' => FALSE,
+  );
+  $form['simplenews_subject']['token_help'] = array(
+    '#title' => t('Replacement patterns'),
+    '#type' => 'fieldset',
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+  );
+  $form['simplenews_subject']['token_help']['help'] = array(
+    '#value' => theme('token_help', 'simplenews') . theme('token_help', 'node'),
+  );
+  $form['simplenews_subject']['simplenews_email_subject_'. $term->tid] = array(
+    '#type' => 'textfield',
+    '#title' => t('Email subject'),
+    '#size' => 60,
+    '#maxlength' => 128,
+    '#required' => TRUE,
+    '#default_value' => variable_get('simplenews_email_subject_'. $term->tid, '[[simplenews-newsletters-name]] [title-raw]'),
+  );
+
   $form['simplenews_sender_information']['simplenews_from_address_'. $term->tid] = array(
     '#type' => 'textfield',
     '#title' => t('From email address'),
@@ -285,6 +331,8 @@ function simplenews_admin_types_form_submit($form, &$form_state) {
   variable_set('simplenews_from_name_'. $tid, $form_state['values']['simplenews_from_name_'. $suffix]);
   variable_set('simplenews_from_address_'. $tid, $form_state['values']['simplenews_from_address_'. $suffix]);
   variable_set('simplenews_hyperlinks_'. $tid, $form_state['values']['simplenews_hyperlinks_'. $suffix]);
+  variable_set('simplenews_new_account_'. $tid, $form_state['values']['simplenews_new_account_'. $suffix]);
+  variable_set('simplenews_opt_inout_'. $tid, $form_state['values']['simplenews_opt_inout_'. $suffix]);
 }
 
 /**
@@ -391,7 +439,7 @@ function simplenews_subscription_list_add() {
     '#description' => t('Email addresses must be separated by comma, space or newline.'),
   );
   $newsletters = array();
-  foreach (taxonomy_get_tree(variable_get('simplenews_vid', '')) as $newsletter) {
+  foreach (simplenews_get_newsletters(variable_get('simplenews_vid', ''), TRUE) as $newsletter) {
     $newsletters[$newsletter->tid] = check_plain($newsletter->name);
   }
   $form['newsletters'] = array(
@@ -431,7 +479,6 @@ function simplenews_subscription_list_add() {
 }
 
 function simplenews_subscription_list_add_submit($form, &$form_state) {
-  $tree = taxonomy_get_tree(variable_get('simplenews_vid', ''));
   $added = array();
   $invalid = array();
   $checked_newsletters = array_filter($form_state['values']['newsletters']);
@@ -486,7 +533,7 @@ function simplenews_subscription_list_export() {
     '#required' => TRUE,
   );
   $newsletters = array();
-  foreach (taxonomy_get_tree(variable_get('simplenews_vid', '')) as $newsletter) {
+  foreach (simplenews_get_newsletters(variable_get('simplenews_vid', ''), TRUE) as $newsletter) {
     $newsletters[$newsletter->tid] = check_plain($newsletter->name);
   }
   $form['newsletters'] = array(
@@ -523,11 +570,9 @@ function simplenews_admin_export_after_build($form, $form_element) {
       $where[] = 's.activated = 0';
     }
     $where = isset($where) ? implode(' OR ', $where) : NULL;
-    if ($tree = taxonomy_get_tree(variable_get('simplenews_vid', ''))) {
-      foreach ($tree as $newsletter) {
-        if (isset($newsletters[$newsletter->tid])) {
-          $where_tid[] = 't.tid = '. $newsletter->tid;
-        }
+    foreach (simplenews_get_newsletters(variable_get('simplenews_vid', ''), TRUE) as $newsletter) {
+      if (isset($newsletters[$newsletter->tid])) {
+        $where_tid[] = 't.tid = '. $newsletter->tid;
       }
     }
     $where_tid = isset($where_tid) ? implode(' OR ', $where_tid) : NULL;
@@ -575,7 +620,7 @@ function simplenews_subscription_list_remove() {
     '#description' => t('Email addresses must be separated by comma, space or newline.'),
   );
   $newsletters = array();
-  foreach (taxonomy_get_tree(variable_get('simplenews_vid', '')) as $newsletter) {
+  foreach (simplenews_get_newsletters(variable_get('simplenews_vid', ''), TRUE) as $newsletter) {
     $newsletters[$newsletter->tid] = check_plain($newsletter->name);
   }
   $form['newsletters'] = array(
@@ -592,7 +637,6 @@ function simplenews_subscription_list_remove() {
 }
 
 function simplenews_subscription_list_remove_submit($form, &$form_state) {
-  $tree = taxonomy_get_tree(variable_get('simplenews_vid', ''));
   $removed = array();
   $invalid = array();
   $checked_newsletters = array_filter($form_state['values']['newsletters']);
@@ -1047,7 +1091,7 @@ function simplenews_get_filter($type, $na = TRUE) {
     $queries['na'] = 's.tid = 0';
   }
   // Data for each newsletter
-  foreach (taxonomy_get_tree(variable_get('simplenews_vid', '')) as $newsletter) {
+  foreach (simplenews_get_newsletters(variable_get('simplenews_vid', ''), TRUE) as $newsletter) {
     $names[$newsletter->tid] = $newsletter->name;
     $queries[$newsletter->tid] = 's.tid = '. $newsletter->tid;
   }
@@ -1065,7 +1109,7 @@ function simplenews_subscription_filters() {
       'all'   => t('All newsletters'),
     ),
   );
-  foreach (taxonomy_get_tree(variable_get('simplenews_vid', '')) as $newsletter) {
+  foreach (simplenews_get_newsletters(variable_get('simplenews_vid', ''), TRUE) as $newsletter) {
     $filters['newsletter']['options']['tid-'. $newsletter->tid] = $newsletter->name;
   }
 
