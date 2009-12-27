@@ -45,7 +45,7 @@ define('SIMPLENEWS_STATUS_SEND_READY', 2);
  */
 define('SIMPLENEWS_SPOOL_HOLD', 0);
 define('SIMPLENEWS_SPOOL_PENDING', 1);
-define('SIMPLENEWS_SPOOL_SEND', 2);
+define('SIMPLENEWS_SPOOL_DONE', 2);
 
 /**
  * AFTER EACH 100 NEWSLETTERS
@@ -1695,7 +1695,7 @@ function simplenews_mail_mail($nid, $vid, $mail, $key = 'node') {
       $message = drupal_mail('simplenews', $key, $subscription->mail, $subscription->language, $params, $params['from']['address'], TRUE);
     }
 
-    // Log sent message.
+    // Log sent result in watchdog.
     if (variable_get('simplenews_debug', FALSE)) {
       if (module_exists('mimemail')) {
         $via_mimemail = t('Sent via Mime Mail');
@@ -1708,9 +1708,32 @@ function simplenews_mail_mail($nid, $vid, $mail, $key = 'node') {
         watchdog('simplenews', 'Outgoing email failed. Message type: %type<br />Subject: %subject<br />Recipient: %to %mimemail', array('%type' => $key, '%to' => $message['to'], '%subject' => $message['subject'], '%mimemail' => $via_mimemail), WATCHDOG_ERROR);
       }
     }
+
+    // Build array of sent results for spool table and reporting.
+    if ($message['result']) {
+      $message['result'] = array(
+        'status' => SIMPLENEWS_SPOOL_DONE,
+        'error' => FALSE,
+      );
+    }
+    else {
+      // This error may be caused by faulty mailserver configuration or overload.
+      // Mark "pending" to keep trying.
+      $message['result'] = array(
+        'status' => SIMPLENEWS_SPOOL_PENDING,
+        'error' => TRUE,
+      );
+    }
+
   }
   else {
-    watchdog('simplenews', 'Newsletter not send: node does not exist (nid = @nid; vid = @vid).', array('@nid' => $message['nid'], '@vid' => $message['vid']), WATCHDOG_ERROR);
+    // Node could not be loaded. The node is probably deleted while pending to be sent.
+    // This error is not recoverable, mark "done".
+    $message['result'] = array(
+      'status' => SIMPLENEWS_SPOOL_DONE,
+      'error' => TRUE,
+    );
+    watchdog('simplenews', 'Newsletter not send: newsletter issue does not exist (nid = @nid; vid = @vid).', array('@nid' => $message['nid'], '@vid' => $message['vid']), WATCHDOG_ERROR);
   }
 
   return isset($message['result']) ? $message['result'] : FALSE;
@@ -1719,7 +1742,7 @@ function simplenews_mail_mail($nid, $vid, $mail, $key = 'node') {
 /**
  * Send simplenews newsletters from the spool.
  *
- * Iindividual newsletter emails are stored in database spool.
+ * Individual newsletter emails are stored in database spool.
  * Sending is triggered by cron or immediately when the node is saved.
  * Mail data is retreived from the spool, rendered and send one by one
  * If sending is succesful the message is marked as send in the spool.
@@ -1730,7 +1753,7 @@ function simplenews_mail_spool($nid = NULL, $vid = NULL, $limit = NULL) {
   // A limited number of mails is retrieved from the spool
   $limit = isset($limit) ? $limit : variable_get('simplenews_throttle', 20);
   if ($messages = simplenews_get_spool(SIMPLENEWS_SPOOL_PENDING, $nid, $vid, $limit)) {
-    $mail_sent = array();
+    $count_fail = $count_success = 0;
 
     // Get PHP maximum execution time. 30 seconds default.
     $max_execution_time = ini_get('max_execution_time') ? ini_get('max_execution_time') : SIMPLENEWS_MAX_EXECUTION_TIME;
@@ -1740,12 +1763,15 @@ function simplenews_mail_spool($nid = NULL, $vid = NULL, $limit = NULL) {
     foreach ($messages as $key => $message) {
       $result = simplenews_mail_mail($message['nid'], $message['vid'], $message['mail']);
 
-      // Update spool status if mail is sent succesfully.
+      // Update spool status.
       // This is not optimal for performance but prevents duplicate emails
       // in case of PHP execution time overrun.
-      if ($result) {
-        simplenews_update_spool(array($key), SIMPLENEWS_SPOOL_SEND);
-        $mail_sent[] = $key;
+      simplenews_update_spool(array($key), $result);
+      if ($result['status'] == SIMPLENEWS_SPOOL_DONE) {
+        $count_success ++;
+      }
+      if ($result['error']) {
+        $count_fail ++;
       }
 
       // Check every n emails if we exceed the limit.
@@ -1768,10 +1794,10 @@ function simplenews_mail_spool($nid = NULL, $vid = NULL, $limit = NULL) {
     // Report sent result and elapsed time. On Windows systems retrusage() is
     // not implemented and hence no elapsed time is available.
     if (function_exists('getrusage')) {
-      watchdog('simplenews', '%count emails sent in %sec seconds.', array('%count' => count($mail_sent), '%sec' => round(_simplenews_measure_usec(), 1)));
+      watchdog('simplenews', '%success emails sent in %sec seconds, %fail failed sending.', array('%success' => $count_success, '%sec' => round(_simplenews_measure_usec(), 1), '%fail' => $count_fail));
     }
     else {
-      watchdog('simplenews', '%count emails sent.', array('%count' => count($mail_sent)));
+      watchdog('simplenews', '%success emails sent, %fail failed.', array('%success' => $count_success, '%fail' => $count_fail));
     }
   }
 }
@@ -1833,14 +1859,19 @@ function simplenews_get_spool($status, $nid = NULL, $vid = NULL, $limit = 999999
  *
  * Time stamp is set to current time.
  *
- * @param array $msids Mail spool id of record to be updated
- * @param string $status New status (0 = hold, 1 = pending, 2 = send)
+ * @param array $msids
+ *   Mail spool id of record to be updated
+ * @param array $result
+ *   Array containing email sent result
+ *    'status' => (0 = hold, 1 = pending, 2 = send)
+ *    'error' => error id (optional; defaults to '')
  */
-function simplenews_update_spool($msids, $status) {
-  $params[] = $status;
+function simplenews_update_spool($msids, $result) {
+  $params[] = $result['status'];
+  $params[] = isset($result['error']) ? $result['error'] : FALSE;
   $params[] = time();
   $params = array_merge($params, $msids);
-  db_query("UPDATE {simplenews_mail_spool} SET status = %d, timestamp = %d WHERE msid IN(". db_placeholders($msids, 'int') .")", $params);
+  db_query("UPDATE {simplenews_mail_spool} SET status = %d, error = '%s', timestamp = %d WHERE msid IN(". db_placeholders($msids, 'int') .")", $params);
 }
 
 /**
@@ -1864,7 +1895,7 @@ function simplenews_count_spool($nid, $vid, $status = SIMPLENEWS_SPOOL_PENDING) 
  */
 function simplenews_clear_spool() {
   $expiration_time = time() - variable_get('simplenews_spool_expire', 0) * 86400;
-  db_query("DELETE FROM {simplenews_mail_spool} WHERE status = %d AND timestamp <= %d", SIMPLENEWS_SPOOL_SEND, $expiration_time);
+  db_query("DELETE FROM {simplenews_mail_spool} WHERE status = %d AND timestamp <= %d", SIMPLENEWS_SPOOL_DONE, $expiration_time);
 }
 
 /**
