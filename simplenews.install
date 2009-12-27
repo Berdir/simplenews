@@ -599,3 +599,7 @@ function simplenews_update_6009() {
   db_add_field($ret, 'simplenews_mail_spool', 'error', array('type' => 'int', 'not null' => TRUE, 'default' => 0));
   return $ret;
 }
+
+function simplenews_update_6200() {
+  // Added for compatibility with HEAD.
+}
