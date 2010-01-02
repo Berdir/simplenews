@@ -146,7 +146,7 @@ function simplenews_admin_types_form(&$form_state, $tid = NULL) {
     '#title' => t('Newsletter name'),
     '#size' => 50,
     '#maxlength' => 128,
-    '#description' => t('This name of this newsletter.'),
+    '#description' => t('The name of this newsletter.'),
     '#required' => TRUE,
     '#default_value' => isset($term->name) ? $term->name : '',
   );
