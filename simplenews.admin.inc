@@ -149,7 +149,7 @@ function simplenews_admin_types_form(&$form_state, $tid = NULL) {
     '#title' => t('Newsletter name'),
     '#size' => 50,
     '#maxlength' => 128,
-    '#description' => t('This name of this newsletter.'),
+    '#description' => t('The name of this newsletter.'),
     '#required' => TRUE,
     '#default_value' => isset($term->name) ? $term->name : '',
   );
@@ -955,7 +955,7 @@ function simplenews_admin_settings_mail(&$form_state) {
   $throttle = drupal_map_assoc(array(1, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000));
   $throttle[999999] = t('Unlimited');
   if (function_exists('getrusage')) {
-    $description_extra = '<br />'. t('Cron execution must not exceed the PHP maximum execution time of %max seconds. You find the time spend to send emails in the <a href="/admin/reports/dblog">Recent log entries</a>.', array('%max' => ini_get('max_execution_time')));
+    $description_extra = '<br />'. t('Cron execution must not exceed the PHP maximum execution time of %max seconds. You find the time spend to sent emails in the <a href="/admin/reports/dblog">Recent log entries</a>.', array('%max' => ini_get('max_execution_time')));
   }
   else {
     $description_extra = '<br />'. t('Cron execution must not exceed the PHP maximum execution time of %max seconds.', array('%max' => ini_get('max_execution_time')));

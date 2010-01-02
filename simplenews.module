@@ -40,7 +40,7 @@ define('SIMPLENEWS_SUBSCRIPTION_STATUS_SUBSCRIBED', 1);
 define('SIMPLENEWS_SUBSCRIPTION_STATUS_UNSUBSCRIBED', 0);
 
 /**
- * NEWSLETTER SEND STATUS
+ * NEWSLETTER SENT STATUS
  */
 define('SIMPLENEWS_STATUS_SEND_NOT', 0);
 define('SIMPLENEWS_STATUS_SEND_PENDING', 1);
@@ -1961,7 +1961,7 @@ function simplenews_update_spool($msids, $result) {
  *
  * @param integer $nid newsletter node id
  * @param integer $vid newsletter revision id
- * @param string $status email send status
+ * @param string $status email sent status
  *
  * @return array Mail message array
  */
@@ -1981,14 +1981,14 @@ function simplenews_clear_spool() {
 }
 
 /**
- * Update newsletter send status.
+ * Update newsletter sent status.
  *
- * Set newsletter send status based on email send status in spool table.
+ * Set newsletter sent status based on email sent status in spool table.
  * Translated and untranslated nodes get a different treatment.
  *
  * The spool table holds data for emails to be send and (optionally)
  * already send emails. The simplenews_newsletters table contains the overall
- * send status of each newsletter issue (node).
+ * sent status of each newsletter issue (node).
  * Newsletter issues get the status pending when sending is innitiated. As
  * long as unsend emails exist in the spool, the status of the newsletter remains
  * unsend. When no pending emails are found the newsletter status is set 'send'.
@@ -2407,7 +2407,7 @@ function simplenews_help($path, $arg) {
       $help = '<p>'. t('You can create different newsletters (or subjects) to categorize your news (e.g. Cats news, Dogs news, ...).') ."</p>\n";
       return $help;
     case 'admin/content/node-type/simplenews/display/simplenews':
-      $help = '<p>'. t("'Plain' display settings apply to the content of emails send in plain text format. 'HTML' display settings apply to both HTML and plain text alternative content of emails send in HTML format.") ."</p>\n";
+      $help = '<p>'. t("'Plain' display settings apply to the content of emails sent in plain text format. 'HTML' display settings apply to both HTML and plain text alternative content of emails sent in HTML format.") ."</p>\n";
       return $help;
   }
 }
