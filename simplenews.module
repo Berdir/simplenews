@@ -555,7 +555,7 @@ function simplenews_form_alter(&$form, $form_state, $form_id) {
       // translation source (and non translated) newsletters will get these options.
       if (module_exists('translation') && translation_supported_type($form['#node']->type) &&
           (isset($form['#node']->translation_source) || ($form['#node']->tnid && $form['#node']->tnid != $form['#node']->nid))) {
-        $form['simplenews']['#description'] = t('This newsletter issue is part of a translation set. Sending this set is controlled from the <a href="@link">translation source newsletter</a>.', array('@link' => '/node/'. $form['tnid']['#value']));
+        $form['simplenews']['#description'] = t('This newsletter issue is part of a translation set. Sending this set is controlled from the <a href="@link">translation source newsletter</a>.', array('@link' => url('node/'. $form['tnid']['#value'])));
         // Send option of translated newsletters are not used, but a default is
         // required to prevent errors when data is stored in the database.
         $form['simplenews']['send'] = array('#type' => 'hidden', '#value' => SIMPLENEWS_COMMAND_SEND_NONE);
