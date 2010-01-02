@@ -404,7 +404,7 @@ function simplenews_nodeapi(&$node, $op, $teaser, $page) {
       }
 
       // When this node is selected for translation all translation of this node
-      // will be send too.
+      // will be sent too.
       // All translated nodes will receive the same send states (priority, confirmation, format).
       if (module_exists('translation') && translation_supported_type($node->type) && $send_with_permission) {
         if ($translations = translation_node_get_translations($node->tnid))  {
@@ -1360,7 +1360,7 @@ function simplenews_block_form_submit($form, &$form_state) {
 /**
  * Send newsletter node to subcribers.
  *
- * @param integer or object $node Newsletter node to be send. integer = nid; object = node object
+ * @param integer or object $node Newsletter node to be sent. integer = nid; object = node object
  * @param array $accounts  account objects to send the newsletter to.
  *   account = object (
  *     snid     = subscription id. 0 if no subscription record exists
@@ -1426,7 +1426,7 @@ function simplenews_send_node($node, $accounts = array()) {
 /**
  * Send test version of newsletter.
  *
- * @param integer or object $node Newsletter node to be send. Integer = nid; Object = node object
+ * @param integer or object $node Newsletter node to be sent. Integer = nid; Object = node object
  */
 function simplenews_send_test($node) {
   if (is_numeric($node)) {
@@ -1463,7 +1463,7 @@ function simplenews_send_test($node) {
  *          [headers][From]
  *          [language]            : preferred message language
  * @param array $params parameter array
- *          [context][node]       : node object of message to be send
+ *          [context][node]       : node object of message to be sent
  *          [context][snid]       : used for $key = subscribe or unsubscribe
  *          [context][from_name]  : name of mail sender or site name (optional)
  *          [context][account]    : account details of recipient
@@ -1776,13 +1776,13 @@ function simplenews_mail_spool($nid = NULL, $vid = NULL, $limit = NULL) {
 
       // Check every n emails if we exceed the limit.
       // When PHP maximum execution time is almost elapsed we interrupt
-      // sending. The remainder will be send during the next cron run.
+      // sending. The remainder will be sent during the next cron run.
       if (++$check_counter >= SIMPLENEWS_SEND_CHECK_INTERVAL) {
         $check_counter = 0;
         // Break the sending if a percentage of max execution time was exceeded.
         $elapsed = _simplenews_measure_usec();
         if ($elapsed > SIMPLENEWS_SEND_TIME_LIMIT * $max_execution_time) {
-          watchdog('simplenews', 'Sending interrupted: PHP maximum execution time almost exceeded. Remaining newsletters will be send during the next cron run. If this warning occurs regularly you should reduce the !cron_throttle_setting.', array('!cron_throttle_setting' => l(t('Cron throttle setting'), 'admin/settings/simplenews/mail')), WATCHDOG_WARNING);
+          watchdog('simplenews', 'Sending interrupted: PHP maximum execution time almost exceeded. Remaining newsletters will be sent during the next cron run. If this warning occurs regularly you should reduce the !cron_throttle_setting.', array('!cron_throttle_setting' => l(t('Cron throttle setting'), 'admin/settings/simplenews/mail')), WATCHDOG_WARNING);
           break;
         }
       }
@@ -1904,7 +1904,7 @@ function simplenews_clear_spool() {
  * Set newsletter sent status based on email sent status in spool table.
  * Translated and untranslated nodes get a different treatment.
  *
- * The spool table holds data for emails to be send and (optionally)
+ * The spool table holds data for emails to be sent and (optionally)
  * already send emails. The simplenews_newsletters table contains the overall
  * sent status of each newsletter issue (node).
  * Newsletter issues get the status pending when sending is innitiated. As
