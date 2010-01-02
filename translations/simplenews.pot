@@ -789,11 +789,7 @@ msgid "Current subscriptions"
 msgstr ""
 
 #: simplenews.module:815 simplenews/simplenews.module:815
-msgid "Manage !my_subscriptions"
-msgstr ""
-
-#: simplenews.module:815 simplenews/simplenews.module:815
-msgid "my subscriptions"
+msgid "Manage <a href="!url">my subscriptions</a>"
 msgstr ""
 
 #: simplenews.module:834 simplenews/simplenews.module:834

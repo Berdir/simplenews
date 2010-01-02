@@ -812,7 +812,7 @@ function simplenews_user($op, &$edit, &$account, $category = NULL) {
         if (user_access('subscribe to newsletters')) {
           $account->content['simplenews']['my_newsletters'] = array(
             '#type' => 'user_profile_item',
-            '#value' => t('Manage !my_subscriptions', array('!my_subscriptions' => l(t('my subscriptions'), 'user/'. $account->uid .'/edit/newsletter'))),
+            '#value' => t('Manage <a href="!url">my subscriptions</a>', array('!url' => url('user/'. $account->uid .'/edit/newsletter'))),
             '#weight' => -1,
           );
         }
