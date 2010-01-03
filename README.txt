@@ -5,7 +5,7 @@ DESCRIPTION
 
 Simplenews publishes and sends newsletters to lists of subscribers. Both
 anonymous and authenticated users can opt-in to different mailing lists. 
-HTML email can be send by adding Mime mail module.
+HTML email can be sent by adding Mime mail module.
 
 
 REQUIREMENTS
@@ -132,9 +132,9 @@ INSTALLATION
     
     Don't use cron:
      * Uncheck the 'Use cron to send newsletters' checkbox.
-       All newsletters will be send immediately when saving the node. If not 
+       All newsletters will be sent immediately when saving the node. If not 
        all emails can be sent within the available php execution time, the 
-       remainder will be send by cron. Therefore ALWAYS enable cron.
+       remainder will be sent by cron. Therefore ALWAYS enable cron.
 
     These settings are found on the Newsletter Settings page under
     'Send mail' options at:
