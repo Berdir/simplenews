@@ -1771,7 +1771,7 @@ function simplenews_mail_mail($nid, $vid, $mail, $key = 'node') {
       );
     }
     else {
-      $message = drupal_mail('simplenews', $key, $subscription->mail, $subscription->language, $params, $params['from']['address'], TRUE);
+      $message = drupal_mail('simplenews', $key, $subscription->mail, $subscription->language, $params, $params['from']['formatted'], TRUE);
     }
 
     // Log sent result in watchdog.
