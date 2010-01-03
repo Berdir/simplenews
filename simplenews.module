@@ -1678,10 +1678,11 @@ function simplenews_mail_mail($nid, $vid, $mail, $key = 'node') {
       // If mimemail module is installed ALL emails are send via this module.
       // drupal_mail() builds the content of the email but does NOT send.
       $message = drupal_mail('simplenews', $key, $subscription->mail, $subscription->language, $params, $params['from']['formatted'], FALSE);
-      $plain = $message['params']['context']['node']->simplenews['s_format'] == 'plain';
+      $to = isset($message['params']['context']['account']) ? $message['params']['context']['account'] : $message['to'];
+      $plain = $message['params']['context']['node']->simplenews['s_format'] == 'plain' ? TRUE : NULL;
       $message['result'] = mimemail(
         $message['from'],
-        $message['to'],
+        $to,
         $message['subject'],
         $message['body'],
         $plain,
