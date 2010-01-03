@@ -676,6 +676,9 @@ function simplenews_form_alter(&$form, $form_state, $form_id) {
 function simplenews_cron() {
   simplenews_mail_spool();
   simplenews_clear_spool();
+  // Update sent status for newsletter admin panel.
+  simplenews_send_status_update();
+
 }
 
 /**
@@ -1788,9 +1791,6 @@ function simplenews_mail_spool($nid = NULL, $vid = NULL, $limit = NULL) {
         }
       }
     }
-
-    // Update sent status for newsletter admin panel.
-    simplenews_send_status_update();
 
     // Report sent result and elapsed time. On Windows systems retrusage() is
     // not implemented and hence no elapsed time is available.
