@@ -144,6 +144,15 @@ INSTALLATION
 
     A subscription page is available at: /newsletter/subscriptions
 
+    If your unsubscribe URL looks like:
+      http:///newsletter/confirm/remove/8acd182182615t632
+    instead of:
+      http://www.mysite.org/newsletter/confirm/remove/8acd182182615t632
+    You should change the base URL in the settings.php file from
+      #  $base_url = 'http://www.example.com';  // NO trailing slash!
+    to
+      $base_url = 'http://www.mysite.org';  // NO trailing slash!
+
 DOCUMENTATION
 -------------
 More help can be found on the help pages: example.com/admin/help/simplenews
