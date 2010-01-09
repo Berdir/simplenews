@@ -724,7 +724,7 @@ function simplenews_user($op, &$edit, &$account, $category = NULL) {
       // Determine to which other newsletter a user is automatically subscribed.
       foreach(simplenews_get_newsletters(variable_get('simplenews_vid', ''), TRUE) as $newsletter) {
         $subscribe_new_account = variable_get('simplenews_new_account_'. $newsletter->tid, 'none');
-        $opt_inout_method = variable_get('simplenews_opt_inout_'. $term->tid, 'double');
+        $opt_inout_method = variable_get('simplenews_opt_inout_'. $newsletter->tid, 'double');
         if (($subscribe_new_account == 'on' || $subscribe_new_account == 'off') && ($opt_inout_method == 'single' || $opt_inout_method == 'double')) {
           $options[$newsletter->tid] = check_plain($newsletter->name);
           $default_value[$newsletter->tid] = $subscribe_new_account == 'on';
