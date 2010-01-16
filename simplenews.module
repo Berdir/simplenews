@@ -1742,6 +1742,8 @@ function simplenews_mail($key, &$message, $params) {
  * @return TRUE if email is succesfully delivered by php mail()
  */
 function simplenews_mail_mail($nid, $vid, $mail, $key = 'node') {
+  static $cache;
+
   // Get subscription data for recipient and language
   $account = new stdClass();
   $account->mail = $mail;
@@ -1749,7 +1751,15 @@ function simplenews_mail_mail($nid, $vid, $mail, $key = 'node') {
   $params['context']['account'] = $subscription;
 
   // Get node data for the mail
-  $node = node_load($nid, $vid);
+  // Because node_load() only caches the most recent node we cache here based on nid and vid.
+  if (isset($cache["$nid:$vid"])) {
+    $node = $cache["$nid:$vid"];
+  }
+  else {
+    $node = node_load($nid, $vid);
+    $cache["$nid:$vid"] = $node;
+  }
+
   if (is_object($node)) {
     $params['from'] = _simplenews_set_from($node);
     $params['context']['newsletter'] = taxonomy_get_term($node->simplenews['tid']);
