@@ -779,7 +779,7 @@ function simplenews_user($op, &$edit, &$account, $category = NULL) {
           foreach(explode(',', $data['simplenews_hidden']) as $tid) {
             simplenews_subscribe_user($account->mail, $tid, FALSE, 'automatically');
           }
-          unset($data['simplenews_hidden']);
+          $data['simplenews_hidden'] = NULL;
           $processed = TRUE;
         }
 
@@ -790,13 +790,13 @@ function simplenews_user($op, &$edit, &$account, $category = NULL) {
             $newsletters = simplenews_get_newsletters(variable_get('simplenews_vid', ''), TRUE);
             drupal_set_message(t('You have been subscribed to %newsletter.', array('%newsletter' => $newsletters[$tid]->name)));
           }
-          unset($data['newsletters']);
+          $data['newsletters'] = NULL;
           $processed = TRUE;
         }
 
-        // If subscription data is processes, we remove it form the data variable.
+        // If subscription data is processed, we update the user data to remove it.
         if ($processed) {
-          $account->data = serialize($data);
+          user_save($account, $data);
         }
       }
       break;
