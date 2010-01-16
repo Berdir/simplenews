@@ -2071,7 +2071,7 @@ function simplenews_call_actions($op, $subscription) {
  * Get array of newsletters with names translated.
  *
  * If required newsletter names are translated based on the global language.
- * Hidden newsletters (opt-in/out setting is 'none') are not included.
+ * Hidden newsletters (opt-in/out setting is 'hidden') are not included.
  * @param int $vid
  *   Newsletter vocabulary ID
  * @param boolean $show_all
@@ -2083,7 +2083,7 @@ function simplenews_get_newsletters($vid, $show_all = FALSE) {
   $newsletters = array();
 
   foreach (taxonomy_get_tree($vid) as $term) {
-    if (variable_get('simplenews_opt_inout_'. $term->tid, 'double') != 'none' || $show_all) {
+    if (variable_get('simplenews_opt_inout_'. $term->tid, 'double') != 'hidden' || $show_all) {
       $newsletter = new stdClass();
       $newsletter->tid = $term->tid;
       $newsletter->name = _simplenews_tt_newsletter_name($term);
