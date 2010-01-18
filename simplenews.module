@@ -1369,10 +1369,12 @@ function simplenews_block_form(&$form_state, $tid) {
     if (simplenews_user_is_subscribed($user->mail, $tid)) {
       $submit_text = t('Unsubscribe');
       $form['action'] = array('#type' => 'value', '#value' => 'unsubscribe');
+      $form['#attributes'] = array('class' => 'simplenews-unsubscribe');
     }
     else {
       $submit_text = t('Subscribe');
       $form['action'] = array('#type' => 'value', '#value' => 'subscribe');
+      $form['#attributes'] = array('class' => 'simplenews-subscribe');
     }
     $form['display_mail'] = array(
       '#type' => 'item',
@@ -1391,6 +1393,7 @@ function simplenews_block_form(&$form_state, $tid) {
     );
     $submit_text = t('Subscribe');
     $form['action'] = array('#type' => 'value', '#value' => 'subscribe');
+    $form['#attributes'] = array('class' => 'simplenews-subscribe');
   }
 
   // All block forms use the same validate and submit function.
