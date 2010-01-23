@@ -92,12 +92,16 @@ function simplenews_subscription_manager_form_submit($form, &$form_state) {
  *
  * This function is called by clicking the confirm link in the confirmation
  * email or the unsubscribe link in the footer of the newsletter. It handles
- * both subscription and unsubscription.
+ * both subscription addition and subscription removal.
  *
  * @see simplenews_confirm_add_form()
  * @see simplenews_confirm_removal_form()
  */
-function simplenews_confirm_subscription($op1 = NULL, $op2 = NULL) {
+function simplenews_confirm_subscription() {
+  $arguments = func_get_args();
+  $op1 = array_shift($arguments);
+  $op2 = array_shift($arguments);
+
   $md5 = drupal_substr($op2, 0, 10);
   list($snid, $tid) = explode('t', drupal_substr($op2, 10));
 
@@ -109,11 +113,37 @@ function simplenews_confirm_subscription($op1 = NULL, $op2 = NULL) {
 
   if ($md5 == drupal_substr(md5($subs->mail . simplenews_private_key()), 0, 10)) {
     $newsletter = taxonomy_get_term($tid);
-    if ($op1 == 'remove') {
-      return drupal_get_form('simplenews_confirm_removal_form', $subs->mail, $newsletter);
+    // The confirmation page called with two arguments will display a confirmation question.
+    // When called with three of more arguments the user will be directed to the
+    // (un)subscribe confirmation page. The additional arguments will be passed on
+    // to the confirmation page.
+    if (empty($arguments)) {
+      if ($op1 == 'remove') {
+        return drupal_get_form('simplenews_confirm_removal_form', $subs->mail, $newsletter);
+      }
+      elseif ($op1 == 'add') {
+        return drupal_get_form('simplenews_confirm_add_form', $subs->mail, $newsletter);
+      }
     }
-    elseif ($op1 == 'add') {
-      return drupal_get_form('simplenews_confirm_add_form', $subs->mail, $newsletter);
+    else {
+      if ($op1 == 'remove') {
+        simplenews_unsubscribe_user($subs->mail, $tid, FALSE, 'website');
+        if ($path = variable_get('simplenews_confirm_unsubscribe_page', '')) {
+          $path = $path .'/'. implode('/', $arguments);
+          drupal_goto($path);
+        }
+        drupal_set_message(t('%user was unsubscribed from the %newsletter mailing list.', array('%user' => $subs->mail, '%newsletter' => $newsletter->name)));
+        drupal_goto(variable_get('site_frontpage', 'node'));
+      }
+      elseif ($op1 == 'add') {
+        simplenews_subscribe_user($subs->mail, $tid, FALSE, 'website');
+        if ($path = variable_get('simplenews_confirm_subscribe_page', '')) {
+          $path = $path .'/'. implode('/', $arguments);
+          drupal_goto($path);
+        }
+        drupal_set_message(t('%user was added to the %newsletter mailing list.', array('%user' => $subs->mail, '%newsletter' => $newsletter->name)));
+        drupal_goto(variable_get('site_frontpage', 'node'));
+      }
     }
   }
 
@@ -132,12 +162,12 @@ function simplenews_confirm_add_form(&$form_state, $mail, $newsletter) {
   $form['question'] = array('#value' => '<p>'. t('Are you sure you want to add %user to the %newsletter mailing list?', array('%user' => $mail, '%newsletter' => $newsletter->name)) ."<p>\n");
   $form['mail'] = array('#type' => 'value', '#value' => $mail);
   $form['newsletter'] = array('#type' => 'value', '#value' => $newsletter);
-  $form['#redirect'] = '';
+  $form['#redirect'] = variable_get('simplenews_confirm_subscribe_page', '');
 
   return confirm_form($form,
     t('Confirm subscription'),
     '',
-    t('You always have the option of unsubscribing later.'),
+    t('You will receive %newsletter mails.', array('%newsletter' => $newsletter->name)),
     t('Subscribe'),
     t('Cancel')
   );
@@ -145,7 +175,11 @@ function simplenews_confirm_add_form(&$form_state, $mail, $newsletter) {
 
 function simplenews_confirm_add_form_submit($form, &$form_state) {
   simplenews_subscribe_user($form_state['values']['mail'], $form_state['values']['newsletter']->tid, FALSE, 'website');
-  drupal_set_message(t('%user was added to the %newsletter mailing list.', array('%user' => $form_state['values']['mail'], '%newsletter' => $form_state['values']['newsletter']->name)));
+  
+  // Display message if user is directed to the front page.
+  if (!$form['#redirect']) {
+    drupal_set_message(t('%user was added to the %newsletter mailing list.', array('%user' => $form_state['values']['mail'], '%newsletter' => $form_state['values']['newsletter']->name)));
+  }
 }
 
 /**
@@ -158,20 +192,24 @@ function simplenews_confirm_removal_form(&$form_state, $mail, $newsletter) {
   $form['question'] = array('#value' => '<p>'. t('Are you sure you want to remove %user from the %newsletter mailing list?', array('%user' => $mail, '%newsletter' => $newsletter->name)) ."<p>\n");
   $form['mail'] = array('#type' => 'value', '#value' => $mail);
   $form['newsletter'] = array('#type' => 'value', '#value' => $newsletter);
-  $form['#redirect'] = '';
+  $form['#redirect'] = variable_get('simplenews_confirm_unsubscribe_page', '');
 
   return confirm_form($form,
-    t('Confirm unsubscription'),
+    t('Confirm remove subscription'),
     '',
-    t('This action will unsubscribe you from the newsletter mailing list.'),
+    t('You will no longer receive %newsletter mails.', array('%newsletter' => $newsletter->name)),
     t('Unsubscribe'),
     t('Cancel')
   );
 }
 
 function simplenews_confirm_removal_form_submit($form, &$form_state) {
+drupal_set_message(print_r($form));
   simplenews_unsubscribe_user($form_state['values']['mail'], $form_state['values']['newsletter']->tid, FALSE, 'website');
-  drupal_set_message(t('%user was unsubscribed from the %newsletter mailing list.', array('%user' => $form_state['values']['mail'], '%newsletter' => $form_state['values']['newsletter']->name)));
+  // Display message if user is directed to the front page.
+  if (!$form['#redirect']) {
+    drupal_set_message(t('%user was unsubscribed from the %newsletter mailing list.', array('%user' => $form_state['values']['mail'], '%newsletter' => $form_state['values']['newsletter']->name)));
+  }
 }
 
 /**

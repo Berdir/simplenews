@@ -140,12 +140,27 @@ INSTALLATION
     'Send mail' options at:
       Administer > Site configuration > Simplenews > Send mail.
 
- 11. TIPS
+ 11. (UN)SUBSCRIBE CONFIRMATION
+ 
+    By default the unsubscribe link will direct the user to a confirmation page.
+    Upon confirmation the user is directed to the home page, where a message
+    will be displayed. On the Simplenews subscription admin page you can
+    specify an alternative destination page.
+      Administer > Site configuration > Simplenews > Subscription
+    To skip the confirmation page you can add parameters to the subscription URL.
+      Example: [simplenews-subscribe-url]/ok
+    When an alternative destination page has been defined the extra parameters
+    will be added to the destination URL.
+      Example: [simplenews-subscribe-url]/ok
+      Destination: node/123
+      Destination URL: node/123/ok
+
+ 12. TIPS
 
     A subscription page is available at: /newsletter/subscriptions
     
     If your unsubscribe URL looks like:
-      http:///newsletter/confirm/remove/8acd182182615t632
+      http://newsletter/confirm/remove/8acd182182615t632
     instead of:
       http://www.mysite.org/newsletter/confirm/remove/8acd182182615t632
     You should change the base URL in the settings.php file from
