@@ -861,7 +861,9 @@ function simplenews_admin_settings_newsletter(&$form_state) {
   );
   $description = t('Default newsletter format.');
   if (!module_exists('mimemail')) {
-        $description .= ' '. t('Install <a href="@mime_mail_url">Mime Mail</a> module to send newsletters in HTML format.', array('@mime_mail_url' => 'http://drupal.org/project/mimemail'));
+        $description .= ' '. t('Install <a href="!mime_mail_url">Mime Mail</a> module or <a href="!html_url">HTML Mail</a> module to send newsletters in HTML format.',
+                               array('!mime_mail_url' => 'http://drupal.org/project/mimemail', '!html_url' => 'http://drupal.org/project/htmlmail')
+                             );
   }
   $form['simplenews_default_options']['simplenews_format'] = array(
     '#type' => 'select',

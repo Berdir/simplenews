@@ -14,7 +14,7 @@ REQUIREMENTS
  * Taxonomy module
  * For large mailing lists, cron is required.
  * HTML-format newsletters and/or newsletters with file attachments require the
-   mime mail module. 
+   Mime Mail module or HTML Mail module.
 
 INSTALLATION
 ------------
