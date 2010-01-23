@@ -429,6 +429,14 @@ function simplenews_nodeapi(&$node, $op, $teaser, $page) {
       if ($result) {
         drupal_set_message(t('Newsletter %title was deleted.', array('%title' => $node->title)));
       }
+
+      // Check if pending emails of this newsletter issue exist and delete these too.
+      $pending = simplenews_get_spool(SIMPLENEWS_SPOOL_PENDING, $node->nid, $node->vid);
+      if (!empty($pending)) {
+        simplenews_update_spool(array_keys($pending), array('status' => SIMPLENEWS_SPOOL_DONE, 'error' => TRUE));
+        drupal_set_message(t('Newsletter %title was deleted but had pending emails. They can no longer be sent.', array('%title' => $node->title)), 'warning');
+        watchdog('simplenews', 'Newsletter %title deleted with pending emails. Emails can no longer be sent.', array('%title' => $node->title), WATCHDOG_ALERT);
+      }
       break;
     case 'load':
       $node->simplenews = db_fetch_array(db_query('SELECT * FROM {simplenews_newsletters} WHERE nid = %d', $node->nid));
