@@ -204,7 +204,6 @@ function simplenews_confirm_removal_form(&$form_state, $mail, $newsletter) {
 }
 
 function simplenews_confirm_removal_form_submit($form, &$form_state) {
-drupal_set_message(print_r($form));
   simplenews_unsubscribe_user($form_state['values']['mail'], $form_state['values']['newsletter']->tid, FALSE, 'website');
   // Display message if user is directed to the front page.
   if (!$form['#redirect']) {
