@@ -1872,7 +1872,7 @@ function simplenews_update_spool($msids, $result) {
   $params[] = isset($result['error']) ? $result['error'] : FALSE;
   $params[] = time();
   $params = array_merge($params, $msids);
-  db_query("UPDATE {simplenews_mail_spool} SET status = %d, error = '%s', timestamp = %d WHERE msid IN(". db_placeholders($msids, 'int') .")", $params);
+  db_query("UPDATE {simplenews_mail_spool} SET status = %d, error = %d, timestamp = %d WHERE msid IN(". db_placeholders($msids, 'int') .")", $params);
 }
 
 /**
