@@ -602,4 +602,5 @@ function simplenews_update_6009() {
 
 function simplenews_update_6200() {
   // Added for compatibility with HEAD.
+  return array();
 }
