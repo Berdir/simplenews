@@ -18,8 +18,8 @@
  * - $test_message: test message warning message
  *
  * Available tokens:
- * - [confirm-unsubscribe-url]: unsubscribe url to be used as link
- * for more tokens: see simplenews_mail_tokens()
+ * - [simplenews-unsubscribe-url]: unsubscribe url to be used as link
+ * for more tokens: see simplenews_token_list()
  *
  * @see template_preprocess_simplenews_newsletter_footer()
  */
