@@ -213,8 +213,13 @@ function simplenews_schema() {
  */
 function simplenews_install() {
   if (drupal_install_schema('simplenews')) {
-    drupal_set_message(t('Simplenews installation instructions are available on the <a href="!simplenews_help">Simplenews help page</a>.',
-    array('!simplenews_help' => url('admin/help/simplenews'))));
+    if (module_exists('help')) {
+      drupal_set_message(t('Simplenews installation instructions are available on the <a href="!simplenews_help">Simplenews help page</a>.',
+        array('!simplenews_help' => url('admin/help/simplenews'))));
+    }
+    else {
+      drupal_set_message(t('Simplenews was successfully installed.'));
+    }
   }
   else {
     drupal_set_message(t('The installation of Simplenews was not successful.'), 'error');
