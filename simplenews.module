@@ -1352,7 +1352,7 @@ function _simplenews_subscription_manager_form($subscription) {
  * @param integer $count number of newsletters in the list
  */
 function simplenews_recent_newsletters($tid, $count = 5) {
-  $result = db_query_range(db_rewrite_sql('SELECT n.nid, n.title, sn.s_status FROM {node} n INNER JOIN {term_node} t ON n.vid = t.vid INNER JOIN {simplenews_newsletters} sn ON n.nid = sn.nid WHERE (t.tid = %d AND n.status = %d) ORDER BY n.created DESC'), $tid, 1, 0, $count);
+  $result = db_query_range(db_rewrite_sql('SELECT n.nid, n.title, sn.s_status, n.created FROM {node} n INNER JOIN {term_node} t ON n.vid = t.vid INNER JOIN {simplenews_newsletters} sn ON n.nid = sn.nid WHERE (t.tid = %d AND n.status = %d) ORDER BY n.created DESC'), $tid, 1, 0, $count);
   $titles = array();
   while ($item = db_fetch_object($result)) {
     $titles[$item->nid]['data'] = l($item->title, 'node/'. $item->nid);
