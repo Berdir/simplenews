@@ -830,7 +830,7 @@ function simplenews_user($op, &$edit, &$account, $category = NULL) {
         }
       }
 
-      if ($category == 'newsletter' && user_access('subscribe to newsletters')) {
+      if ($category == 'newsletter' && user_access('subscribe to newsletters') && isset($edit['newsletters'])) {
         foreach ($edit['newsletters'] as $tid => $checked) {
           if ($checked) {
             simplenews_subscribe_user($account->mail, $tid, FALSE, 'website');
