@@ -1,6 +1,6 @@
 ; $Id$
 name = Simplenews test
-description = Simplenews helper module for automated simplenews tests.
+description = Simplenews helper module for test framework. Do not use in a production environment!
 dependencies[] = simplenews
 package = Mail
 core = 6.x
