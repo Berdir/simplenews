@@ -609,3 +609,17 @@ function simplenews_update_6200() {
   // Added for compatibility with HEAD.
   return array();
 }
+
+/**
+ * Correction of field size mismatch caused by simplenews_update_6009().
+ */
+function simplenews_update_6010() {
+  $ret = array();
+  db_add_field($ret, 'simplenews_mail_spool', 'error', array(
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+  ));
+  return $ret;
+}
