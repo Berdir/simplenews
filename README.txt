@@ -88,7 +88,15 @@ INSTALLATION
     Use 'per language terms' for mailing lists each with a different language.
     Newsletters of different language each have their own tag and own list of
     subscribers.
-    
+
+    To use multilingual confirmation you must use the String translation module.
+    Enter confirmation email title and body in ENGLISH at:
+      Administer > Site configuration > Simplenews > Subscription.
+    If required refresh the Simplenews text group at:
+      Administer > Site building > Translate interface > Refresh.
+    Enter translations of title and body text at:
+      Administer > Site building > Translate interface > Search.
+
     Path prefixes are added to footer message according to the subscribers
     preferred language.
 
