@@ -2324,6 +2324,7 @@ function simplenews_token_values($type, $object = NULL, $options = array()) {
     case 'simplenews':
       $account = $object['account'];
       $node = $object['node'];
+      $language = isset($account->language) ? $account->language : language_default();
 
       // Build tokens for 'simplenews' only.
       $values['simplenews-receiver-name']       = !empty($account->name) ? check_plain($account->name) : check_plain(variable_get('anonymous', 'Anonymous'));
@@ -2334,7 +2335,7 @@ function simplenews_token_values($type, $object = NULL, $options = array()) {
     case 'simplenews_subscription':
       $account = $object['account'];
       $newsletter = $object['newsletter'];
-      $language = isset($account->language->language) ? $account->language->language : language_default();
+      $language = isset($account->language) ? $account->language : language_default();
 
       // Build hash for (un)subscribe URL.
       $hash = '';
@@ -2349,7 +2350,7 @@ function simplenews_token_values($type, $object = NULL, $options = array()) {
       if (!$newsletter_name) {
         if (isset($node->simplenews['tid'])) {
           if ($term = taxonomy_get_term($node->simplenews['tid'])) {
-            $newsletter_name = _simplenews_tt_newsletter_name($newsletter, $language);
+            $newsletter_name = _simplenews_tt_newsletter_name($newsletter, $language->language);
           }
         }
       }
@@ -2359,7 +2360,7 @@ function simplenews_token_values($type, $object = NULL, $options = array()) {
       $values['simplenews-unsubscribe-url']     = url('newsletter/confirm/remove/'. $hash, array('absolute' => TRUE, 'language' => $language));
       $values['simplenews-receiver-mail']       = $account->mail;
       $values['simplenews-newsletters-name']    = $newsletter_name ? check_plain($newsletter_name) : '';
-      $values['simplenews-newsletters-url']     = url('taxonomy/term/'. $newsletter->tid);
+      $values['simplenews-newsletters-url']     = url('taxonomy/term/'. $newsletter->tid, array('absolute' => TRUE, 'language' => $language));
       break;
   }
   return $values;
