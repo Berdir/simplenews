@@ -142,6 +142,7 @@ function simplenews_admin_types_form(&$form_state, $tid = NULL) {
     // We will create a new newsletter.
     // Provide vocabulary id for the newsletter to be added to.
     $term = (object)array('vid' => variable_get('simplenews_vid', ''));
+    $term->tid = '';
   }
 
   $form['name'] = array(
@@ -263,7 +264,7 @@ function simplenews_admin_types_form(&$form_state, $tid = NULL) {
   // If we are editing a newsletter term, show delete option and store tid.
   // tid is used in validation and submission functions to differentiate
   // between form actions of creating a new or editing an existing term.
-  if (isset($term->tid)) {
+  if ($term->tid) {
     $form['delete'] = array(
       '#type' => 'submit',
       '#value' => t('Delete'),

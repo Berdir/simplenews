@@ -524,7 +524,7 @@ function simplenews_form_alter(&$form, $form_state, $form_id) {
   }
 
   // Simplenews newsletter node form
-  elseif (strpos($form_id, '_node_form')) {
+  elseif (isset($form['type']) && isset($form['#node']) && strpos($form_id, '_node_form')) {
     if (in_array($form['type']['#value'], variable_get('simplenews_content_types', array('simplenews')))) {
 
       // Available variables are based on user_mail_tokens().
