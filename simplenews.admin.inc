@@ -191,7 +191,7 @@ function simplenews_admin_types_form(&$form_state, $tid = NULL) {
     '#title' => t('Opt-in/out method'),
     '#options' => $options,
     '#default_value' => variable_get('simplenews_opt_inout_'. $term->tid, 'double'),
-    '#description' => t('Hidden: This newsletter does not appear on subscription forms. No unsubscription footer in newsletter.<br /> Single: Users are (un)subscribed immediately, no confirmation email is sent.<br />Double: When (un)subscribing at a subscription form, anonymous users receive an (un)subscription confirmation email. Authenticated users are (un)subscribed immediately.'),
+    '#description' => t('Hidden: This newsletter does not appear on subscription forms. No unsubscribe footer in newsletter.<br /> Single: Users are (un)subscribed immediately, no confirmation email is sent.<br />Double: When (un)subscribing at a subscription form, anonymous users receive an (un)subscription confirmation email. Authenticated users are (un)subscribed immediately.'),
   );
 
   $form['simplenews_sender_information'] = array(

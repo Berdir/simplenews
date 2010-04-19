@@ -82,7 +82,7 @@ function simplenews_subscription_manager_form_submit($form, &$form_state) {
           simplenews_unsubscribe_user($form_state['values']['mail'], $tid, TRUE, 'website');
         }
       }
-      drupal_set_message(t('You will receive a confirmation email shortly containing further instructions on how to complete the unsubscription process.'));
+      drupal_set_message(t('You will receive a confirmation email shortly containing further instructions on how to cancel your subscription.'));
       break;
   }
 }
@@ -183,7 +183,7 @@ function simplenews_confirm_add_form_submit($form, &$form_state) {
 }
 
 /**
- * Generate the confirm unsubscription form.
+ * Generate the confirm unsubscribe form.
  *
  * @see simplenews_confirm_removal_form_submit()
  */
