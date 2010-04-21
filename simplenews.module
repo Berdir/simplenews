@@ -748,6 +748,7 @@ function simplenews_user($op, &$edit, &$account, $category = NULL) {
       if (count($options)) {
         $form['simplenews'] = array(
           '#type' => 'fieldset',
+          '#title' => t('Newsletters'),
           '#description' => t('Select the newsletter(s) to which you wish to subscribe.'),
           '#weight' => 5,
         );
