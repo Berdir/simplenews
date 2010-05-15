@@ -735,7 +735,7 @@ function simplenews_user($op, &$edit, &$account, $category = NULL) {
         $opt_inout_method = variable_get('simplenews_opt_inout_'. $newsletter->tid, 'double');
         if (($subscribe_new_account == 'on' || $subscribe_new_account == 'off') && ($opt_inout_method == 'single' || $opt_inout_method == 'double')) {
           $options[$newsletter->tid] = check_plain($newsletter->name);
-          $default_value[$newsletter->tid] = $subscribe_new_account == 'on';
+          $default_value[$newsletter->tid] = $subscribe_new_account == 'on' ? $newsletter->tid : 0;
         }
         else {
           if ($subscribe_new_account == 'silent' || ($subscribe_new_account == 'on' && $opt_inout_method == 'hidden')) {
