@@ -740,7 +740,8 @@ function simplenews_user($op, &$edit, &$account, $category = NULL) {
         }
       }
 
-      if ($category == 'newsletter' && user_access('subscribe to newsletters')) {
+      if ($category == 'newsletter' 
+       && (user_access('subscribe to newsletters', $account) || user_access('administer users'))) {
         foreach ($edit['newsletters'] as $tid => $checked) {
           if ($checked) {
             simplenews_subscribe_user($account->mail, $tid, FALSE);
@@ -766,7 +767,7 @@ function simplenews_user($op, &$edit, &$account, $category = NULL) {
       }
       break;
     case 'form':
-      if ($category == 'newsletter' && user_access('subscribe to newsletters')) {
+      if ($category == 'newsletter') {
         $subscription = simplenews_get_subscription($account);
         $form = _simplenews_subscription_manager_form($subscription);
         $form['subscriptions']['#title'] =  t('Current newsletter subscriptions');
@@ -775,12 +776,12 @@ function simplenews_user($op, &$edit, &$account, $category = NULL) {
       }
       break;
     case 'categories':
+      // Newsletter tab with custom permission check.
       $output[] = array(
         'name' => 'newsletter',
         'title' => t('My newsletters'),
         'weight' => 10,
-        'access callback' => 'user_access',
-        'access arguments' => array('subscribe to newsletters'),
+        'access callback' => 'simplenews_subscription_edit_access',
       );
       return $output;
       break;
@@ -805,14 +806,14 @@ function simplenews_user($op, &$edit, &$account, $category = NULL) {
         }
         // When a user has no permission to subscribe and is not subscribed
         // we do not display the 'no subscriptions' message.
-        if (user_access('subscribe to newsletters') || $subscriptions != t('None')) {
+        if (user_access('subscribe to newsletters', $account) || $subscriptions != t('None')) {
           $account->content['simplenews']['subscriptions'] = array(
             '#type' => 'user_profile_item',
             '#title' => t('Current subscriptions'),
             '#value' => $subscriptions,
           );
         }
-        if (user_access('subscribe to newsletters')) {
+        if (user_access('subscribe to newsletters', $account)) {
           $account->content['simplenews']['my_newsletters'] = array(
             '#type' => 'user_profile_item',
             '#value' => t('Manage <a href="!url">my subscriptions</a>', array('!url' => url('user/'. $account->uid .'/edit/newsletter'))),
@@ -822,6 +823,28 @@ function simplenews_user($op, &$edit, &$account, $category = NULL) {
       }
       break;
   }
+}
+
+/**
+ * Access callback for user newsletter editing.
+ */
+function simplenews_subscription_edit_access($account) {
+  global $user;
+  // Disallow anonymous.
+  if (!$account || $account->uid==0) {
+    return FALSE;
+  }
+  // Allow edit own subscription.
+  if ($user->uid == $account->uid) {
+    if (user_access('subscribe to newsletters', $account)) {
+      return TRUE;
+    } 
+  }
+  // Allow administrator to edit account's subscription.
+  if (user_access('administer users')) {
+    return TRUE;
+  }
+  return FALSE;
 }
 
 /**
