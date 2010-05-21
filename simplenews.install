@@ -611,11 +611,23 @@ function simplenews_update_6200() {
 }
 
 /**
- * Correction of field size mismatch caused by simplenews_update_6009().
+ * Faulty update function. Corrected by the next one.
+ *
+ * @see simplenews_update_6011().
  */
 function simplenews_update_6010() {
   $ret = array();
-  db_add_field($ret, 'simplenews_mail_spool', 'error', array(
+  // Function removed.
+  
+  return $ret;
+}
+
+/**
+ * Correction of field size mismatch caused by simplenews_update_6009().
+ */
+function simplenews_update_6011() {
+  $ret = array();
+  db_change_field($ret, 'simplenews_mail_spool', 'error', 'error', array(
         'type' => 'int',
         'size' => 'tiny',
         'not null' => TRUE,
