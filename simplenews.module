@@ -302,14 +302,14 @@ function simplenews_newsletter_access() {
 function simplenews_node_type($op, $info) {
   switch ($op) {
     case 'delete':
-      $simplenews_types = variable_get('simplenews_content_types', array());
+      $simplenews_types = variable_get('simplenews_content_types', array('simplenews'));
       if (isset($simplenews_types[$info->type])) {
         unset($simplenews_types[$info->type]);
         variable_set('simplenews_content_types', $simplenews_types);
       }
       break;
     case 'update':
-      $simplenews_types = variable_get('simplenews_content_types', array());
+      $simplenews_types = variable_get('simplenews_content_types', array('simplenews'));
       if (isset($info->old_type) && isset($simplenews_types[$info->old_type]) && $info->old_type != $info->type) {
         unset($simplenews_types[$info->old_type]);
         $simplenews_types[$info->type] = $info->type;
@@ -334,14 +334,20 @@ function simplenews_nodeapi(&$node, $op, $teaser, $page) {
     case 'alter':
       // Don't replace the tokens when node alter is called by simplenews_mail.
       if (!isset($node->simplenews_mail)) {
-        global $language;
-        $context['node'] = $node;
+        $tid = db_result(db_query("SELECT s.tid FROM {simplenews_newsletters} s JOIN {node} n ON s.nid = n.nid AND s.vid = n.vid WHERE n.vid = %d", $node->nid));
+        global $language, $user;
+        $context = array(
+          'node' => $node,
+          // note the context represents the current user account for presentation.
+          'account' => $user, 
+          'newsletter' => taxonomy_get_term($tid),
+        );
         
         if (isset($node->body)) {
-          $node->body = token_replace($node->body, 'simplenews', array('node' => $node));
+          $node->body = token_replace($node->body, 'simplenews', $context);
         }
         if (isset($node->teaser)) {
-          $node->teaser = token_replace($node->teaser, 'simplenews', array('node' => $node));
+          $node->teaser = token_replace($node->teaser, 'simplenews', $context);
         }
       }
       break;
@@ -382,6 +388,7 @@ function simplenews_nodeapi(&$node, $op, $teaser, $page) {
       $node->simplenews = _simplenews_flatten_array($node->simplenews);
 
       $send_with_permission = $node->simplenews['send'] == SIMPLENEWS_COMMAND_SEND_NOW && user_access('send newsletter');
+      // @todo: {simplenews_newsletters} data might be missing if an uninstall happened at some time with simplenews nodes created. try to insert if missing.
       if ($op == 'insert') {
         // Insert node
         $s_status = $send_with_permission ? SIMPLENEWS_STATUS_SEND_PENDING : SIMPLENEWS_STATUS_SEND_NOT;
@@ -439,6 +446,7 @@ function simplenews_nodeapi(&$node, $op, $teaser, $page) {
       }
       break;
     case 'load':
+      // @todo: {simplenews_newsletters} data might be missing if an uninstall happened at some time with simplenews nodes created. provide reasonable defaults.
       $node->simplenews = db_fetch_array(db_query('SELECT * FROM {simplenews_newsletters} WHERE nid = %d', $node->nid));
       break;
   }
@@ -534,14 +542,14 @@ function simplenews_form_alter(&$form, $form_state, $form_id) {
       }
       $form['simplenews_subscription']['subscription_mail']['token_help'] = array(
         '#title' => t('Replacement patterns'),
-    	'#type' => 'fieldset',
-    	'#collapsible' => TRUE,
-    	'#collapsed' => TRUE,
+        '#type' => 'fieldset',
+        '#collapsible' => TRUE,
+        '#collapsed' => TRUE,
         '#weight' => -20,
         '#description' => t('These tokens can be used in all text fields and will be replaced on-screen and in the email. Note that simplenews-receiver tokens are not suitable for on-screen use.')
       );
       $form['simplenews_subscription']['subscription_mail']['token_help']['help'] = array(
-    	'#value' => theme('token_help', 'simplenews'),
+        '#value' => theme('token_help', 'simplenews'),
       );
 
       if (isset($form['#node']->simplenews)) {
@@ -1664,16 +1672,17 @@ function simplenews_mail($key, &$message, $params) {
         $message['headers'] = $messages[$nid][$langcode]['headers'] = $headers;
 
         // Build email subject
+        $subject = '[[simplenews-newsletters-name]] [title-raw]';
         if ($tid = $node->simplenews['tid']) {
           $term = taxonomy_get_term($tid);
           // Translate the newsletter term name if simplenews vocabulary uses Localized terms.
           $name = _simplenews_tt_newsletter_name($term, $langcode);
+          $subject = variable_get('simplenews_email_subject_'. $term->tid, $subject);
         }
         else {
           $name = t('Unassigned newsletter');
         }
         //$subject = theme('simplenews_newsletter_subject', $name, $node->title, $message['language']);
-        $subject = variable_get('simplenews_email_subject_'. $term->tid, '[[simplenews-newsletters-name]] [title-raw]');
         $subject = token_replace($subject, 'simplenews', $context);
         $subject = token_replace($subject, 'node', $context['node']);
         $subject = str_replace(array("\r", "\n"), '', $subject);
@@ -1887,7 +1896,8 @@ function simplenews_mail_spool($nid = NULL, $vid = NULL, $limit = NULL) {
     $max_execution_time = ini_get('max_execution_time') ? ini_get('max_execution_time') : SIMPLENEWS_MAX_EXECUTION_TIME;
 
     _simplenews_measure_usec(TRUE);
-
+    
+    $check_counter = 0;
     foreach ($messages as $key => $message) {
       $result = simplenews_mail_mail($message['nid'], $message['vid'], $message['mail']);
 
@@ -1926,6 +1936,7 @@ function simplenews_mail_spool($nid = NULL, $vid = NULL, $limit = NULL) {
     }
     
     variable_set('simplenews_last_cron', time());
+    //@todo: set mail_sent from last batch
     variable_set('simplenews_last_sent', count($mail_sent));
   }
 
@@ -2344,6 +2355,7 @@ function simplenews_token_list($type = 'all') {
  * Implementation of hook_token_value().
  */
 function simplenews_token_values($type, $object = NULL, $options = array()) {
+  $values = array();
   switch ($type) {
     case 'all':
     case 'simplenews':
@@ -2373,6 +2385,7 @@ function simplenews_token_values($type, $object = NULL, $options = array()) {
       // reconstructed from $node->simplenews['tid'].
       $newsletter_name = isset($newsletter->name) ? $newsletter->name : '';
       if (!$newsletter_name) {
+        // @todo: note $node is undefined here
         if (isset($node->simplenews['tid'])) {
           if ($term = taxonomy_get_term($node->simplenews['tid'])) {
             $newsletter_name = _simplenews_tt_newsletter_name($newsletter, $language->language);
@@ -2385,7 +2398,10 @@ function simplenews_token_values($type, $object = NULL, $options = array()) {
       $values['simplenews-unsubscribe-url']     = url('newsletter/confirm/remove/'. $hash, array('absolute' => TRUE, 'language' => $language));
       $values['simplenews-receiver-mail']       = $account->mail;
       $values['simplenews-newsletters-name']    = $newsletter_name ? check_plain($newsletter_name) : '';
-      $values['simplenews-newsletters-url']     = url('taxonomy/term/'. $newsletter->tid, array('absolute' => TRUE, 'language' => $language));
+      $values['simplenews-newsletters-url'] = '';
+      if (isset($newsletter->tid)) {
+        $values['simplenews-newsletters-url']     = url('taxonomy/term/'. $newsletter->tid, array('absolute' => TRUE, 'language' => $language));
+      }
       break;
   }
   return $values;
@@ -2453,15 +2469,15 @@ function simplenews_help($path, $arg) {
       return $help;
     case 'admin/settings/simplenews/subscription':
       if (variable_get('language_count', 1) > 1) {
-	if (module_exists('i18nstrings')) {
+        if (module_exists('i18nstrings')) {
           global $language;
           $language_default = variable_get('language_default', $language);
-	  $help = '<p>'. t('This is a Multilingual website. Enter text for confirmation subject and body in the default site language (@language).', array('@language' => $language_default->name)) ."</p>\n";
-	}
-	else {
-	  $help = '<p>'. t('This is a Multilingual website. <a href="@url">Enable the String translation module</a> to enable translation of the confirmation subject and body.', array('@url' => url('admin/build/modules'))) ."</p>\n";
-	}
-	return $help;
+          $help = '<p>'. t('This is a Multilingual website. Enter text for confirmation subject and body in the default site language (@language).', array('@language' => $language_default->name)) ."</p>\n";
+        }
+        else {
+          $help = '<p>'. t('This is a Multilingual website. <a href="@url">Enable the String translation module</a> to enable translation of the confirmation subject and body.', array('@url' => url('admin/build/modules'))) ."</p>\n";
+        }
+        return $help;
       }
       break;
     case 'admin/content/simplenews/types/add':
@@ -2621,8 +2637,9 @@ function _simplenews_measure_usec($start = FALSE) {
   }
   
   static $start_time;
+
   $usage = getrusage();
-  $now = (float)($dat["ru_stime.tv_sec"] .'.'. $dat["ru_stime.tv_usec"]) + (float)($usage["ru_utime.tv_sec"] .'.'. $usage["ru_utime.tv_usec"]);
+  $now = (float)($usage["ru_utime.tv_sec"] .'.'. $usage["ru_utime.tv_usec"]);
 
   if ($start) {
     $start_time = $now;
