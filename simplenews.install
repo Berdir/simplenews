@@ -102,6 +102,12 @@ function simplenews_schema() {
         'not null' => TRUE,
         'default' => 0,
       ),
+      'sent_subscriber_count' => array(
+        'description' => 'The count of subcsribers to the newsletter when it was sent.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
     ),
     'primary key' => array('nid'),
   );
@@ -704,3 +710,20 @@ function simplenews_update_6200() {
   db_add_field($ret, 'simplenews_mail_spool', 'error', array('type' => 'int', 'not null' => TRUE, 'default' => 0));
   return $ret;
 }
+
+/**
+ * Add 'sent_subscriber_count' field to 'simplenews_newsletters' table.
+ */
+function simplenews_update_6201() {
+  $ret = array();
+  db_add_field($ret, 'simplenews_newsletters', 'sent_subscriber_count', array(
+        'description' => 'The count of subcsribers to the newsletter when it was sent.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+    )
+  );
+  db_query("UPDATE {simplenews_newsletters} sn SET sent_subscriber_count = (SELECT count(tid) FROM simplenews_snid_tid WHERE tid = sn.tid AND status = %d)", SIMPLENEWS_SUBSCRIPTION_STATUS_SUBSCRIBED);
+  return $ret;
+}
+

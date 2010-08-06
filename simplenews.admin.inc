@@ -28,7 +28,7 @@ function simplenews_admin_news(&$form_state, $action = 'sent') {
     $form['last_sent'] = array('#value' => '<p>'. format_plural(variable_get('simplenews_last_sent', 0), 'Last batch: 1 mail sent at !time.', 'Last batch: !count mails sent at !time.', array('!time' => format_date(variable_get('simplenews_last_cron', ''), 'small'), '!count' => variable_get('simplenews_last_sent', 0))) ."</p>\n");
   }
 
-  $header = array(t('Title'), t('Newsletter'), t('Date created'), t('Published'), t('Sent'), t('Subscribers'), t('Operations'));
+  $header = array(t('Title'), t('Newsletter'), t('Date created'), t('Published'), t('Sent'), t('Operations'));
   list($names, $queries) = array_values(simplenews_get_filter('simplenews_newsletters_filter'));
   $filter = isset($_SESSION['simplenews_newsletters_filter']) ? $_SESSION['simplenews_newsletters_filter'] : '';
   $form['simplenews_issue_filter']['filter'] = array(
@@ -37,7 +37,7 @@ function simplenews_admin_news(&$form_state, $action = 'sent') {
     '#default_value' => $filter,
   );
   $where_condition = isset($queries[$filter]) && !empty($queries[$filter]) ? 'WHERE '. $queries[$filter]  : '';
-  $query = "SELECT DISTINCT n.*, s.s_status, s.tid FROM {node} n INNER JOIN {simplenews_newsletters} s ON n.nid = s.nid ". $where_condition ." ORDER BY n.created DESC";
+  $query = "SELECT DISTINCT n.*, s.s_status, s.tid, s.sent_subscriber_count FROM {node} n INNER JOIN {simplenews_newsletters} s ON n.nid = s.nid ". $where_condition ." ORDER BY n.created DESC";
   $count_query = "SELECT COUNT(n.nid) FROM {node} n INNER JOIN {simplenews_newsletters} s ON n.nid = s.nid ". $where_condition;
   $result = pager_query(db_rewrite_sql($query, 'n', 'nid'), 10, 0, db_rewrite_sql($count_query, 'n', 'nid'), 0);
   
@@ -46,17 +46,18 @@ function simplenews_admin_news(&$form_state, $action = 'sent') {
     $row = array();
     $operation = array();
     $terms = array_keys(taxonomy_node_get_terms_by_vocabulary($node, $vid, 'name'));
-    $subscriber_count = simplenews_count_subscriptions($node->tid);
+    $status = $node->s_status;
+    $sent_subscriber_count = $node->sent_subscriber_count;
     $pending_count = simplenews_count_spool($node->nid, $node->vid);
-    $send_status = $node->s_status == SIMPLENEWS_STATUS_SEND_PENDING ? $subscriber_count - $pending_count : theme('simplenews_status', $node->s_status, 'sent');
+    $already_sent = $sent_subscriber_count - $pending_count;
+    $source = 'sent';
+    $send_status = theme('simplenews_status', $status, 'sent', $already_sent, $sent_subscriber_count);
     $operation[] = l(t('edit'), 'node/'. $node->nid .'/edit', array('query' => drupal_get_destination()));
-
     $row[] = l($node->title, 'node/'. $node->nid);
     $row[] = isset($terms[0]) ? $terms[0] : t('n/a');
     $row[] = format_date($node->created, 'small');
     $row[] = theme('simplenews_status', $node->status, 'published');
     $row[] = $send_status;
-    $row[] = $subscriber_count;
     $row[] = implode(' ', $operation);
     $rows[] = $row;
   }
@@ -1333,14 +1334,15 @@ function template_preprocess_simplenews_status(&$variables) {
       );
       $title = array(
         SIMPLENEWS_STATUS_SEND_NOT => '-',
-        SIMPLENEWS_STATUS_SEND_PENDING => t('Currently sending by cron'),
-        SIMPLENEWS_STATUS_SEND_READY => t('Sent')
+        SIMPLENEWS_STATUS_SEND_PENDING => $variables['already_sent'] . ' / ' . $variables['sent_subscriber_count'],
+        SIMPLENEWS_STATUS_SEND_READY => $variables['sent_subscriber_count'],
       );
+      $variables['trailer'] = $title[$variables['status']];
       break;
   }
 
   // Build the variables
-  if ($images[$variables['status']]) {
+  if (isset($images) && $images[$variables['status']]) {
     $variables['image'] = base_path() . drupal_get_path('module', 'simplenews') .'/'. $images[$variables['status']];
   }
   $variables['alt'] = $variables['title'] = $title[$variables['status']];
