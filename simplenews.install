@@ -712,18 +712,34 @@ function simplenews_update_6200() {
 }
 
 /**
- * Add 'sent_subscriber_count' field to 'simplenews_newsletters' table.
+ * Add 'status' field to 'simplenews_snid_tid' table.
  */
 function simplenews_update_6201() {
   $ret = array();
-  db_add_field($ret, 'simplenews_newsletters', 'sent_subscriber_count', array(
-        'description' => 'The count of subcsribers to the newsletter when it was sent.',
+  db_add_field($ret, 'simplenews_snid_tid', 'status', array(
+        'description' => 'A flag indicating whether the user is subscribed (1) or unsubscribed (0).',
         'type' => 'int',
+        'size' => 'small',
         'not null' => TRUE,
-        'default' => 0,
+        'default' => 1
     )
   );
-  db_query("UPDATE {simplenews_newsletters} sn SET sent_subscriber_count = (SELECT count(tid) FROM simplenews_snid_tid WHERE tid = sn.tid AND status = %d)", SIMPLENEWS_SUBSCRIPTION_STATUS_SUBSCRIBED);
+  return $ret;
+}
+
+/**
+ * Add 'sent_subscriber_count' field to 'simplenews_newsletters' table.
+ */
+function simplenews_update_6202() {
+  $ret = array();
+  db_add_field($ret, 'simplenews_newsletters', 'sent_subscriber_count', array(
+    'description' => 'The count of subcsribers to the newsletter when it was sent.',
+    'type' => 'int',
+    'not null' => TRUE,
+    'default' => 0,
+    )
+  );
+  db_query("UPDATE {simplenews_newsletters} sn SET sent_subscriber_count = (SELECT count(tid) FROM {simplenews_snid_tid} AS sst INNER JOIN {simplenews_subscriptions} AS ss ON sst.snid = ss.snid WHERE tid = sn.tid AND ss.activated = %d)", SIMPLENEWS_SUBSCRIPTION_STATUS_SUBSCRIBED);
   return $ret;
 }
 
