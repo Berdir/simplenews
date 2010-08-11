@@ -580,7 +580,7 @@ function simplenews_update_6005() {
  */
 function simplenews_update_6006() {
   $ret = array();
-  
+
   // Convert existing node type or re-create it.
   // If _node_types_build() if called before update, the simplenews
   // node type gets deleted because simplenews_node_info() no longer exists.
@@ -594,7 +594,7 @@ function simplenews_update_6006() {
   else {
     _simplenews_install_nodetype();
   }
-  
+
   return $ret;
 }
 
@@ -662,7 +662,7 @@ function simplenews_update_6100() {
  */
 function simplenews_update_6101() {
   $ret = array();
-  
+
   $old = array(
     '!site',
     '!mailto',

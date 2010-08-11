@@ -40,7 +40,7 @@ function simplenews_admin_news(&$form_state, $action = 'sent') {
   $query = "SELECT DISTINCT n.*, s.s_status, s.tid, s.sent_subscriber_count FROM {node} n INNER JOIN {simplenews_newsletters} s ON n.nid = s.nid ". $where_condition ." ORDER BY n.created DESC";
   $count_query = "SELECT COUNT(n.nid) FROM {node} n INNER JOIN {simplenews_newsletters} s ON n.nid = s.nid ". $where_condition;
   $result = pager_query(db_rewrite_sql($query, 'n', 'nid'), 10, 0, db_rewrite_sql($count_query, 'n', 'nid'), 0);
-  
+
   $rows = array();
   while ($node = db_fetch_object($result)) {
     $row = array();
@@ -185,7 +185,7 @@ function simplenews_admin_types_form(&$form_state, $tid = NULL) {
     '#default_value' => variable_get('simplenews_new_account_'. $term->tid, 'none'),
     '#description' => t('None: This newsletter is not listed on the user registration page.<br />Default on: This newsletter is listed on the user registion page and is selected by default.<br />Default off: This newsletter is listed on the user registion page and is not selected by default.<br />Silent: A new user is automatically subscribed to this newsletter. The newsletter is not listed on the user registration page.'),
   );
-  
+
   $options = array('hidden' => t('Hidden'), 'single' => t('Single'), 'double' => t('Double'));
   $form['subscription']['simplenews_opt_inout_'. $term->tid] = array(
     '#type' => 'select',
@@ -1016,7 +1016,7 @@ function simplenews_admin_settings_subscription(&$form_state) {
     '#title' => t('Confirmation emails'),
     '#collapsible' => FALSE,
   );
-  
+
   $form['simplenews_subscription']['subscription_mail']['token_help'] = array(
     '#title' => t('Replacement patterns'),
     '#type' => 'fieldset',
@@ -1075,7 +1075,7 @@ function simplenews_admin_settings_subscription(&$form_state) {
     '#description' => t('Drupal path or URL of the destination page when the subscription removal is confirmed (e.g. node/123). Leave empty to go to the front page.'),
     '#default_value' => variable_get('simplenews_confirm_unsubscribe_page', ''),
   );
-  
+
   return system_settings_form($form);
 }
 
@@ -1258,12 +1258,12 @@ function simplenews_build_subscription_filter_query() {
  */
 function simplenews_count_subscriptions($tid) {
   static $subscription_count;
-  
+
   if (isset($subscription_count[$tid])) {
     return $subscription_count[$tid];
   }
   $subscription_count[$tid] = db_result(db_query('SELECT COUNT(*) FROM {simplenews_snid_tid} WHERE tid = %d AND status = %d', $tid, SIMPLENEWS_SUBSCRIPTION_STATUS_SUBSCRIBED));
-  
+
   return $subscription_count[$tid];
 }
 

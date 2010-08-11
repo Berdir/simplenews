@@ -339,10 +339,10 @@ function simplenews_nodeapi(&$node, $op, $teaser, $page) {
         $context = array(
           'node' => $node,
           // note the context represents the current user account for presentation.
-          'account' => $user, 
+          'account' => $user,
           'newsletter' => taxonomy_get_term($tid),
         );
-        
+
         if (isset($node->body)) {
           $node->body = token_replace($node->body, 'simplenews', $context);
         }
@@ -389,7 +389,7 @@ function simplenews_nodeapi(&$node, $op, $teaser, $page) {
 
       $send_with_permission = $node->simplenews['send'] == SIMPLENEWS_COMMAND_SEND_NOW && user_access('send newsletter');
       // @todo: {simplenews_newsletters} data might be missing if an uninstall happened at some time with simplenews nodes created. try to insert if missing.
-      
+
       $result = db_query("SELECT nid from {simplenews_newsletters} WHERE nid = %d", $node->nid);
       $result = db_result($result);
       if (!is_numeric($result)) {
@@ -397,7 +397,7 @@ function simplenews_nodeapi(&$node, $op, $teaser, $page) {
         $result = db_query('SELECT count(tid) AS sent_subscriber_count FROM {simplenews_snid_tid} WHERE tid = %d AND status = %d', $node->simplenews['tid'], SIMPLENEWS_SUBSCRIPTION_STATUS_SUBSCRIBED);
         $result = db_fetch_object( $result );
         $sent_subscriber_count = is_numeric($result->sent_subscriber_count) ? $result->sent_subscriber_count : 0;
-         
+
 
         $s_status = $send_with_permission ? SIMPLENEWS_STATUS_SEND_PENDING : SIMPLENEWS_STATUS_SEND_NOT;
         db_query("INSERT INTO {simplenews_newsletters} (nid, vid, tid, s_status, s_format, priority, receipt,sent_subscriber_count)
@@ -591,10 +591,10 @@ function simplenews_form_alter(&$form, $form_state, $form_id) {
         // Show newsletter sending options if newsletter has not been send yet.
         // If send a nodification is shown.
         if (!isset($simplenews_values['s_status']) || (isset($simplenews_values['s_status']) && $simplenews_values['s_status'] == SIMPLENEWS_STATUS_SEND_NOT)) {
-  
+
           // Add dynamic text for send button.
           drupal_add_js(drupal_get_path('module', 'simplenews') .'/simplenews.js', 'module');
-  
+
           if (user_access('send newsletter')) {
             $options[SIMPLENEWS_COMMAND_SEND_NONE] = t("Don't send now");
             $options[SIMPLENEWS_COMMAND_SEND_TEST] = t('Send one test newsletter to the test address');
@@ -619,7 +619,7 @@ function simplenews_form_alter(&$form, $form_state, $form_id) {
               '#attributes' => array('class' => 'simplenews-command-send'),
             );
           }
-  
+
           $address_default = variable_get('site_mail', ini_get('sendmail_from'));
           if (variable_get('simplenews_test_address_override', 0)) {
             $form['simplenews']['test_address'] = array(
@@ -637,7 +637,7 @@ function simplenews_form_alter(&$form, $form_state, $form_id) {
               '#value' => variable_get('simplenews_test_address', $address_default),
             );
           }
-  
+
           $form['simplenews']['advanced'] = array(
             '#type' => 'fieldset',
             '#title' => t('Email options'),
@@ -661,7 +661,7 @@ function simplenews_form_alter(&$form, $form_state, $form_id) {
               '#value' => key($format_options),
             );
           }
-  
+
           $form['simplenews']['advanced']['priority'] = array(
             '#type' => 'select',
             '#title' => t('Email priority'),
@@ -755,7 +755,7 @@ function simplenews_user($op, &$edit, &$account, $category = NULL) {
         }
         else {
           if ($subscribe_new_account == 'silent' || ($subscribe_new_account == 'on' && $opt_inout_method == 'hidden')) {
-            $hidden[] = $newsletter->tid;            
+            $hidden[] = $newsletter->tid;
           }
         }
       }
@@ -950,7 +950,7 @@ function simplenews_subscription_edit_access($account) {
   if ($user->uid == $account->uid) {
     if (user_access('subscribe to newsletters', $account)) {
       return TRUE;
-    } 
+    }
   }
   // Allow administrator to edit account's subscription.
   if (user_access('administer users')) {
@@ -1148,7 +1148,7 @@ function simplenews_subscribe_user($mail, $tid, $confirm = TRUE, $source = 'unkn
   }
   elseif (!isset($subscription->tids[$tid])) {
     // Add user to newsletter relationship if not already subscribed.
-    
+
     // Check if user is (un)subscribed to this newsletter.
     // Resubscribe or add new subscription.
     if (isset($subscription->newsletter_subscription[$tid])) {
@@ -1904,7 +1904,7 @@ function simplenews_mail_spool($nid = NULL, $vid = NULL, $limit = NULL) {
     $max_execution_time = ini_get('max_execution_time') ? ini_get('max_execution_time') : SIMPLENEWS_MAX_EXECUTION_TIME;
 
     _simplenews_measure_usec(TRUE);
-    
+
     $check_counter = 0;
     foreach ($messages as $key => $message) {
       $result = simplenews_mail_mail($message['nid'], $message['vid'], $message['mail']);
@@ -1942,7 +1942,7 @@ function simplenews_mail_spool($nid = NULL, $vid = NULL, $limit = NULL) {
     else {
       watchdog('simplenews', '%success emails sent, %fail failed.', array('%success' => $count_success, '%fail' => $count_fail));
     }
-    
+
     variable_set('simplenews_last_cron', time());
     //@todo: set mail_sent from last batch
     variable_set('simplenews_last_sent', count($mail_sent));
@@ -2183,7 +2183,7 @@ function _simplenews_set_from($node = NULL) {
 
   // Windows based PHP systems don't accept formatted emails.
   $formatted_address = substr(PHP_OS, 0, 3) == 'WIN' ? $address : '"'. mime_header_encode($name) .'" <'. $address .'>';
-  
+
   return array(
     'address' => $address,
     'formatted' => $formatted_address,
@@ -2388,7 +2388,7 @@ function simplenews_token_values($type, $object = NULL, $options = array()) {
         $hash = _simplenews_generate_hash($account->mail, $account->snid, $newsletter->tid);
       }
 
-      // When simplenews_token_values() is called from simplenews_nodeapi() 
+      // When simplenews_token_values() is called from simplenews_nodeapi()
       // $newsletter->name contains no value. Newsletter name is
       // reconstructed from $node->simplenews['tid'].
       $newsletter_name = isset($newsletter->name) ? $newsletter->name : '';
@@ -2402,7 +2402,7 @@ function simplenews_token_values($type, $object = NULL, $options = array()) {
       }
 
       // Build tokens for both 'simplenews_subscription' and 'simplenews'.
-      $values['simplenews-subscribe-url']       = url('newsletter/confirm/add/'. $hash, array('absolute' => TRUE, 'language' => $language));      
+      $values['simplenews-subscribe-url']       = url('newsletter/confirm/add/'. $hash, array('absolute' => TRUE, 'language' => $language));
       $values['simplenews-unsubscribe-url']     = url('newsletter/confirm/remove/'. $hash, array('absolute' => TRUE, 'language' => $language));
       $values['simplenews-receiver-mail']       = $account->mail;
       $values['simplenews-newsletters-name']    = $newsletter_name ? check_plain($newsletter_name) : '';
@@ -2643,7 +2643,7 @@ function _simplenews_measure_usec($start = FALSE) {
   if (!function_exists('getrusage')) {
     return 0;
   }
-  
+
   static $start_time;
 
   $usage = getrusage();

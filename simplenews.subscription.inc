@@ -175,7 +175,7 @@ function simplenews_confirm_add_form(&$form_state, $mail, $newsletter) {
 
 function simplenews_confirm_add_form_submit($form, &$form_state) {
   simplenews_subscribe_user($form_state['values']['mail'], $form_state['values']['newsletter']->tid, FALSE, 'website');
-  
+
   // Display message if user is directed to the front page.
   if (!$form['#redirect']) {
     drupal_set_message(t('%user was added to the %newsletter mailing list.', array('%user' => $form_state['values']['mail'], '%newsletter' => $form_state['values']['newsletter']->name)));
