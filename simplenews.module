@@ -1618,6 +1618,7 @@ function simplenews_send_test($node) {
  */
 function simplenews_mail($key, &$message, $params) {
   $context = $params['context'];
+  $langcode = $message['language']->language;
 
   switch ($key) {
     case 'node':
@@ -1637,7 +1638,6 @@ function simplenews_mail($key, &$message, $params) {
       // When translation is used, the availability of translations is checked
       // and when available the translation of the preferred language is selected.
       $nid = $context['node']->nid;
-      $langcode = $message['language']->language;
       if (module_exists('translation')) {
         // If the node has translations and a translation is required
         // the equivalent of the node in the required langugage is used
@@ -2380,6 +2380,7 @@ function simplenews_token_values($type, $object = NULL, $options = array()) {
     case 'simplenews_subscription':
       $account = $object['account'];
       $newsletter = $object['newsletter'];
+      $node = $object['node'];
       $language = isset($account->language) ? $account->language : language_default();
 
       // Build hash for (un)subscribe URL.
@@ -2393,7 +2394,6 @@ function simplenews_token_values($type, $object = NULL, $options = array()) {
       // reconstructed from $node->simplenews['tid'].
       $newsletter_name = isset($newsletter->name) ? $newsletter->name : '';
       if (!$newsletter_name) {
-        // @todo: note $node is undefined here
         if (isset($node->simplenews['tid'])) {
           if ($term = taxonomy_get_term($node->simplenews['tid'])) {
             $newsletter_name = _simplenews_tt_newsletter_name($newsletter, $language->language);
@@ -2552,17 +2552,23 @@ function _simplenews_subscription_confirmation_text($key, $language = NULL, $tra
   // If administrator did not change the text, the variable is empty.
   // We get the default here.
   if (!$text) {
+    $args = array();
     switch ($key) {
       case 'subscribe_unsubscribed':
-        $text = t("We have received a request from the email [simplenews-receiver-mail] for subscription to the [simplenews-newsletters-name] newsletter on [site-name] website at [site-url]. To confirm this subscription please use the link below.\n\n[simplenews-subscribe-url]", $langcode);
+        $text = t("We have received a request from the email [simplenews-receiver-mail] for subscription to the [simplenews-newsletters-name] newsletter on [site-name] website at [site-url]. To confirm this subscription please use the link below.\n\n[simplenews-subscribe-url]", $args, $langcode);
+        break;
       case 'subscribe_subscribed':
-        $text = t("We have received a request from the email [simplenews-receiver-mail] for subscription to the [simplenews-newsletters-name] newsletter on [site-name] website at [site-url]. However, this email is already subscribed to this newsletter. If you intended to unsubscribe please visit our site: [site-url]", $langcode);
+        $text = t("We have received a request from the email [simplenews-receiver-mail] for subscription to the [simplenews-newsletters-name] newsletter on [site-name] website at [site-url]. However, this email is already subscribed to this newsletter. If you intended to unsubscribe please visit our site: [site-url]", $args, $langcode);
+        break;
       case 'unsubscribe_subscribed':
-        $text = t("We have received a request from the email [simplenews-receiver-mail] to cancel your subscription from the [simplenews-newsletters-name] on [site-name] website at [site-url]. To confirm this cancelation please use the  below.\n\n[simplenews-unsubscribe-url]", $langcode);
+        $text = t("We have received a request from the email [simplenews-receiver-mail] to cancel your subscription from the [simplenews-newsletters-name] on [site-name] website at [site-url]. To confirm this cancelation please use the  below.\n\n[simplenews-unsubscribe-url]", $args, $langcode);
+        break;
       case 'unsubscribe_unsubscribed':
-        $text = t("We have received a from the email [simplenews-receiver-mail] request to unsubscribe you from the [simplenews-newsletters-name] on [site-name] website at [site-url]. However, this email is not subscribed to this newsletter. If you intended to subscribe please visit our site: [site-url]", $langcode);
+        $text = t("We have received a from the email [simplenews-receiver-mail] request to unsubscribe you from the [simplenews-newsletters-name] on [site-name] website at [site-url]. However, this email is not subscribed to this newsletter. If you intended to subscribe please visit our site: [site-url]", $args, $langcode);
+        break;
       case 'subscribe_subject':
-        $text = t("Confirmation for [simplenews-newsletters-name] from [site-name]", $langcode);
+        $text = t("Confirmation for [simplenews-newsletters-name] from [site-name]", $args, $langcode);
+        break;
     }
   }
 
