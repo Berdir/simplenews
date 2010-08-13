@@ -2211,7 +2211,7 @@ function _simplenews_headers($node, $from) {
   // Add priority if set.
   switch ($node->simplenews['priority']) {
     case SIMPLENEWS_PRIORITY_HIGHEST:
-      $headers['Priority'] = 'High';
+      $headers['Priority'] = 'urgent';
       $headers['X-Priority'] = '1';
       $headers['X-MSMail-Priority'] = 'Highest';
       break;
