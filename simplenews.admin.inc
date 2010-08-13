@@ -467,7 +467,7 @@ function simplenews_subscription_list_add() {
       '#title' => t('Anonymous user preferred language'),
       '#default_value' => '',
       '#options' => $options,
-      '#description' => t('Anonymous users will be subscribed with the selected preferred language. They will receive newsletters in this language if available. Registered users will be subscribed with their preferred language as set on their account page.'),
+      '#description' => t('New anonymous mail addresses will be subscribed with the selected preferred language. Registered users will be subscribed with their preferred language as set on their account page. The language of existing subscribers is unchanged.'),
     );
   }
   else {
@@ -713,8 +713,11 @@ function simplenews_subscription_list_form() {
     array('data' => t('Email'), 'field' => 'ss.mail', 'sort' => 'asc'),
     array('data' => t('Username'), 'field' => 'u.name'),
     array('data' => t('Status'), 'field' => 'ss.activated'),
-    t('Operations')
   );
+  if (variable_get('language_count', 1) > 1) {
+    $header[] = array('data' => t('Language'), 'field' => 'ss.language');
+  }
+  $header[] = t('Operations');
 
   // Data collection with filter and sorting applied
   $filter = simplenews_build_subscription_filter_query();
@@ -749,11 +752,15 @@ function simplenews_subscription_list_form() {
 
   $snids = array();
   // Subscription table and table pager
+  $languages = language_list();
   while ($subscription = db_fetch_object($result)) {
     $snids[$subscription->snid] = '';
     $form['mail'][$subscription->snid] = array('#value' => $subscription->mail);
     $form['name'][$subscription->snid] =  array('#value' => isset($subscription->uid) ? l($subscription->name, 'user/'. $subscription->uid) : $subscription->name);
     $form['status'][$subscription->snid] = array('#value' => theme('simplenews_status', $subscription->activated, 'activated'));
+    if (variable_get('language_count', 1) > 1) {
+      $form['language'][$subscription->snid] = array('#value' => $languages[$subscription->language]->name);
+    }
     $form['operations'][$subscription->snid] = array('#value' => l(t('edit'), 'admin/content/simplenews/users/edit/'. $subscription->snid, array(), drupal_get_destination()));
   }
   $form['snids'] = array('#type' => 'checkboxes', '#options' => $snids);
@@ -1277,8 +1284,11 @@ function theme_simplenews_subscription_list($form) {
     array('data' => t('Email'), 'field' => 'ss.mail', 'sort' => 'asc'),
     array('data' => t('Username'), 'field' => 'u.name'),
     array('data' => t('Status'), 'field' => 'ss.activated'),
-    t('Operations')
   );
+  if (variable_get('language_count', 1) > 1) {
+    $header[] = array('data' => t('Language'), 'field' => 'ss.language');
+  }
+  $header[] = t('Operations');
 
   // Subscription table
   $output = drupal_render($form['options']);
@@ -1289,6 +1299,9 @@ function theme_simplenews_subscription_list($form) {
       $row[] = drupal_render($form['mail'][$key]);
       $row[] = drupal_render($form['name'][$key]);
       $row[] = drupal_render($form['status'][$key]);
+      if (variable_get('language_count', 1) > 1) {
+        $row[] = drupal_render($form['language'][$key]);
+      }
       $row[] = drupal_render($form['operations'][$key]);
       $rows[] = $row;
     }

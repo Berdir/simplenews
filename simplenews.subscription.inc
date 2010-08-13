@@ -53,6 +53,10 @@ function simplenews_subscription_manager_form_validate($form, &$form_state) {
 }
 
 function simplenews_subscription_manager_form_submit($form, &$form_state) {
+  // Get current subscriptions if any.
+  $account = (object) array('mail' => $form_state['values']['mail']);
+  $subscription = simplenews_get_subscription($account);
+
   switch ($form_state['values']['op']) {
     case t('Update'):
       // We first subscribe, then unsubscribe. This prevents deletion of subscriptions

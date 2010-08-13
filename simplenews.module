@@ -308,6 +308,7 @@ function simplenews_node_type($op, $info) {
       break;
     case 'update':
       $simplenews_types = variable_get('simplenews_content_types', array('simplenews'));
+      // apply nodetype rename
       if (isset($info->old_type) && isset($simplenews_types[$info->old_type]) && $info->old_type != $info->type) {
         unset($simplenews_types[$info->old_type]);
         $simplenews_types[$info->type] = $info->type;
@@ -782,6 +783,7 @@ function simplenews_user($op, &$edit, &$account, $category = NULL) {
       return $form;
       break;
     case 'insert':
+      // take over previously anonymous subscribed mail.
       if ($edit['mail']) {
         $query = "SELECT snid FROM {simplenews_subscriptions} WHERE mail = '%s'";
         if ($result = db_fetch_object(db_query($query, $edit['mail']))) {
@@ -825,13 +827,17 @@ function simplenews_user($op, &$edit, &$account, $category = NULL) {
       }
       break;
     case 'update':
+      // always keep uid, mail, language in sync
       if ($category == 'account' && $edit['mail']) {
         $query = "SELECT snid FROM {simplenews_subscriptions} WHERE uid = %d";
         if ($result = db_fetch_object(db_query($query, $account->uid))) {
-          db_query("DELETE FROM {simplenews_subscriptions} WHERE mail = '%s' AND uid = %d", $edit['mail'], 0);
+          // user has snid. if user changes mail to previously subscribed anonymous mail, remove subscription.
+          db_query("DELETE FROM {simplenews_subscriptions} WHERE mail = '%s' AND uid = 0", $edit['mail']);
+          // migrate current subscription snid to new mail, language.
           db_query("UPDATE {simplenews_subscriptions} SET mail = '%s', language = '%s' WHERE snid = %d", $edit['mail'], $edit['language'], $result->snid);
         }
         else {
+          // no current snid. try taking over subscription via user mail match.
           $query = "SELECT snid FROM {simplenews_subscriptions} WHERE mail = '%s'";
           if ($result = db_fetch_object(db_query($query, $edit['mail']))) {
             db_query("UPDATE {simplenews_subscriptions} SET uid = %d, language = '%s' WHERE snid = %d", $account->uid, $account->language, $result->snid);
@@ -967,7 +973,7 @@ function simplenews_block($op = 'list', $delta = 0, $edit = array()) {
       $blocks = array();
       foreach (simplenews_get_newsletters(variable_get('simplenews_vid', '')) as $newsletter) {
         //TODO: 1. without form -> by role; 2. with form -> user caching with refresh on subscribe/unsubscribe (option as setting) or no caching
-        // Only list a block if the newsletter is not Hidden.
+        // Only list a block if the newsletter is not hidden.
         $blocks[$newsletter->tid] = array(
           'info' => t('Newsletter: @title', array('@title' => $newsletter->name)),
           'cache' => variable_get('simplenews_block_f_'. $newsletter->tid, 1) ? BLOCK_NO_CACHE : BLOCK_CACHE_PER_ROLE,
@@ -1083,6 +1089,8 @@ function _simplenews_user_load($mail) {
  *   TRUE  = User receives an email to verify the address and complete the subscription
  * A new subscription account is created when the user is subscribed to the first newsletter
  *
+ * This function does NOT update language information if account already exists.
+ *
  * @param string $mail
  *   The email address to subscribe to the newsletter.
  * @param integer $tid
@@ -1099,6 +1107,8 @@ function _simplenews_user_load($mail) {
  *    mass subscribe: mass admin UI
  *    mass unsubscribe: mass admin UI
  *    action: Drupal actions
+ *
+ * @return $subscription
  */
 function simplenews_subscribe_user($mail, $tid, $confirm = TRUE, $source = 'unknown', $preferred_language = NULL) {
   global $language;
@@ -1166,7 +1176,7 @@ function simplenews_subscribe_user($mail, $tid, $confirm = TRUE, $source = 'unkn
     // Execute simplenews subscribe trigger.
     simplenews_call_actions('subscribe', $subscription);
   }
-  return TRUE;
+  return $subscription;
 }
 
 /**
@@ -1295,6 +1305,7 @@ function simplenews_get_subscription($account) {
       }
       $subscription->newsletter_subscription[$newsletter_subscription->tid] = $newsletter_subscription;
     }
+    // simplenews_subscription matches account language if registered.
     $subscription->language = user_preferred_language($subscription);
   }
   else {
