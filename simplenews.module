@@ -14,8 +14,6 @@
  * @ingroup simplenews
  */
 
-// TODO: in Drupal 7 replace time() by REQUEST_TIME (requires php 5.1.0)
-
 /**
  * NEWSLETTER MAIL PRIORITY
  */
@@ -1234,15 +1232,16 @@ function simplenews_unsubscribe_user($mail, $tid, $confirm = TRUE, $source = 'un
 function simplenews_user_is_subscribed($mail, $tid, $reset = FALSE) {
   static $subscribed = array();
 
-    if ($reset) {
-      $subscribed = array();
-    }
+  if ($reset) {
+    $subscribed = array();
+  }
 
-    if (!isset($subscribed[$mail][$tid])) {
-      $subscribed[$mail][$tid] = db_result(db_query("SELECT COUNT(*) FROM {simplenews_subscriptions} s
-                                                    INNER JOIN {simplenews_snid_tid} t ON s.snid = t.snid
-                                                    WHERE s.mail = '%s' AND t.tid = %d AND t.status = %d",
-                                                    $mail, $tid, SIMPLENEWS_SUBSCRIPTION_STATUS_SUBSCRIBED)) ? TRUE : FALSE;
+  if (!isset($subscribed[$mail][$tid])) {
+    $subscribed[$mail][$tid] = db_result(db_query("
+      SELECT COUNT(*) FROM {simplenews_subscriptions} s
+      INNER JOIN {simplenews_snid_tid} t ON s.snid = t.snid
+      WHERE s.mail = '%s' AND t.tid = %d AND t.status = %d",
+      $mail, $tid, SIMPLENEWS_SUBSCRIPTION_STATUS_SUBSCRIBED)) ? TRUE : FALSE;
     }
 
   return $subscribed[$mail][$tid];
