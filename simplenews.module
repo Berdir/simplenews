@@ -2170,7 +2170,11 @@ function simplenews_call_actions($op, $subscription) {
  *   On true all newsletter will be returned.
  * @return array of newsletters objects.
  */
-function simplenews_get_newsletters($vid, $show_all = FALSE) {
+function simplenews_get_newsletters($vid, $show_all = FALSE, $reset = FALSE) {
+  static $newsletters = NULL;
+  if (is_array($newsletters) && !$reset) {
+    return $newsletters;
+  }
   $newsletters = array();
 
   foreach (taxonomy_get_tree($vid) as $term) {
