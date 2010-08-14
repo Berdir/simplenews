@@ -42,6 +42,7 @@ function simplenews_admin_news(&$form_state, $action = 'sent') {
   $result = pager_query(db_rewrite_sql($query, 'n', 'nid'), 10, 0, db_rewrite_sql($count_query, 'n', 'nid'), 0);
 
   $rows = array();
+  module_load_include('inc', 'simplenews', 'simplenews.mail');
   while ($node = db_fetch_object($result)) {
     $row = array();
     $operation = array();
