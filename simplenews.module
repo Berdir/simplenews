@@ -986,6 +986,7 @@ function simplenews_block($op = 'list', $delta = 0, $edit = array()) {
         '#title' => t('Block message'),
         '#size' => 60,
         '#maxlength' => 128,
+        // @todo: clean localization / i18n needed
         '#default_value' => variable_get('simplenews_block_m_'. $delta, t('Stay informed on our latest news!')),
       );
       $form['simplenews_block_'. $delta]['simplenews_block_f_'. $delta] = array(
@@ -2783,6 +2784,7 @@ function template_preprocess_simplenews_block(&$variables) {
   $variables['rssfeed'] = '';
 
   // Block content variables
+  // @todo: clean localization / i18n needed
   $variables['message'] = check_plain(variable_get('simplenews_block_m_'. $tid, t('Stay informed on our latest news!')));
   if (user_access('subscribe to newsletters')) {
     $variables['form'] = drupal_get_form('simplenews_block_form_'. $tid);
