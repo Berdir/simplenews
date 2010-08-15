@@ -1151,6 +1151,7 @@ function simplenews_subscribe_user($mail, $tid, $confirm = TRUE, $source = 'unkn
   }
 
   if ($confirm) {
+    module_load_include('inc', 'simplenews', 'simplenews.mail');
     // Send confirmation email to user to complete subscription or to tell
     // them that he or she is already subscribed.
     // Confirmation mail is in the user preferred language which is by default the language_default().
@@ -1212,6 +1213,7 @@ function simplenews_unsubscribe_user($mail, $tid, $confirm = TRUE, $source = 'un
   }
 
   if ($confirm) {
+    module_load_include('inc', 'simplenews', 'simplenews.mail');
     // Send confirmation email to user to confirm unsubscribe
     // or to tell them that he or she is not subscribed
     // Confirmation mail is in the user preferred language.
