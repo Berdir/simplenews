@@ -583,7 +583,7 @@ function simplenews_admin_export_after_build($form, $form_element) {
 
     // Get subscription data
     if (isset($where) && isset($where_tid)) {
-      $query = 'SELECT DISTINCT s.mail FROM {simplenews_subscriptions} s INNER JOIN {simplenews_snid_tid} t ON s.snid = t.snid WHERE ('. $where .') AND ('. $where_tid .')';
+      $query = 'SELECT DISTINCT s.mail FROM {simplenews_subscriptions} s INNER JOIN {simplenews_snid_tid} t ON s.snid = t.snid AND t.status = 1 WHERE ('. $where .') AND ('. $where_tid .')';
       $result = db_query($query);
       while ($mail = db_fetch_object($result)) {
         $mails[] = $mail->mail;
@@ -1241,6 +1241,7 @@ function simplenews_build_subscription_filter_query() {
           if ($value != 'all') {
             list($key, $value) = explode('-', $value, 2);
             $where[] = 's.'. $key .' = '. $value;
+            $where[] = 's.status = 1';
           }
           break;
         case 'email':
