@@ -85,7 +85,6 @@ function simplenews_init() {
   if ((variable_get('simplenews_vid', '')) == '') {
     drupal_set_message(t('Missing newsletter vocabulary. Please set a vocabulary at <a href="@settings">Simplenews settings</a>.', array('@settings' => url('admin/settings/simplenews/general'))), 'error');
   }
-
 }
 
 /**
@@ -174,7 +173,7 @@ function simplenews_menu() {
     'title' => 'Subscriptions',
     'type' => MENU_CALLBACK,
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('simplenews_admin_users_form', 5),
+    'page arguments' => array('simplenews_subscriptions_admin_form', 5),
     'access arguments' => array('administer simplenews subscriptions'),
     'file' => 'simplenews.subscription.inc',
     );
@@ -220,7 +219,6 @@ function simplenews_menu() {
     'file' => 'system.admin.inc',
     'file path' => drupal_get_path('module', 'system'),
   );
-
   $items['admin/settings/simplenews/general'] = array(
     'title' => 'General',
     'description' => 'Simplenews content type and vocabulary settings.',
@@ -266,15 +264,16 @@ function simplenews_menu() {
     'title' => 'Confirm newsletter subscriptions',
     'type' => MENU_CALLBACK,
     'page callback' => 'simplenews_confirm_subscription',
+    // @todo: open this permission - check later - allow unsubscribe
     'access arguments' => array('subscribe to newsletters'),
     'file' => 'simplenews.subscription.inc',
   );
 
   $items['newsletter/subscriptions'] = array(
-    'title' => 'Manage newsletter subscriptions',
+    'title' => 'Your newsletter subscriptions',
     'type' => MENU_CALLBACK,
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('simplenews_subscription_manager_form'),
+    'page arguments' => array('simplenews_subscriptions_page_form'),
     'access arguments' => array('subscribe to newsletters'),
     'file' => 'simplenews.subscription.inc',
   );
@@ -387,8 +386,8 @@ function simplenews_nodeapi(&$node, $op, $teaser, $page) {
       $node->simplenews = _simplenews_flatten_array($node->simplenews);
 
       $send_with_permission = $node->simplenews['send'] == SIMPLENEWS_COMMAND_SEND_NOW && user_access('send newsletter');
-      // @todo: {simplenews_newsletters} data might be missing if an uninstall happened at some time with simplenews nodes created. try to insert if missing.
 
+      // {simplenews_newsletters} data might be missing if an uninstall happened at some time with simplenews nodes created. try to insert if missing.
       $result = db_query("SELECT nid from {simplenews_newsletters} WHERE nid = %d", $node->nid);
       $result = db_result($result);
       if (!is_numeric($result)) {
@@ -885,9 +884,8 @@ function simplenews_user($op, &$edit, &$account, $category = NULL) {
       if ($category == 'newsletter') {
         module_load_include('inc', 'simplenews', 'simplenews.mail');
         $subscription = simplenews_get_subscription($account);
-        $form = _simplenews_subscription_manager_form($subscription);
-        $form['subscriptions']['#title'] =  t('Current newsletter subscriptions');
-        unset($form['update'], $form['subscriptions']['mail']);
+        module_load_include('inc', 'simplenews', 'simplenews.subscription');
+        $form = simplenews_subscriptions_account_form($account);
         return $form;
       }
       break;
@@ -974,6 +972,12 @@ function simplenews_block($op = 'list', $delta = 0, $edit = array()) {
   switch ($op) {
     case 'list':
       $blocks = array();
+
+      // Special block for multi
+      $blocks[0] = array(
+        'info' => t('Newsletter: Multi Subscription'),
+      );
+
       foreach (simplenews_get_newsletters(variable_get('simplenews_vid', '')) as $newsletter) {
         //TODO: 1. without form -> by role; 2. with form -> user caching with refresh on subscribe/unsubscribe (option as setting) or no caching
         // Only list a block if the newsletter is not hidden.
@@ -984,66 +988,101 @@ function simplenews_block($op = 'list', $delta = 0, $edit = array()) {
       }
       return $blocks;
     case 'configure':
-      $form['simplenews_block_'. $delta]['simplenews_block_m_'. $delta] = array(
-        '#type' => 'textfield',
-        '#title' => t('Block message'),
-        '#size' => 60,
-        '#maxlength' => 128,
-        // @todo: clean localization / i18n needed
-        '#default_value' => variable_get('simplenews_block_m_'. $delta, t('Stay informed on our latest news!')),
-      );
-      $form['simplenews_block_'. $delta]['simplenews_block_f_'. $delta] = array(
-        '#type' => 'radios',
-        '#title' => t('Subscription interface'),
-        '#options' => array('1' => t('Subscription form'), '0' => t('Link to form')),
-        '#description' => t("Note: this requires permission 'subscribe to newsletters'."),
-        '#default_value' => variable_get('simplenews_block_f_'. $delta, 1),
-      );
-      $form['simplenews_block_'. $delta]['simplenews_block_l_'. $delta] = array(
-        '#type' => 'checkbox',
-        '#title' => t('Display link to previous issues'),
-        '#return_value' => 1,
-        '#default_value' => variable_get('simplenews_block_l_'. $delta, 1),
-      );
-      $form['simplenews_block_'. $delta]['simplenews_block_i_status_'. $delta] = array(
-        '#type' => 'checkbox',
-        '#title' => t('Display previous issues'),
-        '#return_value' => 1,
-        '#default_value' => variable_get('simplenews_block_i_status_'. $delta, 0),
-      );
-      $form['simplenews_block_'. $delta]['simplenews_block_i_'. $delta] = array(
-        '#type' => 'select',
-        '#title' => t('Number of issues to display'),
-        '#options' => drupal_map_assoc(array(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)),
-        '#default_value' => variable_get('simplenews_block_i_'. $delta, 5),
-      );
-      $form['simplenews_block_'. $delta]['simplenews_block_r_'. $delta] = array(
-        '#type' => 'checkbox',
-        '#title' => t('Display RSS-feed icon'),
-        '#return_value' => 1,
-        '#default_value' => variable_get('simplenews_block_r_'. $delta, 1),
-      );
+      // Special block for multi
+      if ($delta == 0) {
+        $form['simplenews_block_multiple']['simplenews_block_m_multiple'] = array(
+          '#type' => 'textfield',
+          '#title' => t('Block message'),
+          '#size' => 60,
+          '#maxlength' => 128,
+          // @todo: clean localization / i18n needed
+          '#default_value' => variable_get('simplenews_block_m_multiple', t('Select the newsletter(s) to which you want to subscribe or unsubscribe.')),
+        );
+      }
+      else {
+        $form['simplenews_block_'. $delta]['simplenews_block_m_'. $delta] = array(
+          '#type' => 'textfield',
+          '#title' => t('Block message'),
+          '#size' => 60,
+          '#maxlength' => 128,
+          // @todo: clean localization / i18n needed
+          '#default_value' => variable_get('simplenews_block_m_'. $delta, t('Stay informed on our latest news!')),
+        );
+        $form['simplenews_block_'. $delta]['simplenews_block_f_'. $delta] = array(
+          '#type' => 'radios',
+          '#title' => t('Subscription interface'),
+          '#options' => array('1' => t('Subscription form'), '0' => t('Link to form')),
+          '#description' => t("Note: this requires permission 'subscribe to newsletters'."),
+          '#default_value' => variable_get('simplenews_block_f_'. $delta, 1),
+        );
+        $form['simplenews_block_'. $delta]['simplenews_block_l_'. $delta] = array(
+          '#type' => 'checkbox',
+          '#title' => t('Display link to previous issues'),
+          '#return_value' => 1,
+          '#default_value' => variable_get('simplenews_block_l_'. $delta, 1),
+        );
+        $form['simplenews_block_'. $delta]['simplenews_block_i_status_'. $delta] = array(
+          '#type' => 'checkbox',
+          '#title' => t('Display previous issues'),
+          '#return_value' => 1,
+          '#default_value' => variable_get('simplenews_block_i_status_'. $delta, 0),
+        );
+        $form['simplenews_block_'. $delta]['simplenews_block_i_'. $delta] = array(
+          '#type' => 'select',
+          '#title' => t('Number of issues to display'),
+          '#options' => drupal_map_assoc(array(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)),
+          '#default_value' => variable_get('simplenews_block_i_'. $delta, 5),
+        );
+        $form['simplenews_block_'. $delta]['simplenews_block_r_'. $delta] = array(
+          '#type' => 'checkbox',
+          '#title' => t('Display RSS-feed icon'),
+          '#return_value' => 1,
+          '#default_value' => variable_get('simplenews_block_r_'. $delta, 1),
+        );
+      }
       return $form;
     case 'save':
-      variable_set('simplenews_block_m_'. $delta, $edit['simplenews_block_m_'. $delta]);
-      variable_set('simplenews_block_f_'. $delta, $edit['simplenews_block_f_'. $delta]);
-      variable_set('simplenews_block_l_'. $delta, $edit['simplenews_block_l_'. $delta]);
-      variable_set('simplenews_block_i_status_'. $delta, $edit['simplenews_block_i_status_'. $delta]);
-      variable_set('simplenews_block_i_'. $delta, $edit['simplenews_block_i_'. $delta]);
-      variable_set('simplenews_block_r_'. $delta, $edit['simplenews_block_r_'. $delta]);
+      //Special block for multi
+      if ($delta == 0) {
+        variable_set('simplenews_block_m_multiple', $edit['simplenews_block_m_multiple']);
+      }
+      else {
+        variable_set('simplenews_block_m_'. $delta, $edit['simplenews_block_m_'. $delta]);
+        variable_set('simplenews_block_f_'. $delta, $edit['simplenews_block_f_'. $delta]);
+        variable_set('simplenews_block_l_'. $delta, $edit['simplenews_block_l_'. $delta]);
+        variable_set('simplenews_block_i_status_'. $delta, $edit['simplenews_block_i_status_'. $delta]);
+        variable_set('simplenews_block_i_'. $delta, $edit['simplenews_block_i_'. $delta]);
+        variable_set('simplenews_block_r_'. $delta, $edit['simplenews_block_r_'. $delta]);
+      }
       break;
     case 'view':
-      global $language;
+      // Special block for multi
+      if ($delta == 0) {
+        if (user_access('subscribe to newsletters')) {
+          module_load_include('inc', 'simplenews', 'simplenews.subscription');
+          // render block only if permitted
+          $block = array(
+            'subject' => t('Newsletters'),
+            'content' => theme('simplenews_multi_block'),
+          );
+          return $block;
+        }
+        return NULL;
+      }
+      else {
+        global $language;
 
-      $newsletters = simplenews_get_newsletters(variable_get('simplenews_vid', ''));
-      // Only display a block if $delta is a valid newsletter term id.
-      if (in_array($delta, array_keys($newsletters))) {
-        // $delta is validated, the block can be displayed.
-        $block = array(
-          'subject' => check_plain($newsletters['$delta']),
-          'content' => theme(array('simplenews_block__'. $delta, 'simplenews_block'), $delta),
-        );
-        return $block;
+        $newsletters = simplenews_get_newsletters(variable_get('simplenews_vid', ''));
+        // Only display a block if $delta is a valid newsletter term id.
+        if (in_array($delta, array_keys($newsletters))) {
+          module_load_include('inc', 'simplenews', 'simplenews.subscription');
+          // $delta is validated, the block can be displayed.
+          $block = array(
+            'subject' => check_plain($newsletters[$delta]->name),
+            'content' => theme(array('simplenews_block__'. $delta, 'simplenews_block'), $delta),
+          );
+          return $block;
+        }
       }
       break;
   }
@@ -1055,11 +1094,12 @@ function simplenews_block($op = 'list', $delta = 0, $edit = array()) {
  * All form blocks are build using simplenews_block_form().
  * hook_forms() is required to provide unique form id for each block form.
  */
-function simplenews_forms() {
-  foreach (simplenews_get_newsletters(variable_get('simplenews_vid', ''), TRUE) as $newsletter) {
-    $forms['simplenews_block_form_'. $newsletter->tid] = array(
+function simplenews_forms($form_id, $args) {
+  $match = preg_match('/simplenews_block_form_(\d+)/', $form_id, $matches);
+  if ($match) {
+    $forms['simplenews_block_form_'. $matches[1]] = array(
       'callback' => 'simplenews_block_form',
-      'callback arguments' => array($newsletter->tid),
+      'callback arguments' => array($matches[1]),
     );
   }
   return $forms;
@@ -1340,68 +1380,7 @@ function simplenews_delete_subscription($snid) {
   watchdog('simplenews', 'User %email deleted from the mailing list.', array('%email' => $account->mail), WATCHDOG_NOTICE);
 }
 
-/**
- * Build subscription manager form.
- *
- * @param object $subscription subscription object
- */
-function _simplenews_subscription_manager_form($subscription) {
-  $form = array();
-  $options = array();
-  $default_value = array();
-  global $language;
 
-  // Get newsletters for subscription form checkboxes.
-  // Newsletters with opt-in/out method 'hidden' will not be listed.
-  foreach(simplenews_get_newsletters(variable_get('simplenews_vid', '')) as $newsletter) {
-    $options[$newsletter->tid] = check_plain($newsletter->name);
-    $default_value[$newsletter->tid] = FALSE;
-  }
-
-  $form['subscriptions'] = array(
-    '#type' => 'fieldset',
-    '#description' => t('Select the newsletter(s) to which you want to subscribe or unsubscribe.'),
-  );
-  $form['subscriptions']['newsletters'] = array(
-    '#type' => 'checkboxes',
-    '#options' => $options,
-    '#default_value' => array_merge($default_value, (array)$subscription->tids),
-  );
-
-  // If current user is logged in, just display email.
-  // Anonymous users see an email box and will receive confirmations
-  if ($subscription->mail) {
-    $form['subscriptions']['#title'] = t('Subscriptions for %mail', array('%mail' => $subscription->mail));
-    $form['subscriptions']['mail'] = array('#type' => 'value', '#value' => $subscription->mail);
-    $form['update'] = array(
-      '#type' => 'submit',
-      '#value' => t('Update'),
-      '#weight' => 20,
-    );
-  }
-  else {
-    $form['subscriptions']['#title'] = t('Manage your newsletter subscriptions');
-    $form['subscriptions']['mail'] = array(
-      '#type' => 'textfield',
-      '#title' => t('email'),
-      '#size' => 20,
-      '#maxlength' => 128,
-      '#weight' => 10,
-      '#required' => TRUE,
-    );
-    $form['subscribe'] = array(
-      '#type' => 'submit',
-      '#value' => t('Subscribe'),
-      '#weight' => 20,
-    );
-    $form['unsubscribe'] = array(
-      '#type' => 'submit',
-      '#value' => t('Unsubscribe'),
-      '#weight' => 30,
-    );
-  }
-  return $form;
-}
 
 /**
  * Create a list of recent newsletters.
@@ -1417,103 +1396,6 @@ function simplenews_recent_newsletters($tid, $count = 5) {
     $titles[$item->nid]['class'] = ($item->s_status == SIMPLENEWS_STATUS_SEND_NOT) ? 'newsletter-created' : 'newsletter-send';
   }
   return $titles;
-}
-
-/**
- * Newsletter (un)subscription form for authenticated and anonymous users.
- *
- * @param $tid term id of selected newsletter.
- *
- * @see simplenews_block_form_validate()
- * @see simplenews_block_form_submit()
- */
-function simplenews_block_form(&$form_state, $tid) {
-  global $user;
-  $form = array();
-
-  if ($user->uid) {
-    if (simplenews_user_is_subscribed($user->mail, $tid)) {
-      $submit_text = t('Unsubscribe');
-      $form['action'] = array('#type' => 'value', '#value' => 'unsubscribe');
-      $form['#attributes'] = array('class' => 'simplenews-unsubscribe');
-    }
-    else {
-      $submit_text = t('Subscribe');
-      $form['action'] = array('#type' => 'value', '#value' => 'subscribe');
-      $form['#attributes'] = array('class' => 'simplenews-subscribe');
-    }
-    $form['display_mail'] = array(
-      '#type' => 'item',
-      '#title' => t('User'),
-      '#value' => check_plain($user->name),
-    );
-    $form['mail'] = array('#type' => 'value', '#value' => $user->mail);
-  }
-  else {
-    $form['mail'] = array(
-      '#type' => 'textfield',
-      '#title' => t('Email'),
-      '#size' => 20,
-      '#maxlength' => 128,
-      '#required' => TRUE,
-    );
-    $submit_text = t('Subscribe');
-    $form['action'] = array('#type' => 'value', '#value' => 'subscribe');
-    $form['#attributes'] = array('class' => 'simplenews-subscribe');
-  }
-
-  // All block forms use the same validate and submit function.
-  // #tid carries the tid for processing of the right newsletter issue term.
-  $form['#tid'] = $tid;
-  $form['#validate'][] = 'simplenews_block_form_validate';
-  $form['#submit'][] = 'simplenews_block_form_submit';
-  $form['submit'] = array(
-    '#type' => 'submit',
-    '#value' => isset($submit_text) ? $submit_text : t('Save')
-  );
-  return $form;
-}
-
-function simplenews_block_form_validate($form, &$form_state) {
-  if (!valid_email_address($form_state['values']['mail'])) {
-    form_set_error('mail', t("The email address you supplied is not valid."));
-  }
-}
-
-function simplenews_block_form_submit($form, &$form_state) {
-  global $user;
-  $tid = $form['#tid'];
-  $account = _simplenews_user_load($form_state['values']['mail']);
-
-  // If email belongs to the current registered user, don't send confirmation.
-  // Other addresses receive a confirmation if double opt-in is selected.
-  if ($account->uid && $account->uid == $user->uid) {
-    $confirm = FALSE;
-  }
-  else {
-    $confirm = variable_get('simplenews_opt_inout_'. $tid, 'double') == 'double';
-  }
-
-  switch ($form_state['values']['action']) {
-    case 'subscribe':
-      simplenews_subscribe_user($form_state['values']['mail'], $tid, $confirm, 'website');
-      if ($confirm) {
-        drupal_set_message(t('You will receive a confirmation email shortly containing further instructions on how to complete your subscription.'));
-      }
-      else {
-        drupal_set_message(t('You have been subscribed.'));
-      }
-      break;
-    case 'unsubscribe':
-      simplenews_unsubscribe_user($form_state['values']['mail'], $tid, $confirm, 'website');
-      if ($confirm) {
-        drupal_set_message(t('You will receive a confirmation email shortly containing further instructions on how to cancel your subscription.'));
-      }
-      else {
-        drupal_set_message(t('You have been unsubscribed.'));
-      }
-      break;
-  }
 }
 
 /**
@@ -2113,6 +1995,10 @@ function simplenews_content_build_modes() {
  */
 function simplenews_theme() {
   return array(
+    'simplenews_multi_block' => array(
+      'template' => 'simplenews-multi-block',
+      'arguments' => array(),
+    ),
     'simplenews_block' => array(
       'template' => 'simplenews-block',
       'arguments' => array('tid' => NULL),
@@ -2148,8 +2034,7 @@ function simplenews_theme() {
  *
  * Collect data and apply access restrictions.
  *
- * $variables contains:
- * - $tid
+ * $variables
  *
  * @see simplenews-block.tpl.php
  * @see theme_simplenews-block()
@@ -2169,6 +2054,7 @@ function template_preprocess_simplenews_block(&$variables) {
   // @todo: clean localization / i18n needed
   $variables['message'] = check_plain(variable_get('simplenews_block_m_'. $tid, t('Stay informed on our latest news!')));
   if (user_access('subscribe to newsletters')) {
+    module_load_include('inc', 'simplenews', 'simplenews.subscription');
     $variables['form'] = drupal_get_form('simplenews_block_form_'. $tid);
     $variables['subscription_link'] = l(t('Manage my subscriptions'), 'newsletter/subscriptions');
   }
@@ -2183,6 +2069,25 @@ function template_preprocess_simplenews_block(&$variables) {
   $variables['use_issue_link'] = variable_get('simplenews_block_l_'. $tid, 1);
   $variables['use_issue_list'] = variable_get('simplenews_block_i_status_'. $tid, 0);
   $variables['use_rss'] = variable_get('simplenews_block_r_'. $tid, 1);
+
+  // Additional variables
+  $variables['subscribed'] = empty($user->uid) ? FALSE : (simplenews_user_is_subscribed($user->mail, $tid) == TRUE);
+  $variables['user'] = !empty($user->uid);
+}
+
+/**
+ * Process variables to format the simplenews newsletter footer.
+ *
+ * $variables are empty:
+ *
+ * @see simplenews-multi-block.tpl.php
+ */
+function template_preprocess_simplenews_multi_block(&$variables) {
+  global $user;
+
+  // Block content variables
+  $variables['message'] = check_plain(variable_get('simplenews_block_m_multiple', t('Select the newsletter(s) to which you want to subscribe or unsubscribe.')));
+  $variables['form'] = drupal_get_form('simplenews_subscriptions_multi_block_form');
 
   // Additional variables
   $variables['subscribed'] = empty($user->uid) ? FALSE : (simplenews_user_is_subscribed($user->mail, $tid) == TRUE);
@@ -2214,9 +2119,10 @@ function template_preprocess_simplenews_newsletter_body(&$variables) {
  * Process variables to format the simplenews newsletter footer.
  *
  * $variables contains:
- * - $node
- * - $key
- * - $language
+ * - $node: newsletter node object
+ * - $language: language object
+ * - $key: email key [node|test]
+
  *
  * @see simplenews-newsletter-footer.tpl.php
  */
