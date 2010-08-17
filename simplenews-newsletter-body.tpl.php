@@ -10,7 +10,7 @@
  * newsletter using the newsletter term's id.
  *
  * Available variables:
- * - node: Newsletter node object
+ * - $node: Newsletter node object
  * - $body: Newsletter body (formatted as plain text or HTML)
  * - $title: Node title
  * - $language: Language object
