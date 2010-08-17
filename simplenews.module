@@ -1121,6 +1121,20 @@ function _simplenews_user_load($mail) {
 }
 
 /**
+ * Update subscriber data.
+ *
+ * @param $snid
+ *   Subscribers ID.
+ * @param $data
+ *   Array of data to be updated
+ *   'language'  Preferred newsletter language (default: '')
+ */
+function simplenews_subscriber_update($subscription, $data) {
+  $data['snid'] = $subscription->snid;
+  drupal_write_record('simplenews_subscriptions', $data, 'snid');
+}
+
+/**
  * Subscribe a user to a newsletter or send a confirmation mail.
  *
  * The $confirm parameter determines the action:
