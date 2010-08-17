@@ -26,6 +26,9 @@
 function simplenews_send_node($node, $accounts = array()) {
   $mails = array();
 
+  // We always start with an empty spooler
+  simplenews_clear_spool_node($node);
+
   if (is_numeric($node)) {
     $node = node_load($node);
   }
@@ -38,13 +41,13 @@ function simplenews_send_node($node, $accounts = array()) {
     $node_data['nid'] = $node->nid;
     $node_data['vid'] = $node->vid;
 
-
     if (empty($accounts)) {
       // No accounts specified. Get email address of all accounts subscribed to this newsletter.
-      $result = db_query('SELECT s.mail FROM {simplenews_subscriptions} s
-                         INNER JOIN {simplenews_snid_tid} t ON s.snid = t.snid
-                         WHERE s.activated = %d AND t.tid = %d AND t.status = %d',
-                         1, $node_data['tid'], SIMPLENEWS_SUBSCRIPTION_STATUS_SUBSCRIBED);
+      $result = db_query('
+        SELECT s.mail FROM {simplenews_subscriptions} s
+        INNER JOIN {simplenews_snid_tid} t ON s.snid = t.snid
+        WHERE s.activated = %d AND t.tid = %d AND t.status = %d',
+        1, $node_data['tid'], SIMPLENEWS_SUBSCRIPTION_STATUS_SUBSCRIBED);
       while ($account = db_fetch_object($result)) {
         $mails[] = array('mail' => $account->mail);
       }
@@ -56,6 +59,10 @@ function simplenews_send_node($node, $accounts = array()) {
         $mails[] = array('mail' => $account->mail);
       }
     }
+
+    // Persist subscriber count now
+    $sent_subscriber_count = count($mails);
+    db_query("UPDATE {simplenews_newsletters} SET sent_subscriber_count = %d WHERE nid = %d", $sent_subscriber_count, $node->nid);
 
     // To send the newsletter, the node id and target email addresses
     // are stored in the spool.
@@ -379,6 +386,12 @@ function simplenews_count_spool($nid, $vid, $status = SIMPLENEWS_SPOOL_PENDING) 
 function simplenews_clear_spool() {
   $expiration_time = time() - variable_get('simplenews_spool_expire', 0) * 86400;
   db_query("DELETE FROM {simplenews_mail_spool} WHERE status = %d AND timestamp <= %d", SIMPLENEWS_SPOOL_DONE, $expiration_time);
+}
+/**
+ * Remove records from mail spool table from node.
+ */
+function simplenews_clear_spool_node($node) {
+  db_query("DELETE FROM {simplenews_mail_spool} WHERE nid = %d", $node->nid);
 }
 
 /**

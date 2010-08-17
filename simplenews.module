@@ -392,14 +392,9 @@ function simplenews_nodeapi(&$node, $op, $teaser, $page) {
       $result = db_result($result);
       if (!is_numeric($result)) {
         // Insert node
-        $result = db_query('SELECT count(tid) AS sent_subscriber_count FROM {simplenews_snid_tid} WHERE tid = %d AND status = %d', $node->simplenews['tid'], SIMPLENEWS_SUBSCRIPTION_STATUS_SUBSCRIBED);
-        $result = db_fetch_object( $result );
-        $sent_subscriber_count = is_numeric($result->sent_subscriber_count) ? $result->sent_subscriber_count : 0;
-
-
         $s_status = $send_with_permission ? SIMPLENEWS_STATUS_SEND_PENDING : SIMPLENEWS_STATUS_SEND_NOT;
-        db_query("INSERT INTO {simplenews_newsletters} (nid, vid, tid, s_status, s_format, priority, receipt,sent_subscriber_count)
-                  VALUES (%d, %d, %d, %d, '%s', %d, %d, %d)", $node->nid, $node->vid, $node->simplenews['tid'], $s_status, $node->simplenews['s_format'], $node->simplenews['priority'], $node->simplenews['receipt'], $sent_subscriber_count);
+        db_query("INSERT INTO {simplenews_newsletters} (nid, vid, tid, s_status, s_format, priority, receipt)
+                  VALUES (%d, %d, %d, %d, '%s', %d, %d)", $node->nid, $node->vid, $node->simplenews['tid'], $s_status, $node->simplenews['s_format'], $node->simplenews['priority'], $node->simplenews['receipt']);
       }
       else {
         // Update node
