@@ -1720,7 +1720,6 @@ function simplenews_token_values($type, $object = NULL, $options = array()) {
         if ($tid && ($term = taxonomy_get_term($tid))) {
             $newsletter->name = $term->name;
             $newsletter->tid = $tid;
-          }
         }
       }
       // Translate newsletter name
