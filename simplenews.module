@@ -1715,14 +1715,16 @@ function simplenews_token_values($type, $object = NULL, $options = array()) {
       // When simplenews_token_values() is called from simplenews_nodeapi()
       // $newsletter->name contains no value. Newsletter name is
       // reconstructed from $node->simplenews['tid'].
-      $newsletter_name = isset($newsletter->name) ? $newsletter->name : '';
-      if (!$newsletter_name) {
-        if (isset($node->simplenews['tid'])) {
-          if ($term = taxonomy_get_term($node->simplenews['tid'])) {
-            $newsletter_name = _simplenews_tt_newsletter_name($newsletter, $language->language);
+      if (!isset($newsletter->name) || !isset($newsletter->tid)) {
+        $tid = isset($newsletter->tid) ? $newsletter->tid : $node->simplenews['tid'];
+        if ($tid && ($term = taxonomy_get_term($tid))) {
+            $newsletter->name = $term->name;
+            $newsletter->tid = $tid;
           }
         }
       }
+      // Translate newsletter name
+      $newsletter_name = _simplenews_tt_newsletter_name($newsletter, $language->language);
 
       // Build tokens for both 'simplenews_subscription' and 'simplenews'.
       $values['simplenews-subscribe-url']       = url('newsletter/confirm/add/'. $hash, array('absolute' => TRUE, 'language' => $language));
