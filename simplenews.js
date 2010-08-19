@@ -7,13 +7,13 @@ Drupal.behaviors.simplenewsCommandSend = function (context) {
   var simplenewsSendButton = function () {
     switch ($(".simplenews-command-send :radio:checked").val()) {
       case '0':
-        $('#edit-submit').attr({value: Drupal.t('Save')});
+        $('.simplenews-submit').attr({value: Drupal.t('Save')});
         break;
       case '1':
-        $('#edit-submit').attr({value: Drupal.t('Save and send')});
+        $('.simplenews-submit').attr({value: Drupal.t('Save and send')});
         break;
       case '2':
-        $('#edit-submit').attr({value: Drupal.t('Save and send test')});
+        $('.simplenews-submit').attr({value: Drupal.t('Save and send test')});
         break;
     }
   }

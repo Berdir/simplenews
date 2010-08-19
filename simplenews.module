@@ -589,7 +589,7 @@ function simplenews_form_alter(&$form, $form_state, $form_id) {
         if (!isset($simplenews_values['s_status']) || (isset($simplenews_values['s_status']) && $simplenews_values['s_status'] == SIMPLENEWS_STATUS_SEND_NOT)) {
 
           // Add dynamic text for send button.
-          drupal_add_js(drupal_get_path('module', 'simplenews') .'/simplenews.js', 'module');
+          $form['#after_build'][] = 'simplenews_node_form_afterbuild';
 
           if (user_access('send newsletter')) {
             $options[SIMPLENEWS_COMMAND_SEND_NONE] = t("Don't send now");
@@ -694,8 +694,24 @@ function simplenews_form_alter(&$form, $form_state, $form_id) {
         '#type' => 'hidden',
         '#value' => isset($simplenews_values['s_status']) ? $simplenews_values['s_status'] : SIMPLENEWS_STATUS_SEND_NOT,
       );
+
+      // Add id to submit button to aid js behaviour simplenewsCommandSend()
+      if (isset($form['buttons']['submit'])) {
+        $form['buttons']['submit']['#attributes'] = array('class' => 'simplenews-submit');
+      }
+
     }
   }
+}
+
+/**
+ * After build for node form
+ *
+ * Add css to make js add it survive caching hits.
+ */
+function simplenews_node_form_afterbuild($form_element) {
+  drupal_add_js(drupal_get_path('module', 'simplenews') .'/simplenews.js', 'module');
+  return $form_element;
 }
 
 /**
