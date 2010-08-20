@@ -702,19 +702,37 @@ function simplenews_update_6101() {
   return $ret;
 }
 
+
 /**
- * Addition of error to simplenews_mail_cache to mark an email error.
+ * Dummy update for compatibility with HEAD
+ *
+ * Accidentally added in DRUPAL-6--1-1 branch already.
+ * Continuing with 6200 numbers!
  */
 function simplenews_update_6200() {
+  return array();
+}
+
+/**
+ * Correction of field size mismatch caused by simplenews_update_6009().
+ */
+function simplenews_update_6201() {
   $ret = array();
-  db_add_field($ret, 'simplenews_mail_spool', 'error', array('type' => 'int', 'not null' => TRUE, 'default' => 0));
+  db_change_field($ret, 'simplenews_mail_spool', 'error', 'error', array(
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+  ));
   return $ret;
 }
 
 /**
  * Add 'status' field to 'simplenews_snid_tid' table.
+ *
+ * First update of DRUPAL-6--2 branch.
  */
-function simplenews_update_6201() {
+function simplenews_update_6251() {
   $ret = array();
   db_add_field($ret, 'simplenews_snid_tid', 'status', array(
         'description' => 'A flag indicating whether the user is subscribed (1) or unsubscribed (0).',
@@ -730,7 +748,7 @@ function simplenews_update_6201() {
 /**
  * Add 'sent_subscriber_count' field to 'simplenews_newsletters' table.
  */
-function simplenews_update_6202() {
+function simplenews_update_6252() {
   $ret = array();
   db_add_field($ret, 'simplenews_newsletters', 'sent_subscriber_count', array(
     'description' => 'The count of subcsribers to the newsletter when it was sent.',
