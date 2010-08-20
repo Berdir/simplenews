@@ -605,27 +605,20 @@ function simplenews_update_6009() {
   return $ret;
 }
 
-function simplenews_update_6200() {
-  // Added for compatibility with HEAD.
-  return array();
-}
-
 /**
- * Faulty update function. Corrected by the next one.
+ * Dummy update for compatibility with HEAD
  *
- * @see simplenews_update_6011().
+ * Accidentally added in 6--1-1 branch already.
+ * Continuing with 6200 numbers!
  */
-function simplenews_update_6010() {
-  $ret = array();
-  // Function removed.
-  
-  return $ret;
+function simplenews_update_6200() {
+  return array();
 }
 
 /**
  * Correction of field size mismatch caused by simplenews_update_6009().
  */
-function simplenews_update_6011() {
+function simplenews_update_6201() {
   $ret = array();
   db_change_field($ret, 'simplenews_mail_spool', 'error', 'error', array(
         'type' => 'int',
