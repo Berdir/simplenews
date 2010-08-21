@@ -728,7 +728,7 @@ function simplenews_update_6201() {
 }
 
 /**
- * Add 'status' field to 'simplenews_snid_tid' table.
+ * Add fields 'status', 'timestamp', 'source' to 'simplenews_snid_tid' table.
  *
  * First update of DRUPAL-6--2 branch.
  */
@@ -740,6 +740,22 @@ function simplenews_update_6251() {
         'size' => 'small',
         'not null' => TRUE,
         'default' => 1
+    )
+  );
+  db_add_field($ret, 'simplenews_snid_tid', 'timestamp', array(
+        'description' => 'UNIX timestamp of when the user is (un)subscribed.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+    )
+  );
+  db_add_field($ret, 'simplenews_snid_tid', 'source', array(
+        'description' => 'The source via which the user is (un)subscription.',
+        'type' => 'varchar',
+        'length' => 24,
+        'not null' => TRUE,
+        'default' => '',
     )
   );
   return $ret;
