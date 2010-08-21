@@ -538,7 +538,6 @@ function simplenews_form_alter(&$form, $form_state, $form_id) {
   // Simplenews newsletter node form
   elseif (isset($form['type']) && isset($form['#node']) && strpos($form_id, '_node_form')) {
     if (in_array($form['type']['#value'], variable_get('simplenews_content_types', array('simplenews')))) {
-
       // Available variables are based on user_mail_tokens().
       // But uses only those which can be used with uid = 0 since simplenews also sends to anonymous users.
       if (isset($form['body_field'])) {
@@ -556,9 +555,13 @@ function simplenews_form_alter(&$form, $form_state, $form_id) {
         '#value' => theme('token_help', 'simplenews'),
       );
 
+      $simplenews_values = array();
+      $simplenews_values = _simplenews_get_node_form_defaults();
       if (isset($form['#node']->simplenews)) {
         $simplenews_values = $form['#node']->simplenews;
       }
+      // Flatten the values for e.g. preview to make them accessible same as default and load.
+      $simplenews_values = _simplenews_flatten_array($simplenews_values);
       $vocabulary = taxonomy_vocabulary_load(variable_get('simplenews_vid', ''));
       if (!empty($vocabulary) && !isset($vocabulary->nodes[$form['type']['#value']])) {
         drupal_set_message(t('Invalid vocabulary setting detected. Check and <strong>save</strong> the <a href="@settings">Simplenews general settings</a>.', array('%name' => $vocabulary->name, '@settings' => url('admin/settings/simplenews'))), 'error');
@@ -568,6 +571,7 @@ function simplenews_form_alter(&$form, $form_state, $form_id) {
         '#title' => t('Send newsletter'),
         '#collapsible' => TRUE,
         '#collapsed' => FALSE,
+        // We need #tree to persist key 'simplenews' in submissions
         '#tree' => TRUE,
       );
 
@@ -579,9 +583,18 @@ function simplenews_form_alter(&$form, $form_state, $form_id) {
         // Send option of translated newsletters are not used, but a default is
         // required to prevent errors when data is stored in the database.
         $form['simplenews']['send'] = array('#type' => 'hidden', '#value' => SIMPLENEWS_COMMAND_SEND_NONE);
-        $form['simplenews']['advanced']['s_format'] = array('#type' => 'hidden', '#value' => variable_get('simplenews_format', 'plain'));
-        $form['simplenews']['advanced']['priority'] = array('#type' => 'hidden', '#value' => variable_get('simplenews_priority', SIMPLENEWS_PRIORITY_NONE));
-        $form['simplenews']['advanced']['receipt'] = array('#type' => 'hidden', '#value' => variable_get('simplenews_receipt', 0));
+        $form['simplenews']['advanced']['s_format'] = array(
+          '#type' => 'hidden',
+          '#value' => variable_get('simplenews_format', 'plain'),
+        );
+        $form['simplenews']['advanced']['priority'] = array(
+          '#type' => 'hidden',
+          '#value' => variable_get('simplenews_priority', SIMPLENEWS_PRIORITY_NONE),
+        );
+        $form['simplenews']['advanced']['receipt'] = array(
+          '#type' => 'hidden',
+          '#value' => variable_get('simplenews_receipt', 0),
+        );
       }
       else {
         // Show newsletter sending options if newsletter has not been send yet.
@@ -685,9 +698,18 @@ function simplenews_form_alter(&$form, $form_state, $form_id) {
             '#return_value' => 0,
             '#attributes' => array('checked' => 'checked', 'disabled' => 'disabled'),
           );
-          $form['simplenews']['advanced']['s_format'] = array('#type' => 'hidden', '#value' => $simplenews_values['s_format']);
-          $form['simplenews']['advanced']['priority'] = array('#type' => 'hidden', '#value' => $simplenews_values['priority']);
-          $form['simplenews']['advanced']['receipt'] = array('#type' => 'hidden', '#value' => $simplenews_values['receipt']);
+          $form['simplenews']['advanced']['s_format'] = array(
+            '#type' => 'hidden',
+            '#value' => $simplenews_values['s_format'],
+          );
+          $form['simplenews']['advanced']['priority'] = array(
+            '#type' => 'hidden',
+            '#value' => $simplenews_values['priority'],
+          );
+          $form['simplenews']['advanced']['receipt'] = array(
+            '#type' => 'hidden',
+            '#value' => $simplenews_values['receipt'],
+          );
         }
       }
       $form['simplenews']['s_status'] = array(
@@ -699,7 +721,6 @@ function simplenews_form_alter(&$form, $form_state, $form_id) {
       if (isset($form['buttons']['submit'])) {
         $form['buttons']['submit']['#attributes'] = array('class' => 'simplenews-submit');
       }
-
     }
   }
 }
