@@ -863,19 +863,6 @@ function simplenews_user($op, &$edit, &$account, $category = NULL) {
           db_query("UPDATE {simplenews_subscriptions} SET activated = %d WHERE uid = %d", $edit['status'], $account->uid);
         }
       }
-
-      if ($category == 'newsletter'
-       && (user_access('subscribe to newsletters', $account) || user_access('administer users'))
-       && isset($edit['newsletters'])) {
-        foreach ($edit['newsletters'] as $tid => $checked) {
-          if ($checked) {
-            simplenews_subscribe_user($account->mail, $tid, FALSE, 'website');
-          }
-          else {
-            simplenews_unsubscribe_user($account->mail, $tid, FALSE, 'website');
-          }
-        }
-      }
       break;
     case 'delete':
       if (variable_get('simplenews_sync_account', TRUE)) {
@@ -893,10 +880,12 @@ function simplenews_user($op, &$edit, &$account, $category = NULL) {
       break;
     case 'form':
       if ($category == 'newsletter') {
+        // This is reached only if op=categories access callback passed.
         module_load_include('inc', 'simplenews', 'simplenews.mail');
         $subscription = simplenews_get_subscription($account);
         module_load_include('inc', 'simplenews', 'simplenews.subscription');
-        $form = simplenews_subscriptions_account_form($account);
+        $form_state = array();
+        $form = simplenews_subscriptions_account_form($form_state, $account);
         return $form;
       }
       break;

@@ -73,28 +73,17 @@ function simplenews_subscriptions_account_form(&$form_state, $account) {
   $form['subscriptions']['#title'] =  t('Current newsletter subscriptions');
   $form['subscriptions']['uid'] = array('#type' => 'value', '#value' => $account->uid);
 
-  $form['#validate'][] = 'simplenews_subscriptions_account_form_validate';
   $form['#submit'][] = 'simplenews_subscriptions_account_form_submit';
-  $form['#redirect'] = '';  //Return to home page after (un)subscribe
+  $form['#redirect'] = 'user/' . $account->uid;  // Return to account page after (un)subscribe
 
   return $form;
-}
-
-/**
- * FAPI ACCOUNT subscription form_validate.
- */
-function simplenews_subscriptions_account_form_validate($form, &$form_state) {
-  $checked_newsletters = array_filter($form_state['values']['newsletters']);
-  $account = user_load(array('uid' => $form_state['values']['uid']));
-  if (!count($checked_newsletters) && !simplenews_get_subscription($account)) {
-    form_set_error('newsletters', t('You must select at least one newsletter.'));
-  }
 }
 
 /**
  * FAPI ACCOUNT subscription form_submit.
  */
 function simplenews_subscriptions_account_form_submit($form, &$form_state) {
+  global $user;
   // Get current subscriptions if any.
   $account = user_load(array('uid' => $form_state['values']['uid']));
   $subscription = simplenews_get_subscription($account);
@@ -104,13 +93,18 @@ function simplenews_subscriptions_account_form_submit($form, &$form_state) {
   arsort($form_state['values']['newsletters'], SORT_NUMERIC);
   foreach ($form_state['values']['newsletters'] as $tid => $checked) {
     if ($checked) {
-      simplenews_subscribe_user($form_state['values']['mail'], $tid, FALSE, 'website');
+      simplenews_subscribe_user($account->mail, $tid, FALSE, 'website');
     }
     else {
-      simplenews_unsubscribe_user($form_state['values']['mail'], $tid, FALSE, 'website');
+      simplenews_unsubscribe_user($account->mail, $tid, FALSE, 'website');
     }
   }
-  drupal_set_message(t('The newsletter subscriptions for %mail have been updated.', array('%mail' => $form_state['values']['mail'])));
+  if ($user->uid==$account->uid) {
+    drupal_set_message(t('Your newsletter subscriptions have been updated.'));
+  }
+  else {
+    drupal_set_message(t('The newsletter subscriptions for user %account have been updated.', array('%account' => $account->name)));
+  }
 }
 
 /**
