@@ -341,10 +341,11 @@ function simplenews_nodeapi(&$node, $op, $teaser, $page) {
           'newsletter' => taxonomy_get_term($tid),
         );
 
-        if (isset($node->body)) {
+        // Check for function_exists to avoid fatal errors in 6--1 to 6--2 upgrade pathes.
+        if (isset($node->body) && function_exists('token_replace')) {
           $node->body = token_replace($node->body, 'simplenews', $context);
         }
-        if (isset($node->teaser)) {
+        if (isset($node->teaser) && function_exists('token_replace')) {
           $node->teaser = token_replace($node->teaser, 'simplenews', $context);
         }
       }
@@ -1567,14 +1568,16 @@ function simplenews_mail($key, &$message, $params) {
       }
 
       // Build message body, replace tokens.
+      $body = token_replace($body, 'simplenews', $context);
       // Convert to plain text if required.
-      $message['body']['body'] = token_replace($body, 'simplenews', $context);
       if ($context['node']->simplenews['s_format'] == 'plain') {
-        $message['body']['body'] = simplenews_html_to_text($message['body']['body'], variable_get('simplenews_hyperlinks_'. $context['node']->simplenews['tid'], 1));
+        $body = simplenews_html_to_text($body, variable_get('simplenews_hyperlinks_'. $context['node']->simplenews['tid'], 1));
       }
+      $message['body']['body'] = $body;
 
       // Build message footer, replace tokens.
-      $message['body']['footer'] = token_replace($footer, 'simplenews', $context);
+      $footer = token_replace($footer, 'simplenews', $context);
+      $message['body']['footer'] = $footer;
 
       // Add user specific header data.
       $message ['headers']['List-Unsubscribe'] = token_replace('[simplenews-unsubscribe-url]', 'simplenews', $context);

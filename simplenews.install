@@ -7,6 +7,26 @@
  */
 
 /**
+ * Implementation of hook_requirements().
+ */
+function simplenews_requirements($phase) {
+  $requirements = array();
+  $t = get_t();
+  // Report if token module got missing (e.g. after 6--1 to 6--2 upgrade)
+  if ($phase == 'runtime') {
+    if (!module_exists('token')) {
+      $requirements['simplenews_token'] = array(
+        'title' => $t('Simplenews'),
+        'value' => l($t('token.module missing'), 'http://drupal.org/project/token'),
+        'description' => $t("Simplenews is broken if token.module is missing. This could happen after 6.x-1.x upgrade to 6.x-2.x upgrade since token is a new dependency and Drupal 6 core doesn't check for presence. Please install token.module immediately since all sending processes are broken."),
+        'severity' => REQUIREMENT_ERROR,
+      );
+    }
+  }
+  return $requirements;
+}
+
+/**
  * Implementation of hook_schema().
  */
 function simplenews_schema() {
