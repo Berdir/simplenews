@@ -38,15 +38,18 @@
 /**
  * FAPI ACCOUNT subscription form.
  *
+ * Finally _account_ cases inject into hook_user and won't work on its own.
+ * Note that our basis is:
+ * drupal_get_form('user_profile_form', ...);
+ * and NOT:
+ * drupal_get_form('simplenews_subscriptions_account', ...);
+ *
+ * see also user/user.module and user/user.pages.inc
+ *
  * @see simplenews_subscriptions_account_form_validate()
  * @see simplenews_subscriptions_account_form_submit()
  */
 function simplenews_subscriptions_account_form(&$form_state, $account) {
-  global $user, $language;
-
-  if ($account==NULL) {
-    $account = $user;
-  }
   $subscription = simplenews_get_subscription($account);
 
   $form = array();
@@ -71,10 +74,11 @@ function simplenews_subscriptions_account_form(&$form_state, $account) {
   );
 
   $form['subscriptions']['#title'] =  t('Current newsletter subscriptions');
-  $form['subscriptions']['uid'] = array('#type' => 'value', '#value' => $account->uid);
 
+  // if we don't override #validate, see user_profile_form_validate
+
+  // adding an own #submit leads to the situation where drupal omits execution of user_profile_form_submit completely
   $form['#submit'][] = 'simplenews_subscriptions_account_form_submit';
-  $form['#redirect'] = 'user/' . $account->uid;  // Return to account page after (un)subscribe
 
   return $form;
 }
@@ -84,8 +88,8 @@ function simplenews_subscriptions_account_form(&$form_state, $account) {
  */
 function simplenews_subscriptions_account_form_submit($form, &$form_state) {
   global $user;
-  // Get current subscriptions if any.
-  $account = user_load(array('uid' => $form_state['values']['uid']));
+  // Get current subscriptions if any. Defined in user_profile_form
+  $account = $form_state['values']['_account'];
   $subscription = simplenews_get_subscription($account);
 
   // We first subscribe, then unsubscribe. This prevents deletion of subscriptions
@@ -216,7 +220,7 @@ function simplenews_block_form_submit($form, &$form_state) {
  * @see simplenews_subscriptions_page_form_submit()
  */
 function simplenews_subscriptions_page_form(&$form_state) {
-  global $user, $language;
+  global $user;
 
   $subscription = simplenews_get_subscription($user);
 
@@ -372,7 +376,7 @@ function simplenews_subscriptions_page_form_submit($form, &$form_state) {
  * @see simplenews_subscriptions_multi_block_form_submit()
  */
 function simplenews_subscriptions_multi_block_form(&$form_state) {
-  global $user, $language;
+  global $user;
 
   $subscription = simplenews_get_subscription($user);
 
@@ -579,8 +583,6 @@ function simplenews_confirm_removal_form_submit($form, &$form_state) {
  * @see simplenews_subscriptions_admin_form_submit()
  */
 function simplenews_subscriptions_admin_form(&$form_state, $snid) {
-  global $user, $language;
-
   $account = (object) array('snid' => $snid);
   $subscription = simplenews_get_subscription($account);
 
