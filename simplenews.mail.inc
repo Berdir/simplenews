@@ -167,6 +167,7 @@ function simplenews_mail_mail($nid, $vid, $mail, $key = 'node') {
       $message = drupal_mail('simplenews', $key, $subscription->mail, $subscription->language, $params, $params['from']['formatted'], FALSE);
       $to = isset($message['params']['context']['account']) ? $message['params']['context']['account'] : $message['to'];
       $plain = $message['params']['context']['node']->simplenews['s_format'] == 'plain' ? TRUE : NULL;
+dsm($message);
       $message['result'] = mimemail(
         $message['from'],
         $to,
@@ -176,7 +177,7 @@ function simplenews_mail_mail($nid, $vid, $mail, $key = 'node') {
         $message['headers'],
         $plain ? $message['body'] : simplenews_html_to_text($message['body'], TRUE),
         isset($message['params']['context']['node']->files) ? $message['params']['context']['node']->files : array(),
-        ''
+        $message['id']
       );
     }
     else {
@@ -185,6 +186,7 @@ function simplenews_mail_mail($nid, $vid, $mail, $key = 'node') {
 
     // Log sent result in watchdog.
     if (variable_get('simplenews_debug', FALSE)) {
+      $via_mimemail = '';
       if (module_exists('mimemail')) {
         $via_mimemail = t('Sent via Mime Mail');
       }
