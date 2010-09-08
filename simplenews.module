@@ -1696,6 +1696,7 @@ function simplenews_token_list($type = 'all') {
       $tokens['simplenews']['simplenews-receiver-mail']     = t('Email address of the newsletter receiver');
       $tokens['simplenews']['simplenews-newsletters-name']  = t('The name of the newsletter series');
       $tokens['simplenews']['simplenews-newsletters-url']   = t('URL of the taxonomy page listing the issues of this newsletter series');
+      $tokens['simplenews']['simplenews-subscriptions-url'] = t('URL of the manage subscriptions page');
       break;
     case 'all':
     case 'simplenews':
@@ -1706,6 +1707,7 @@ function simplenews_token_list($type = 'all') {
       $tokens['simplenews']['simplenews-newsletter-url']    = t('URL of this newsletter issue');
       $tokens['simplenews']['simplenews-newsletters-name']  = t('The name of the newsletter series');
       $tokens['simplenews']['simplenews-newsletters-url']   = t('URL of the taxonomy page listing the issues of this newsletter series');
+      $tokens['simplenews']['simplenews-subscriptions-url'] = t('URL of the manage subscriptions page');
       break;
   }
   return $tokens;
@@ -1763,6 +1765,7 @@ function simplenews_token_values($type, $object = NULL, $options = array()) {
       if (isset($newsletter->tid)) {
         $values['simplenews-newsletters-url']     = url('taxonomy/term/'. $newsletter->tid, array('absolute' => TRUE, 'language' => $language));
       }
+      $values['simplenews-subscriptions-url']     = url('newsletter/subscriptions', array('absolute' => TRUE, 'language' => $language));
       break;
   }
   return $values;
