@@ -167,7 +167,6 @@ function simplenews_mail_mail($nid, $vid, $mail, $key = 'node') {
       $message = drupal_mail('simplenews', $key, $subscription->mail, $subscription->language, $params, $params['from']['formatted'], FALSE);
       $to = isset($message['params']['context']['account']) ? $message['params']['context']['account'] : $message['to'];
       $plain = $message['params']['context']['node']->simplenews['s_format'] == 'plain' ? TRUE : NULL;
-dsm($message);
       $message['result'] = mimemail(
         $message['from'],
         $to,
