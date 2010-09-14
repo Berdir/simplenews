@@ -1346,6 +1346,11 @@ function theme_simplenews_subscription_list($form) {
   }
   $header[] = t('Operations');
 
+  $colcount = 5;
+  if (variable_get('language_count', 1) > 1) {
+    $colcount = 6;
+  }
+
   // Subscription table
   $output = drupal_render($form['options']);
   if (isset($form['mail']) && is_array($form['mail'])) {
@@ -1363,7 +1368,7 @@ function theme_simplenews_subscription_list($form) {
     }
   }
   else  {
-    $rows[] = array(array('data' => t('No subscriptions available.'), 'colspan' => '4'));
+    $rows[] = array(array('data' => t('No subscriptions available.'), 'colspan' => $colcount));
   }
 
   // Render table header, pager and form

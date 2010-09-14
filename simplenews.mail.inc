@@ -267,10 +267,10 @@ function simplenews_mail_spool($nid = NULL, $vid = NULL, $limit = NULL) {
       // in case of PHP execution time overrun.
       simplenews_update_spool(array($key), $result);
       if ($result['status'] == SIMPLENEWS_SPOOL_DONE) {
-        $count_success ++;
+        $count_success++;
       }
       if ($result['error']) {
-        $count_fail ++;
+        $count_fail++;
       }
 
       // Check every n emails if we exceed the limit.
@@ -298,7 +298,7 @@ function simplenews_mail_spool($nid = NULL, $vid = NULL, $limit = NULL) {
 
     variable_set('simplenews_last_cron', time());
     //@todo: set mail_sent from last batch
-    variable_set('simplenews_last_sent', count($mail_sent));
+    variable_set('simplenews_last_sent', $count_success + $count_fail);
   }
 }
 
