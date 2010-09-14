@@ -51,7 +51,7 @@ class SimplenewsTestCase extends DrupalWebTestCase {
    * this correctly.
    */
   function randomEmail($number = 4, $prefix = 'simpletest_', $domain = 'example.com') {
-    return strtolower($this->randomName($number, $prefix) .'@'. $domain);
+    return drupal_strtolower($this->randomName($number, $prefix) . '@' . $domain);
   }
 
   /**

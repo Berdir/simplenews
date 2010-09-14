@@ -640,7 +640,7 @@ function _simplenews_absolute_mail_urls($match) {
 
     // If the link is formed by Drupal's URL filter, we only return the URL.
     // The URL filter generates a label out of the original URL.
-    if (drupal_strpos($label, '...') === drupal_strlen($label) - 3) {
+    if (strpos($label, '...') === drupal_strlen($label) - 3) {
       // Remove ellipsis from end of label.
       $label = drupal_substr($label, 0, drupal_strlen($label) - 3);
     }
