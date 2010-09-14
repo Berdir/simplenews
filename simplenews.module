@@ -344,7 +344,6 @@ function simplenews_nodeapi(&$node, $op, $teaser, $page) {
           FROM {simplenews_newsletters} s
           INNER JOIN {node} n
             ON s.nid = n.nid
-            AND s.vid = n.vid
           WHERE n.nid = %d",
           $node->nid));
         global $language, $user;

@@ -462,11 +462,10 @@ function simplenews_send_status_update() {
 
   // For each pending newsletter count the number of pending emails in the spool.
   $result = db_query("
-    SELECT s.nid, s.vid, s.tid, n.tnid
+    SELECT s.nid, n.vid, s.tid, n.tnid
     FROM {simplenews_newsletters} s
     JOIN {node} n
       ON s.nid = n.nid
-      AND s.vid = n.vid
     WHERE s.s_status = %d",
     SIMPLENEWS_STATUS_SEND_PENDING);
   while ($newsletter = db_fetch_object($result)) {
