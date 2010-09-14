@@ -286,7 +286,7 @@ function simplenews_subscriptions_page_form(&$form_state) {
 
   return $form;
 }
- 
+
 /**
  * FAPI PAGE subscription form_validate.
  */
@@ -461,7 +461,11 @@ function simplenews_confirm_subscription() {
   $md5 = drupal_substr($op2, 0, 10);
   list($snid, $tid) = explode('t', drupal_substr($op2, 10));
 
-  $result = db_query('SELECT snid, mail FROM {simplenews_subscriptions} WHERE snid = %d', $snid);
+  $result = db_query('
+    SELECT snid, mail
+    FROM {simplenews_subscriptions}
+    WHERE snid = %d',
+    $snid);
   if (!($subs = db_fetch_object($result))) {
     drupal_not_found();
     return;
@@ -578,7 +582,7 @@ function simplenews_confirm_removal_form_submit($form, &$form_state) {
  *
  * Menu callback: handle the edit subscription page and a subscription
  * page for anonymous users.
- * 
+ *
  * @see simplenews_subscriptions_admin_form_validate()
  * @see simplenews_subscriptions_admin_form_submit()
  */
@@ -712,7 +716,7 @@ function simplenews_subscriptions_admin_form_submit($form, &$form_state) {
     }
   }
   simplenews_subscriber_update($subscription, $data);
-  
+
   drupal_set_message(t('The newsletter subscriptions for %mail have been updated.', array('%mail' => $form_state['values']['mail'])));
 }
 

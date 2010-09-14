@@ -37,8 +37,19 @@ function simplenews_admin_news(&$form_state, $action = 'sent') {
     '#default_value' => $filter,
   );
   $where_condition = isset($queries[$filter]) && !empty($queries[$filter]) ? 'WHERE '. $queries[$filter]  : '';
-  $query = "SELECT DISTINCT n.*, s.s_status, s.tid, s.sent_subscriber_count FROM {node} n INNER JOIN {simplenews_newsletters} s ON n.nid = s.nid ". $where_condition ." ORDER BY n.created DESC";
-  $count_query = "SELECT COUNT(n.nid) FROM {node} n INNER JOIN {simplenews_newsletters} s ON n.nid = s.nid ". $where_condition;
+  $query = "
+    SELECT DISTINCT n.*, s.s_status, s.tid, s.sent_subscriber_count
+    FROM {node} n
+    INNER JOIN {simplenews_newsletters} s
+      ON n.nid = s.nid
+    " . $where_condition . "
+    ORDER BY n.created DESC";
+  $count_query = "
+    SELECT COUNT(n.nid)
+    FROM {node} n
+    INNER JOIN {simplenews_newsletters} s
+      ON n.nid = s.nid
+    " . $where_condition;
   $result = pager_query(db_rewrite_sql($query, 'n', 'nid'), 10, 0, db_rewrite_sql($count_query, 'n', 'nid'), 0);
 
   $rows = array();
@@ -328,7 +339,14 @@ function simplenews_admin_types_form_submit($form, &$form_state) {
   else {
     // Get the tid from the database based on the form values used above to
     // create a new term.
-    $tid = db_result(db_query("SELECT t.tid FROM {term_data} t WHERE t.vid = %d AND t.name = '%s' ORDER BY t.tid DESC", $form_state['values']['vid'], $form_state['values']['name']));
+    $tid = db_result(db_query("
+      SELECT t.tid
+      FROM {term_data} t
+      WHERE t.vid = %d
+        AND t.name = '%s'
+      ORDER BY t.tid DESC",
+      $form_state['values']['vid'],
+      $form_state['values']['name']));
     $suffix = '';
   }
   variable_set('simplenews_from_name_'. $tid, $form_state['values']['simplenews_from_name_'. $suffix]);
@@ -392,7 +410,11 @@ function simplenews_subscription_multiple_delete_confirm() {
   $form['snids'] = array('#prefix' => '<ul>', '#suffix' => '</ul>', '#tree' => TRUE);
   // array_filter returns only elements with TRUE values
   foreach (array_filter($snids) as $snid => $value) {
-    $mail = db_result(db_query('SELECT mail FROM {simplenews_subscriptions} WHERE snid = %d', $snid));
+    $mail = db_result(db_query('
+      SELECT mail
+      FROM {simplenews_subscriptions}
+      WHERE snid = %d',
+      $snid));
     $form['snids'][$snid] = array(
       '#type' => 'hidden',
       '#value' => $snid,
@@ -408,12 +430,12 @@ function simplenews_subscription_multiple_delete_confirm() {
   $form['#submit'][] = 'simplenews_subscription_multiple_delete_confirm_submit';
 
   return confirm_form($form,
-                      t('Are you sure you want to delete these subscriptions?'),
-                      'admin/content/simplenews/users',
-                      t('This action cannot be undone.'),
-                      t('Delete all'),
-                      t('Cancel')
-                      );
+    t('Are you sure you want to delete these subscriptions?'),
+    'admin/content/simplenews/users',
+    t('This action cannot be undone.'),
+    t('Delete all'),
+    t('Cancel')
+  );
 }
 
 function simplenews_subscription_multiple_delete_confirm_submit($form, &$form_state) {
@@ -583,7 +605,14 @@ function simplenews_admin_export_after_build($form, $form_element) {
 
     // Get subscription data
     if (isset($where) && isset($where_tid)) {
-      $query = 'SELECT DISTINCT s.mail FROM {simplenews_subscriptions} s INNER JOIN {simplenews_snid_tid} t ON s.snid = t.snid AND t.status = 1 WHERE ('. $where .') AND ('. $where_tid .')';
+      $query = '
+        SELECT DISTINCT s.mail
+        FROM {simplenews_subscriptions} s
+        INNER JOIN {simplenews_snid_tid} t
+        ON s.snid = t.snid
+          AND t.status = 1
+        WHERE (' . $where . ')
+          AND (' . $where_tid . ')';
       $result = db_query($query);
       while ($mail = db_fetch_object($result)) {
         $mails[] = $mail->mail;
@@ -722,7 +751,14 @@ function simplenews_subscription_list_form() {
 
   // Data collection with filter and sorting applied
   $filter = simplenews_build_subscription_filter_query();
-  $query = 'SELECT DISTINCT ss.*, u.name FROM {simplenews_subscriptions} ss LEFT JOIN {users} u ON ss.uid = u.uid INNER JOIN {simplenews_snid_tid} s ON ss.snid = s.snid'. $filter['where'];
+  $query = '
+    SELECT DISTINCT ss.*, u.name
+    FROM {simplenews_subscriptions} ss
+    LEFT JOIN {users} u
+      ON ss.uid = u.uid
+    INNER JOIN {simplenews_snid_tid} s
+      ON ss.snid = s.snid
+    ' . $filter['where'];
 
   // $count_query used to count distinct records only
   $count_query = preg_replace('/SELECT.*FROM /', 'SELECT COUNT(DISTINCT ss.mail) FROM ', $query);
@@ -871,9 +907,9 @@ function simplenews_admin_settings_newsletter(&$form_state) {
   );
   $description = t('Default newsletter format.');
   if (!module_exists('mimemail')) {
-        $description .= ' '. t('Install <a href="!mime_mail_url">Mime Mail</a> module or <a href="!html_url">HTML Mail</a> module to send newsletters in HTML format.',
-                               array('!mime_mail_url' => 'http://drupal.org/project/mimemail', '!html_url' => 'http://drupal.org/project/htmlmail')
-                             );
+    $description .= ' '. t('Install <a href="!mime_mail_url">Mime Mail</a> module or <a href="!html_url">HTML Mail</a> module to send newsletters in HTML format.',
+      array('!mime_mail_url' => 'http://drupal.org/project/mimemail', '!html_url' => 'http://drupal.org/project/htmlmail')
+    );
   }
   $form['simplenews_default_options']['simplenews_format'] = array(
     '#type' => 'select',
@@ -1093,7 +1129,13 @@ function simplenews_admin_settings_subscription(&$form_state) {
  * @param $snid array of snid's
  */
 function simplenews_activate_subscription($snid) {
-  db_query('UPDATE {simplenews_subscriptions} SET activated = %d WHERE snid IN('. db_placeholders($snid, 'int') .')', array_merge(array('1'), $snid));
+  db_query('
+    UPDATE {simplenews_subscriptions}
+    SET activated = %d
+    WHERE snid IN('. db_placeholders($snid, 'int') .')',
+    array_merge(
+      array('1'),
+      $snid));
 }
 
 /**
@@ -1102,7 +1144,13 @@ function simplenews_activate_subscription($snid) {
  * @param $snid array of snid's
  */
 function simplenews_inactivate_subscription($snid) {
-  db_query('UPDATE {simplenews_subscriptions} SET activated = %d WHERE snid IN('. db_placeholders($snid, 'int') .')', array_merge(array('0'), $snid));
+  db_query('
+    UPDATE {simplenews_subscriptions}
+    SET activated = %d
+    WHERE snid IN('. db_placeholders($snid, 'int') .')',
+    array_merge(
+      array('0'),
+      $snid));
 }
 
 /**
@@ -1271,7 +1319,13 @@ function simplenews_count_subscriptions($tid) {
   if (isset($subscription_count[$tid])) {
     return $subscription_count[$tid];
   }
-  $subscription_count[$tid] = db_result(db_query('SELECT COUNT(*) FROM {simplenews_snid_tid} WHERE tid = %d AND status = %d', $tid, SIMPLENEWS_SUBSCRIPTION_STATUS_SUBSCRIBED));
+  $subscription_count[$tid] = db_result(db_query('
+    SELECT COUNT(*)
+    FROM {simplenews_snid_tid}
+    WHERE tid = %d
+      AND status = %d',
+    $tid,
+    SIMPLENEWS_SUBSCRIPTION_STATUS_SUBSCRIBED));
 
   return $subscription_count[$tid];
 }

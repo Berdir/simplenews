@@ -262,7 +262,9 @@ function simplenews_install() {
  */
 function simplenews_uninstall() {
   drupal_uninstall_schema('simplenews');
-  db_query("DELETE FROM {variable} WHERE name LIKE 'simplenews_%%'");
+  db_query("
+    DELETE FROM {variable}
+    WHERE name LIKE 'simplenews_%%'");
 }
 
 /**
@@ -295,7 +297,11 @@ function _simplenews_install_nodetype() {
  */
 function _simplenews_install_vocabulary() {
   // Create the simplenews vocabulary. If it exists, set it as the simplenews_vid.
- if ($vocabulary = db_fetch_array(db_query("SELECT * FROM {vocabulary} WHERE name = '%s'", t('Newsletter')))) {
+  if ($vocabulary = db_fetch_array(db_query("
+    SELECT *
+    FROM {vocabulary}
+    WHERE name = '%s'",
+    t('Newsletter')))) {
     $vocabulary['nodes'] = variable_get('simplenews_content_types', array('simplenews' => 'simplenews'));
   }
   else {
@@ -313,7 +319,11 @@ function _simplenews_install_vocabulary() {
   variable_set('simplenews_vid', $vocabulary['vid']);
 
   // Check to see if at least 1 term exists, else create one
-  $tid = db_result(db_query('SELECT tid FROM {term_data} WHERE vid = %d', $vocabulary['vid']));
+  $tid = db_result(db_query('
+    SELECT tid
+    FROM {term_data}
+    WHERE vid = %d',
+      $vocabulary['vid']));
   if (!$tid) {
     $form_values = array(
       'name' => t('@site_name newsletter', array('@site_name' => variable_get('site_name', 'Drupal'))),
@@ -370,15 +380,35 @@ function simplenews_update_6000() {
   $ret = array();
 
   // Convert the block delta: remove 'newsletter-' prefix from the delta.
-  $result = db_query("SELECT module, delta FROM {blocks} WHERE module = 'simplenews' AND delta LIKE 'newsletter-%'");
+  $result = db_query("
+    SELECT module, delta
+    FROM {blocks}
+    WHERE module = 'simplenews'
+      AND delta LIKE 'newsletter-%'");
   while ($data = db_fetch_object($result)) {
     $delta = strtr($data->delta, array('newsletter-' => ''));
-    $ret[] = update_sql("UPDATE {blocks} SET delta = '%s' WHERE module = 'simplenews' AND delta = 'newsletter-%s'", $delta, $delta);
+    $ret[] = update_sql("
+      UPDATE {blocks}
+      SET delta = '%s'
+      WHERE module = 'simplenews'
+        AND delta = 'newsletter-%s'",
+      $delta,
+      $delta);
   }
-  $result = db_query("SELECT module, delta FROM {blocks_roles} WHERE module = 'simplenews' AND delta LIKE 'newsletter-%'");
+  $result = db_query("
+    SELECT module, delta
+    FROM {blocks_roles}
+    WHERE module = 'simplenews'
+      AND delta LIKE 'newsletter-%'");
   while ($data = db_fetch_object($result)) {
     $delta = strtr($data->delta, array('newsletter-' => ''));
-    $ret[] = update_sql("UPDATE {blocks_roles} SET delta = '%s' WHERE module = 'simplenews' AND delta = 'newsletter-%s'", $delta, $delta);
+    $ret[] = update_sql("
+      UPDATE {blocks_roles}
+      SET delta = '%s'
+      WHERE module = 'simplenews'
+        AND delta = 'newsletter-%s'",
+      $delta,
+      $delta);
   }
 
   // Convert newsletter priority: change field type int to string
@@ -588,9 +618,20 @@ function simplenews_update_6005() {
   );
 
   // Set preferred language for all current none anonymous subscribers.
-  $result = db_query('SELECT s.snid, u.language FROM {simplenews_subscriptions} s INNER JOIN {users} u ON u.uid = s.uid WHERE s.uid > %d', 0);
+  $result = db_query('
+    SELECT s.snid, u.language
+    FROM {simplenews_subscriptions} s
+    INNER JOIN {users} u
+      ON u.uid = s.uid
+    WHERE s.uid > %d',
+    0);
   while ($subscriber = db_fetch_object($result)) {
-    $ret[] = update_sql("UPDATE {simplenews_subscriptions} SET language = '%s' WHERE snid = %d", $subscriber->language, $subscriber->snid);
+    $ret[] = update_sql("
+      UPDATE {simplenews_subscriptions}
+      SET language = '%s'
+      WHERE snid = %d",
+      $subscriber->language,
+      $subscriber->snid);
   }
   return $ret;
 }
@@ -623,13 +664,19 @@ function simplenews_update_6006() {
  */
 function simplenews_update_6007() {
   $ret = array();
-  $result = db_query("SELECT rid, perm FROM {permission} ORDER BY rid");
+  $result = db_query("
+    SELECT rid, perm
+    FROM {permission}
+    ORDER BY rid");
   while ($role = db_fetch_object($result)) {
     $patterns = array('/create newsletter/', '/edit own newsletter/', '/edit any newsletter/', '/delete own newsletter/', '/delete any newsletter/');
-    $replacements = array('create simplenews content', 'edit own simplenews content', 'edit any simplenews content' ,'delete own simplenews content', 'delete any simplenews content');
+    $replacements = array('create simplenews content', 'edit own simplenews content', 'edit any simplenews content', 'delete own simplenews content', 'delete any simplenews content');
     $renamed_permission = preg_replace($patterns, $replacements, $role->perm);
     if ($renamed_permission != $role->perm) {
-      $ret[] = update_sql("UPDATE {permission} SET perm = '$renamed_permission' WHERE rid = $role->rid");
+      $ret[] = update_sql("
+        UPDATE {permission}
+        SET perm = '$renamed_permission'
+        WHERE rid = $role->rid");
     }
   }
   return $ret;
@@ -793,7 +840,17 @@ function simplenews_update_6252() {
     'default' => 0,
     )
   );
-  db_query("UPDATE {simplenews_newsletters} sn SET sent_subscriber_count = (SELECT count(tid) FROM {simplenews_snid_tid} AS sst INNER JOIN {simplenews_subscriptions} AS ss ON sst.snid = ss.snid WHERE tid = sn.tid AND ss.activated = %d)", SIMPLENEWS_SUBSCRIPTION_STATUS_SUBSCRIBED);
+  db_query("
+    UPDATE {simplenews_newsletters} sn
+    SET sent_subscriber_count = (
+      SELECT count(tid)
+      FROM {simplenews_snid_tid} AS sst
+      INNER JOIN {simplenews_subscriptions} AS ss
+        ON sst.snid = ss.snid
+      WHERE tid = sn.tid
+        AND ss.activated = %d
+    )",
+    SIMPLENEWS_SUBSCRIPTION_STATUS_SUBSCRIBED);
   return $ret;
 }
 

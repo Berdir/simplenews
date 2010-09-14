@@ -2,15 +2,15 @@
 // $Id$
 
 /**
- * @file simplenews_action.inc
+ * @file
  * Provide actions for simplenews.
  *
  * @ingroup simplenews
  */
 
 /*
-* Implementation of hook_action_info()
-*/
+ * Implementation of hook_action_info().
+ */
 function simplenews_action_info() {
   return array(
     'simplenews_send_newsletter_action' => array(
@@ -51,10 +51,10 @@ function simplenews_action_info() {
 }
 
 /**
-* Implementation of hook_action_info_alter().
-*
-* Makes user and system actions available to the Simplenews 'subscribe' and 'unsubscribe' triggers.
-*/
+ * Implementation of hook_action_info_alter().
+ *
+ * Makes user and system actions available to the Simplenews 'subscribe' and 'unsubscribe' triggers.
+ */
 function simplenews_action_info_alter(&$actions) {
   foreach ($actions as $id => $action) {
     if ($action['type'] == 'user' || $action['type'] == 'system') {
@@ -86,13 +86,22 @@ function simplenews_send_newsletter_action(&$object, $context = array()) {
     }
 
     // Get sent status of this newsletter. The global newsletter sent status is used not the sent status of individual emails.
-    $s_status = db_result(db_query("SELECT s_status FROM {simplenews_newsletters} WHERE nid = %d", $context['nid']));
+    $s_status = db_result(db_query("
+      SELECT s_status
+      FROM {simplenews_newsletters}
+      WHERE nid = %d",
+      $context['nid']));
 
     // Send newsletter if resend is allowed OR newsletter is not yet send.
     if ($context['resend'] OR $s_status == SIMPLENEWS_STATUS_SEND_NOT) {
       if ($context['hook'] == 'cron') {
         // Set newsletter sent status to pending if send by cron.
-        db_query("UPDATE {simplenews_newsletters} SET s_status = %d WHERE nid = %d", SIMPLENEWS_STATUS_SEND_PENDING, $context['nid']);
+        db_query("
+          UPDATE {simplenews_newsletters}
+          SET s_status = %d
+          WHERE nid = %d",
+          SIMPLENEWS_STATUS_SEND_PENDING,
+          $context['nid']);
       }
       simplenews_send_node($context['nid'], $accounts);
     }
@@ -116,7 +125,7 @@ function simplenews_send_newsletter_action_form($context) {
   if (!isset($context['resend'])) {
     $context['resend'] = FALSE;
   }
- 
+
   $tree = taxonomy_get_tree(variable_get('simplenews_vid', ''));
   $terms = array();
   foreach ($tree as $newsletter) {
@@ -147,7 +156,7 @@ function simplenews_send_newsletter_action_form($context) {
     '#default_value' => $context['resend'],
     '#description' => t('When checked a newsletter will be send even when already sent before. The newsletter sent status is checked, not the status of individual email addresses. Use this for repeated (e.g. monthly) newsletters.'),
   );
- 
+
   return $form;
 }
 
@@ -214,7 +223,7 @@ function simplenews_subscribe_user_action_form($context) {
   if (!isset($context['newsletter'])) {
     $context['newsletter'] = array();
   }
- 
+
   $tree = taxonomy_get_tree(variable_get('simplenews_vid', ''));
   $terms = array();
   foreach ($tree as $newsletter) {
@@ -259,12 +268,24 @@ function simplenews_unsubscribe_user_action(&$object, $context = array()) {
       // This action is only called in the context of user. User data is in $context.
       $account = $context['account'];
       //TODO: Unsubscribing should be done by simplenews_unsubscribe_user but simplenews_get_user_subscription fails because the user is already removed
-      if ($result = db_fetch_object(db_query("SELECT snid FROM {simplenews_subscriptions} WHERE mail = '%s'", $account->mail))) {
-        db_query("UPDATE {simplenews_snid_tid}
-                 SET status = %d, timestamp = %d, source = '%s'
-                 WHERE snid = %d AND tid = %d",
-                 SIMPLENEWS_SUBSCRIPTION_STATUS_UNSUBSCRIBED, time(), t('Action'), $result->snid, $context['tid']
-                );
+      if ($result = db_fetch_object(db_query("
+        SELECT snid
+        FROM {simplenews_subscriptions}
+        WHERE mail = '%s'",
+        $account->mail))) {
+        db_query("
+          UPDATE {simplenews_snid_tid}
+          SET status = %d,
+            timestamp = %d,
+            source = '%s'
+          WHERE snid = %d
+            AND tid = %d",
+          SIMPLENEWS_SUBSCRIPTION_STATUS_UNSUBSCRIBED,
+          time(),
+          t('Action'),
+          $result->snid,
+          $context['tid']
+        );
       }
       drupal_set_message(t('You have been removed from the %newsletter subscription list.', array('%newsletter' => $context['name'])));
       watchdog('action', 'User %name unsubscribed from newsletter %newsletter.', array('%name' => $account->name, '%newsletter' => $context['name']));
@@ -279,7 +300,7 @@ function simplenews_unsubscribe_user_action_form($context) {
   if (!isset($context['newsletter'])) {
     $context['newsletter'] = array();
   }
- 
+
   $tree = taxonomy_get_tree(variable_get('simplenews_vid', ''));
   $terms = array();
   foreach ($tree as $newsletter) {

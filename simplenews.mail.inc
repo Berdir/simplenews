@@ -44,10 +44,15 @@ function simplenews_send_node($node, $accounts = array()) {
     if (empty($accounts)) {
       // No accounts specified. Get email address of all accounts subscribed to this newsletter.
       $result = db_query('
-        SELECT s.mail FROM {simplenews_subscriptions} s
+        SELECT s.mail
+        FROM {simplenews_subscriptions} s
         INNER JOIN {simplenews_snid_tid} t ON s.snid = t.snid
-        WHERE s.activated = %d AND t.tid = %d AND t.status = %d',
-        1, $node_data['tid'], SIMPLENEWS_SUBSCRIPTION_STATUS_SUBSCRIBED);
+        WHERE s.activated = %d
+          AND t.tid = %d
+          AND t.status = %d',
+        1,
+        $node_data['tid'],
+        SIMPLENEWS_SUBSCRIPTION_STATUS_SUBSCRIBED);
       while ($account = db_fetch_object($result)) {
         $mails[] = array('mail' => $account->mail);
       }
@@ -62,7 +67,12 @@ function simplenews_send_node($node, $accounts = array()) {
 
     // Persist subscriber count now
     $sent_subscriber_count = count($mails);
-    db_query("UPDATE {simplenews_newsletters} SET sent_subscriber_count = %d WHERE nid = %d", $sent_subscriber_count, $node->nid);
+    db_query("
+      UPDATE {simplenews_newsletters}
+      SET sent_subscriber_count = %d
+      WHERE nid = %d",
+      $sent_subscriber_count,
+      $node->nid);
 
     // To send the newsletter, the node id and target email addresses
     // are stored in the spool.
@@ -107,7 +117,7 @@ function simplenews_send_test($node) {
         $account = _simplenews_user_load($mail);
         $subscription = simplenews_get_subscription($account);
         if ($account->uid) {
-          $recipients['user'][] = $account->name . ' <'.$mail.'>';
+          $recipients['user'][] = $account->name . ' <' . $mail . '>';
         }
         else {
           $recipients['anonymous'][] = $mail;
@@ -290,7 +300,6 @@ function simplenews_mail_spool($nid = NULL, $vid = NULL, $limit = NULL) {
     //@todo: set mail_sent from last batch
     variable_set('simplenews_last_sent', count($mail_sent));
   }
-
 }
 
 /**
@@ -310,8 +319,15 @@ function simplenews_save_spool($message) {
   $status = isset($message['status']) ? $message['status'] : SIMPLENEWS_SPOOL_PENDING;
   $time = isset($message['time']) ? $message['time'] : time();
 
-  db_query("INSERT INTO {simplenews_mail_spool} (mail, nid, vid, tid, status, timestamp)
-            VALUES ('%s', %d, %d, %d, %d, %d)", $message['mail'], $message['nid'], $message['vid'], $message['tid'], $status, $time);
+  db_query("
+    INSERT INTO {simplenews_mail_spool}
+      (mail, nid, vid, tid, status, timestamp)
+    VALUES ('%s', %d, %d, %d, %d, %d)",
+    $message['mail'],
+    $message['nid'],
+    $message['vid'],
+    $message['tid'],
+    $status, $time);
 }
 
 /**
@@ -334,7 +350,12 @@ function simplenews_save_spool($message) {
 function simplenews_get_spool($status, $nid = NULL, $vid = NULL, $limit = 999999) {
   $messages = array();
 
-  $result = db_query_range("SELECT * FROM {simplenews_mail_spool} s WHERE s.status = %d ORDER BY s.timestamp ASC", $status, 0, $limit);
+  $result = db_query_range("
+    SELECT *
+    FROM {simplenews_mail_spool} s
+    WHERE s.status = %d
+    ORDER BY s.timestamp ASC",
+    $status, 0, $limit);
   while ($data = db_fetch_array($result)) {
     $message = array();
     foreach ($data as $key => $value) {
@@ -362,7 +383,13 @@ function simplenews_update_spool($msids, $result) {
   $params[] = isset($result['error']) ? $result['error'] : FALSE;
   $params[] = time();
   $params = array_merge($params, $msids);
-  db_query("UPDATE {simplenews_mail_spool} SET status = %d, error = %d, timestamp = %d WHERE msid IN(". db_placeholders($msids, 'int') .")", $params);
+  db_query("
+    UPDATE {simplenews_mail_spool}
+    SET status = %d,
+      error = %d,
+      timestamp = %d
+    WHERE msid IN(" . db_placeholders($msids, 'int') . ")",
+    $params);
 }
 
 /**
@@ -375,7 +402,15 @@ function simplenews_update_spool($msids, $result) {
  * @return array Mail message array
  */
 function simplenews_count_spool($nid, $vid, $status = SIMPLENEWS_SPOOL_PENDING) {
-  return db_result(db_query("SELECT COUNT(*) FROM {simplenews_mail_spool} WHERE nid = %d AND vid = %d AND status = %d", $nid, $vid, $status));
+  return db_result(db_query("
+    SELECT COUNT(*)
+    FROM {simplenews_mail_spool}
+    WHERE nid = %d
+      AND vid = %d
+      AND status = %d",
+    $nid,
+    $vid,
+    $status));
 }
 
 /**
@@ -386,13 +421,20 @@ function simplenews_count_spool($nid, $vid, $status = SIMPLENEWS_SPOOL_PENDING) 
  */
 function simplenews_clear_spool() {
   $expiration_time = time() - variable_get('simplenews_spool_expire', 0) * 86400;
-  db_query("DELETE FROM {simplenews_mail_spool} WHERE status = %d AND timestamp <= %d", SIMPLENEWS_SPOOL_DONE, $expiration_time);
+  db_query("
+    DELETE FROM {simplenews_mail_spool}
+    WHERE status = %d
+      AND timestamp <= %d",
+    SIMPLENEWS_SPOOL_DONE, $expiration_time);
 }
 /**
  * Remove records from mail spool table from node.
  */
 function simplenews_clear_spool_node($node) {
-  db_query("DELETE FROM {simplenews_mail_spool} WHERE nid = %d", $node->nid);
+  db_query("
+    DELETE FROM {simplenews_mail_spool}
+    WHERE nid = %d",
+    $node->nid);
 }
 
 /**
@@ -419,10 +461,17 @@ function simplenews_send_status_update() {
   $send = array();    // nodes with the status 'send'
 
   // For each pending newsletter count the number of pending emails in the spool.
-  $result = db_query("SELECT s.nid, s.vid, s.tid, n.tnid FROM {simplenews_newsletters} s JOIN {node} n ON s.nid = n.nid AND s.vid = n.vid WHERE s.s_status = %d", SIMPLENEWS_STATUS_SEND_PENDING);
+  $result = db_query("
+    SELECT s.nid, s.vid, s.tid, n.tnid
+    FROM {simplenews_newsletters} s
+    JOIN {node} n
+      ON s.nid = n.nid
+      AND s.vid = n.vid
+    WHERE s.s_status = %d",
+    SIMPLENEWS_STATUS_SEND_PENDING);
   while ($newsletter = db_fetch_object($result)) {
     // nid-vid are combined in one unique key.
-    $counts[$newsletter->tnid][$newsletter->nid .'-'. $newsletter->vid] = simplenews_count_spool($newsletter->nid, $newsletter->vid);
+    $counts[$newsletter->tnid][$newsletter->nid . '-' . $newsletter->vid] = simplenews_count_spool($newsletter->nid, $newsletter->vid);
   }
 
   // Determine which nodes are send per translation group and per individual node.
@@ -448,7 +497,14 @@ function simplenews_send_status_update() {
       // Split the combined key 'nid-vid'
       $nid = strtok($nidvid, '-');
       $vid = strtok('-');
-      db_query("UPDATE {simplenews_newsletters} SET s_status = '%s' WHERE nid = %d AND vid = %d", SIMPLENEWS_STATUS_SEND_READY, $nid, $vid);
+      db_query("
+        UPDATE {simplenews_newsletters}
+        SET s_status = '%s'
+        WHERE nid = %d
+          AND vid = %d",
+        SIMPLENEWS_STATUS_SEND_READY,
+        $nid,
+        $vid);
     }
   }
 }
@@ -520,8 +576,8 @@ function _simplenews_set_from($node = NULL) {
   $name_default = variable_get('site_name', 'Drupal');
 
   if (isset($node->simplenews['tid'])) {
-    $address = variable_get('simplenews_from_address_'. $node->simplenews['tid'], variable_get('simplenews_from_address', $address_default));
-    $name = variable_get('simplenews_from_name_'. $node->simplenews['tid'], variable_get('simplenews_from_name', $name_default));
+    $address = variable_get('simplenews_from_address_' . $node->simplenews['tid'], variable_get('simplenews_from_address', $address_default));
+    $name = variable_get('simplenews_from_name_' . $node->simplenews['tid'], variable_get('simplenews_from_name', $name_default));
   }
   else {
     $address = variable_get('simplenews_from_address', $address_default);
@@ -529,7 +585,7 @@ function _simplenews_set_from($node = NULL) {
   }
 
   // Windows based PHP systems don't accept formatted emails.
-  $formatted_address = substr(PHP_OS, 0, 3) == 'WIN' ? $address : '"'. mime_header_encode($name) .'" <'. $address .'>';
+  $formatted_address = drupal_substr(PHP_OS, 0, 3) == 'WIN' ? $address : '"' . mime_header_encode($name) . '" <' . $address . '>';
 
   return array(
     'address' => $address,
@@ -578,21 +634,21 @@ function _simplenews_absolute_mail_urls($match) {
 
   if ($match) {
     if (empty($regexp)) {
-      $regexp = '@^'. preg_quote($base_path, '@') .'@';
+      $regexp = '@^' . preg_quote($base_path, '@') . '@';
     }
     list(, $url, $label) = $match;
     $url = strpos($url, '://') ? $url : preg_replace($regexp, $base_url .'/', $url);
 
     // If the link is formed by Drupal's URL filter, we only return the URL.
     // The URL filter generates a label out of the original URL.
-    if (strpos($label, '...') === strlen($label) - 3) {
+    if (drupal_strpos($label, '...') === drupal_strlen($label) - 3) {
       // Remove ellipsis from end of label.
-      $label = substr($label, 0, strlen($label) - 3);
+      $label = drupal_substr($label, 0, drupal_strlen($label) - 3);
     }
     if (strpos($url, $label) !== FALSE) {
       return $url;
     }
-    return $label .' '. $url;
+    return $label . ' ' . $url;
   }
 }
 
@@ -602,28 +658,28 @@ function _simplenews_absolute_mail_urls($match) {
  * List of preg* regular expression patterns to search for and replace with
  */
 function _simplenews_html_replace() {
-    return array(
-        '/&quot;/i'  => '"',
-        '/&gt;/i'    => '>',
-        '/&lt;/i'    => '<',
-        '/&amp;/i'   => '&',
-        '/&copy;/i'  => '(c)',
-        '/&trade;/i' => '(tm)',
-        '/&#8220;/'  => '"',
-        '/&#8221;/'  => '"',
-        '/&#8211;/'  => '-',
-        '/&#8217;/'  => "'",
-        '/&#38;/'    => '&',
-        '/&#169;/'   => '(c)',
-        '/&#8482;/'  => '(tm)',
-        '/&#151;/'   => '--',
-        '/&#147;/'   => '"',
-        '/&#148;/'   => '"',
-        '/&#149;/'   => '*',
-        '/&reg;/i'   => '(R)',
-        '/&bull;/i'  => '*',
-        '/&euro;/i'  => 'Euro ',
-    );
+  return array(
+    '/&quot;/i'  => '"',
+    '/&gt;/i'  => '>',
+    '/&lt;/i'  => '<',
+    '/&amp;/i'   => '&',
+    '/&copy;/i'  => '(c)',
+    '/&trade;/i' => '(tm)',
+    '/&#8220;/'  => '"',
+    '/&#8221;/'  => '"',
+    '/&#8211;/'  => '-',
+    '/&#8217;/'  => "'",
+    '/&#38;/'  => '&',
+    '/&#169;/'   => '(c)',
+    '/&#8482;/'  => '(tm)',
+    '/&#151;/'   => '--',
+    '/&#147;/'   => '"',
+    '/&#148;/'   => '"',
+    '/&#149;/'   => '*',
+    '/&reg;/i'   => '(R)',
+    '/&bull;/i'  => '*',
+    '/&euro;/i'  => 'Euro ',
+  );
 }
 
 /**
@@ -641,7 +697,7 @@ function _simplenews_measure_usec($start = FALSE) {
   static $start_time;
 
   $usage = getrusage();
-  $now = (float)($usage["ru_utime.tv_sec"] .'.'. $usage["ru_utime.tv_usec"]);
+  $now = (float)($usage["ru_utime.tv_sec"] . '.' . $usage["ru_utime.tv_usec"]);
 
   if ($start) {
     $start_time = $now;
