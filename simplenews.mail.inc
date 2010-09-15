@@ -217,9 +217,11 @@ function simplenews_mail_mail($nid, $vid, $mail, $key = 'node') {
     }
     else {
       // This error may be caused by faulty mailserver configuration or overload.
-      // Mark "pending" to keep trying.
+      // Some systems try to contact the target server immediately and return error if the domain or mail account is inexisting. See #780132.
+      // For now stop sending as this will result in an infinite loop.
+      // @todo: Add counter of tries and abort after N tries. Build stats.
       $message['result'] = array(
-        'status' => SIMPLENEWS_SPOOL_PENDING,
+        'status' => SIMPLENEWS_SPOOL_HOLD,
         'error' => TRUE,
       );
     }
