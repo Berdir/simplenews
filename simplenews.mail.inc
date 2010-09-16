@@ -680,6 +680,11 @@ function _simplenews_html_replace() {
     '/&reg;/i'   => '(R)',
     '/&bull;/i'  => '*',
     '/&euro;/i'  => 'Euro ',
+    '/&frasl;/i' => '/',
+    // put a space before cell content, avoid collapse
+    '#(</(?:th|td)[^>]*>)#i'  => ' $1',
+    // make sure <tr> represents a line
+    '#(</tr[^>]*>)#i'         => '<br />$1',
   );
 }
 
