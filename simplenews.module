@@ -1941,6 +1941,8 @@ function simplenews_token_list($type = 'all') {
       $tokens['simplenews']['simplenews-subscribe-url']     = t('URL of the subscribe confirmation page');
       $tokens['simplenews']['simplenews-unsubscribe-url']   = t('URL of the unsubscribe confirmation page');
       $tokens['simplenews']['simplenews-receiver-mail']     = t('Email address of the newsletter receiver');
+      $tokens['simplenews']['simplenews-from-name']         = t('From name');
+      $tokens['simplenews']['simplenews-from-mail']         = t('From email address');
       $tokens['simplenews']['simplenews-newsletters-name']  = t('The name of the newsletter series');
       $tokens['simplenews']['simplenews-newsletters-url']   = t('URL of the taxonomy page listing the issues of this newsletter series');
       $tokens['simplenews']['simplenews-subscriptions-url'] = t('URL of the manage subscriptions page');
@@ -1951,6 +1953,8 @@ function simplenews_token_list($type = 'all') {
       $tokens['simplenews']['simplenews-unsubscribe-url']   = t('URL of the unsubscribe confirmation page');
       $tokens['simplenews']['simplenews-receiver-name']     = t('Username of the newsletter receiver or anonymous user name.');
       $tokens['simplenews']['simplenews-receiver-mail']     = t('Email address of the newsletter receiver');
+      $tokens['simplenews']['simplenews-from-name']         = t('From name');
+      $tokens['simplenews']['simplenews-from-mail']         = t('Email address from which the newsletter is sent');
       $tokens['simplenews']['simplenews-newsletter-url']    = t('URL of this newsletter issue');
       $tokens['simplenews']['simplenews-newsletters-name']  = t('The name of the newsletter series');
       $tokens['simplenews']['simplenews-newsletters-url']   = t('URL of the taxonomy page listing the issues of this newsletter series');
@@ -2002,13 +2006,18 @@ function simplenews_token_values($type, $object = NULL, $options = array()) {
             $newsletter->tid = $tid;
         }
       }
+      module_load_include('inc', 'simplenews', 'simplenews.mail');
       // Translate newsletter name
       $newsletter_name = _simplenews_tt_newsletter_name($newsletter, $language->language);
+      // Info for simplenews-from-name and simplenews-from-mail tokens
+      $from = _simplenews_set_from($node);
 
       // Build tokens for both 'simplenews_subscription' and 'simplenews'.
       $values['simplenews-subscribe-url']       = url('newsletter/confirm/add/' . $hash, $urlargs);
       $values['simplenews-unsubscribe-url']     = url('newsletter/confirm/remove/' . $hash, $urlargs);
       $values['simplenews-receiver-mail']       = $account->mail;
+      $values['simplenews-from-name']           = $from['formatted'];
+      $values['simplenews-from-mail']           = $from['address'];
       $values['simplenews-newsletters-name']    = $newsletter_name ? check_plain($newsletter_name) : '';
       $values['simplenews-newsletters-url'] = '';
       if (isset($newsletter->tid)) {
