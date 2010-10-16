@@ -541,9 +541,11 @@ function simplenews_clone_node_alter(&$node, $original_node, $method) {
   $node->simplenews['sent_subscriber_count'] = 0;
   $node->simplenews['s_status'] = 0;
 
-  $simplenews_values = _simplenews_get_node_form_defaults();
-  // reset default action
-  $node->simplenews['send'] = $simplenews_values['send'];
+  if ($method=='save-edit') {
+    // set default action to NOT send in case of method edit-save
+    // here no user interaction is possible before node_save so sending immediately is considered wrong.
+    $node->simplenews['send'] = SIMPLENEWS_COMMAND_SEND_NONE;
+  }
 }
 
 /**
