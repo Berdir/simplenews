@@ -9,7 +9,7 @@
  */
 
 /**
- * Send newsletter node to subcribers.
+ * Send newsletter node to subscribers.
  *
  * @param integer or object $node Newsletter node to be sent. integer = nid; object = node object
  * @param array $accounts  account objects to send the newsletter to.
@@ -104,6 +104,12 @@ function simplenews_send_test($node) {
     $node = node_load($node);
   }
   if (is_object($node)) {
+    // switch to anonymous user - needed in foreground spool sends, adopted from D7 drupal_cron_run().
+    // see #471594 for issue about sending with higher permissions
+    // note that private (non-public) fields might be invisible in newsletters now always.
+    $original_user = $GLOBALS['user'];
+    $GLOBALS['user'] = drupal_anonymous_user();
+
     // Send the test newsletter to the test address(es) specified in the node.
     // Build array of test email addresses
     $mails = explode(',', $node->simplenews['test_address']);
@@ -133,6 +139,9 @@ function simplenews_send_test($node) {
       $recipients_txt = implode(', ', $recipients['anonymous']);
       drupal_set_message(t('Test newsletter sent to anonymous %recipient.', array('%recipient' => $recipients_txt)));
     }
+
+    // Restore the user.
+    $GLOBALS['user'] = $original_user;
   }
 }
 
@@ -255,6 +264,12 @@ function simplenews_mail_spool($nid = NULL, $vid = NULL, $limit = NULL) {
   if ($messages = simplenews_get_spool(SIMPLENEWS_SPOOL_PENDING, $nid, $vid, $limit)) {
     $count_fail = $count_success = 0;
 
+    // switch to anonymous user - needed in foreground spool sends, adopted from D7 drupal_cron_run().
+    // see #471594 for issue about sending with higher permissions
+    // note that private (non-public) fields might be invisible in newsletters now always.
+    $original_user = $GLOBALS['user'];
+    $GLOBALS['user'] = drupal_anonymous_user();
+
     // Get PHP maximum execution time. 30 seconds default.
     $max_execution_time = ini_get('max_execution_time') ? ini_get('max_execution_time') : SIMPLENEWS_MAX_EXECUTION_TIME;
 
@@ -301,6 +316,9 @@ function simplenews_mail_spool($nid = NULL, $vid = NULL, $limit = NULL) {
     variable_set('simplenews_last_cron', time());
     //@todo: set mail_sent from last batch
     variable_set('simplenews_last_sent', $count_success + $count_fail);
+
+    // Restore the user.
+    $GLOBALS['user'] = $original_user;
   }
 }
 
