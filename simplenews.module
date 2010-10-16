@@ -531,6 +531,22 @@ function simplenews_nodeapi(&$node, $op, $teaser, $page) {
 }
 
 /**
+ * Implementation of hook_clone_node_alter().
+ *
+ * Make sure node is in unsent state after clone process.
+ * This hook is provided by project node_clone clone.module to help cloning nodes.
+ */
+function simplenews_clone_node_alter(&$node, $original_node, $method) {
+  // reset send states
+  $node->simplenews['sent_subscriber_count'] = 0;
+  $node->simplenews['s_status'] = 0;
+
+  $simplenews_values = _simplenews_get_node_form_defaults();
+  // reset default action
+  $node->simplenews['send'] = $simplenews_values['send'];
+}
+
+/**
  * Validate if selected terms are Newsletter taxonomy terms.
  *
  * @param array $taxonomy Taxonomy form array of newsletter node.
