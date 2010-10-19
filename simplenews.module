@@ -1841,7 +1841,7 @@ function simplenews_mail($key, &$message, $params) {
       $message['body']['footer'] = $footer;
 
       // Add user specific header data.
-      $message ['headers']['List-Unsubscribe'] = token_replace('[simplenews-unsubscribe-url]', 'simplenews', $context);
+      $message ['headers']['List-Unsubscribe'] = '<' . token_replace('[simplenews-unsubscribe-url]', 'simplenews', $context) . '>';
 
       break;
     case 'subscribe':
