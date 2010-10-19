@@ -41,21 +41,27 @@ function simplenews_send_node($node, $accounts = array()) {
     $node_data['nid'] = $node->nid;
     $node_data['vid'] = $node->vid;
 
+    $sent_subscriber_count = 0;
     if (empty($accounts)) {
-      // No accounts specified. Get email address of all accounts subscribed to this newsletter.
-      $result = db_query('
-        SELECT s.mail
+      // No accounts specified.  Write all active subscriber addresses to mail spool.
+      db_query('
+        INSERT INTO {simplenews_mail_spool}
+        (mail, nid, vid, tid, status, timestamp)
+        SELECT s.mail, %d, %d, t.tid, %d, %d
         FROM {simplenews_subscriptions} s
-        INNER JOIN {simplenews_snid_tid} t ON s.snid = t.snid
-        WHERE s.activated = %d
+        INNER JOIN {simplenews_snid_tid} t
+          ON s.snid = t.snid
+        WHERE s.activated = 1
           AND t.tid = %d
           AND t.status = %d',
-        1,
-        $node_data['tid'],
-        SIMPLENEWS_SUBSCRIPTION_STATUS_SUBSCRIBED);
-      while ($account = db_fetch_object($result)) {
-        $mails[] = array('mail' => $account->mail);
-      }
+        $node->nid,
+        $node->vid,
+        SIMPLENEWS_SPOOL_PENDING,
+        time(),
+        $node->simplenews['tid'],
+        SIMPLENEWS_SUBSCRIPTION_STATUS_SUBSCRIBED
+      );
+      $sent_subscriber_count = db_affected_rows();
     }
     else {
       // Get email address of specified accounts.
@@ -63,10 +69,10 @@ function simplenews_send_node($node, $accounts = array()) {
         $account = simplenews_get_subscription($account);
         $mails[] = array('mail' => $account->mail);
       }
+      $sent_subscriber_count = count($mails);
     }
 
     // Persist subscriber count now
-    $sent_subscriber_count = count($mails);
     db_query("
       UPDATE {simplenews_newsletters}
       SET sent_subscriber_count = %d
