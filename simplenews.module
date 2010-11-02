@@ -845,6 +845,24 @@ function simplenews_node_form_afterbuild($form_element) {
 }
 
 /**
+ * Implementation of hook_content_extra_fields().
+ */
+function simplenews_content_extra_fields($type_name) {
+  $simplenews_types = variable_get('simplenews_content_types', array('simplenews'));
+  if (isset($simplenews_types[$type_name])) {
+    $fields = array();
+
+    $fields['simplenews'] = array(
+      'label' => t('Simplenews'),
+      'description' => t('Simplenews module form.'),
+      'weight' => 0,
+    );
+
+    return $fields;
+  }
+}
+
+/**
  * Implementation of hook_cron().
  */
 function simplenews_cron() {
