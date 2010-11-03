@@ -1426,12 +1426,13 @@ function simplenews_subscribe_user($mail, $tid, $confirm = TRUE, $source = 'unkn
 
     db_query("
       INSERT INTO {simplenews_subscriptions}
-      (mail, uid, language, activated)
-      VALUES ('%s', %d, '%s', %d)",
+      (mail, uid, language, activated, timestamp)
+      VALUES ('%s', %d, '%s', %d, %d)",
       $mail,
       $account->uid,
       $preferred_language,
-      1);
+      1,
+      time());
     $subscription = simplenews_get_subscription($account);
   }
 

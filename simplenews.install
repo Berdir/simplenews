@@ -65,6 +65,13 @@ function simplenews_schema() {
         'default' => '',
         'description' => 'Anonymous subscriber preferred language. Empty for authenticated users.',
       ),
+      'timestamp' => array(
+        'description' => 'UNIX timestamp of when the user first subscribed to a newsletter.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
     ),
     'indexes' => array(
       'mail' => array('mail'),
@@ -854,3 +861,28 @@ function simplenews_update_6252() {
   return $ret;
 }
 
+/**
+ * Add timestamp field to simplenews sibscriptions table.
+ * Port timestamps from `simplenews_snid_tid` table to `simplenews_subscriptions`
+ */
+function simplenews_update_6253() {
+  $ret = array();
+  db_add_field($ret, 'simplenews_subscriptions', 'timestamp', array(
+        'description' => 'UNIX timestamp of when the user first subscribed to a newsletter.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      )
+  );
+  // http://dev.mysql.com/doc/refman/5.1/en/correlated-subqueries.html
+  // this subquery already works with mysql 4.
+  db_query("
+    UPDATE {simplenews_subscriptions} s
+    SET s.timestamp = (
+      SELECT MIN(timestamp)
+      FROM {simplenews_snid_tid}
+      WHERE snid = s.snid
+    )");
+  return $ret;
+}
