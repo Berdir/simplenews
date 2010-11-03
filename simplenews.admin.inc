@@ -1344,11 +1344,7 @@ function theme_simplenews_subscription_list($form) {
     $header[] = array('data' => t('Language'), 'field' => 'ss.language');
   }
   $header[] = t('Operations');
-
-  $colcount = 5;
-  if (variable_get('language_count', 1) > 1) {
-    $colcount = 6;
-  }
+  $colcount = count($header);
 
   // Subscription table
   $output = drupal_render($form['options']);
