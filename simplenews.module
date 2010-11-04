@@ -1832,6 +1832,8 @@ function simplenews_mail($key, &$message, $params) {
         $messages[$nid][$langcode]['body'] = $body;
 
         if (variable_get('simplenews_opt_inout_' . $tid, 'double') != 'hidden') {
+          // TODO: Unsubscribe links are broken if key=='test' && $context['snid']==0
+          //  We might pass snid / context to theme functions.
           // Build and buffer message footer
           $footer = theme(array('simplenews_newsletter_footer__' . $context['node']->simplenews['tid'],
             'simplenews_newsletter_footer'), $context['node'], $key, $message['language']);
