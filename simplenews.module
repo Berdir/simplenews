@@ -952,61 +952,62 @@ function simplenews_user($op, &$edit, &$account, $category = NULL) {
       return $form;
       break;
     case 'insert':
-      // take over previously anonymous subscribed mail.
-      if ($edit['mail']) {
-        $query = "
-          SELECT snid
-          FROM {simplenews_subscriptions}
-          WHERE mail = '%s'";
-        if ($result = db_fetch_object(db_query($query, $edit['mail']))) {
-          db_query("
-            UPDATE {simplenews_subscriptions}
-            SET uid = %d,
-              language = '%s'
-            WHERE snid = %d",
-            $edit['uid'],
-            $edit['language'],
-            $result->snid);
-        }
-      }
-      break;
-    case 'login':
+      //  suppress login of different groups (e.g. logintoboggan) where mail address is not authenticated yet. Opt in/out settings are ignored in non-anonymous cases.
       // The user registation form may contain (hidden) form element to
       // subscribe to newsletters. Data of these elements are stored in
       // the $account->data variable.
       // We subscribe the user according to the (hidden) form elements.
-      if (isset($account->data)) {
-        $data = $account->data;
-        if (is_string($data)) {
-          $data = unserialize($data);
-        }
-        $processed = FALSE;
 
-        // Process hidden (automatic) subscriptions.
-        if (isset($data['simplenews_hidden'])) {
-          foreach (explode(',', $data['simplenews_hidden']) as $tid) {
-            simplenews_subscribe_user($account->mail, $tid, FALSE, 'automatically');
-          }
-          $data['simplenews_hidden'] = NULL;
-          $processed = TRUE;
-        }
+      // take over previously anonymous subscribed mail.
+      $query = "
+        SELECT snid
+        FROM {simplenews_subscriptions}
+        WHERE mail = '%s'";
+      if ($result = db_fetch_object(db_query($query, $edit['mail']))) {
+        db_query("
+          UPDATE {simplenews_subscriptions}
+          SET uid = %d,
+            language = '%s'
+          WHERE snid = %d",
+          $edit['uid'],
+          $edit['language'],
+          $result->snid);
+      }
 
-        // Process subscription check boxes.
-        if (isset($data['newsletters'])) {
-          foreach (array_keys(array_filter($data['newsletters'])) as $tid) {
-            simplenews_subscribe_user($account->mail, $tid, FALSE, 'website');
-            $newsletters = simplenews_get_newsletters(variable_get('simplenews_vid', ''), TRUE);
-            drupal_set_message(t('You have been subscribed to %newsletter.', array('%newsletter' => $newsletters[$tid]->name)));
-          }
-          $data['newsletters'] = NULL;
-          $processed = TRUE;
-        }
-
-        // If subscription data is processed, we update the user data to remove it.
-        if ($processed) {
-          user_save($account, $data);
+      // Process hidden (automatic) subscriptions.
+      if (isset($edit['simplenews_hidden'])) {
+        foreach (explode(',', $edit['simplenews_hidden']) as $tid) {
+          simplenews_subscribe_user($account->mail, $tid, FALSE, 'automatically');
         }
       }
+
+      // Process subscription check boxes.
+      if (isset($edit['newsletters'])) {
+        foreach (array_keys(array_filter($edit['newsletters'])) as $tid) {
+          simplenews_subscribe_user($account->mail, $tid, FALSE, 'website');
+          $newsletters = simplenews_get_newsletters(variable_get('simplenews_vid', ''), TRUE);
+          drupal_set_message(t('You have been subscribed to %newsletter.', array('%newsletter' => $newsletters[$tid]->name)));
+        }
+      }
+
+      // set inactive if not created by an administrator. this needs a cleaner API.
+      if (!user_access('administer users')) {
+        db_query("
+          UPDATE {simplenews_subscriptions}
+          SET activated = %d
+          WHERE uid = %d",
+          0,
+          $account->uid);
+      }
+      break;
+    case 'login':
+      // is authenticated user: activate subscription
+      db_query("
+        UPDATE {simplenews_subscriptions}
+        SET activated = %d
+        WHERE uid = %d",
+        1,
+        $account->uid);
       break;
     case 'update':
       // always keep uid, mail, language in sync
@@ -1054,11 +1055,15 @@ function simplenews_user($op, &$edit, &$account, $category = NULL) {
       // Activate/deactivate subscription when account is blocked/unblocked
       if ($category == 'account' && isset($edit['status'])) {
         if (variable_get('simplenews_sync_account', TRUE)) {
+          // TODO: since we can't detect if a user is in mail verification process, we always enable
+          //  user subscriptions if user is active. this also matches for unverified users.
+          //  we should depend on a contrib module to detect this state and suppress activation.
+          $activate = $edit['status'];
           db_query("
             UPDATE {simplenews_subscriptions}
             SET activated = %d
             WHERE uid = %d",
-            $edit['status'],
+            $activate,
             $account->uid);
         }
       }
