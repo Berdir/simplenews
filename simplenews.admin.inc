@@ -299,7 +299,7 @@ function simplenews_admin_types_form_validate($form, &$form_state) {
   $tid = $form_state['values']['tid'];
   $field_name = 'simplenews_from_address_'. $tid;
 
-  if (!valid_email_address($form_state['values'][$field_name])) {
+  if (!simplenews_valid_email_address($form_state['values'][$field_name])) {
     form_set_error($field_name, t("The sender's email address you supplied is not valid."));
   }
 }
@@ -513,7 +513,7 @@ function simplenews_subscription_list_add_submit($form, &$form_state) {
   $emails = preg_split("/[\s,]+/", $form_state['values']['emails']);
   foreach ($emails as $email) {
     $email = trim($email);
-    if (valid_email_address($email)) {
+    if (simplenews_valid_email_address($email)) {
       foreach ($checked_newsletters as $tid) {
         $newsletter = taxonomy_get_term($tid);
         simplenews_subscribe_user($email, $newsletter->tid, FALSE, 'mass subscribe', $langcode);
@@ -677,7 +677,7 @@ function simplenews_subscription_list_remove_submit($form, &$form_state) {
   $emails = preg_split("/[\s,]+/", $form_state['values']['emails']);
   foreach ($emails as $email) {
     $email = trim($email);
-    if (valid_email_address($email)) {
+    if (simplenews_valid_email_address($email)) {
       foreach ($checked_newsletters as $tid) {
         $newsletter = taxonomy_get_term($tid);
         simplenews_unsubscribe_user($email, $newsletter->tid, FALSE, 'mass unsubscribe');
@@ -980,7 +980,7 @@ function simplenews_admin_settings_newsletter(&$form_state) {
 }
 
 function simplenews_admin_settings_newsletter_validate($form, &$form_state) {
-  if (!valid_email_address($form_state['values']['simplenews_from_address'])) {
+  if (!simplenews_valid_email_address($form_state['values']['simplenews_from_address'])) {
     form_set_error($field_name, t("The sender's email address you supplied is not valid."));
   }
 }

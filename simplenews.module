@@ -378,7 +378,7 @@ function simplenews_nodeapi(&$node, $op, $teaser, $page) {
             if ($mail == '') {
               form_set_error('simplenews][test_address', t('Test email address is empty.'));
             }
-            elseif (!valid_email_address($mail)) {
+            elseif (!simplenews_valid_email_address($mail)) {
               form_set_error('simplenews][test_address', t('Invalid email address %mail.', array(
                 '%mail' => $mail)));
             }
@@ -2354,6 +2354,18 @@ function simplenews_content_build_modes() {
       ),
     ),
   );
+}
+
+/**
+ * Simplenews email verification
+ * Wrapper for supporting community modules
+ */
+function simplenews_valid_email_address($email = '') {
+  if (module_exists('email_verify')) {
+    //Same validation as in email_verify.module on line 33
+    return module_invoke('email_verify', 'check', $email);
+  }
+  return valid_email_address($email);
 }
 
 /**
