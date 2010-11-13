@@ -169,7 +169,7 @@ function simplenews_block_form(&$form_state, $tid) {
  * FAPI BLOCK subscription form_validate.
  */
 function simplenews_block_form_validate($form, &$form_state) {
-  if (!valid_email_address($form_state['values']['mail'])) {
+  if (!simplenews_valid_email_address($form_state['values']['mail'])) {
     form_set_error('mail', t("The email address you supplied is not valid."));
   }
 }
@@ -291,7 +291,7 @@ function simplenews_subscriptions_page_form(&$form_state) {
  * FAPI PAGE subscription form_validate.
  */
 function simplenews_subscriptions_page_form_validate($form, &$form_state) {
-  $valid_email = valid_email_address($form_state['values']['mail']);
+  $valid_email = simplenews_valid_email_address($form_state['values']['mail']);
   if (!$valid_email) {
     form_set_error('mail', t('The email address you supplied is not valid.'));
   }
@@ -676,7 +676,7 @@ function simplenews_subscriptions_admin_form_validate($form, &$form_state) {
   $account = (object) array('mail' => $form_state['values']['mail']);
   $subscription = simplenews_get_subscription($account);
 
-  $valid_email = valid_email_address($form_state['values']['mail']);
+  $valid_email = simplenews_valid_email_address($form_state['values']['mail']);
   if (!$valid_email) {
     form_set_error('mail', t('The email address you supplied is not valid.'));
   }

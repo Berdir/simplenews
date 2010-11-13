@@ -2358,6 +2358,7 @@ function simplenews_content_build_modes() {
 
 /**
  * Simplenews email verification
+ *
  * Wrapper for supporting community modules
  */
 function simplenews_valid_email_address($email = '') {
