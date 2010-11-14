@@ -412,7 +412,7 @@ function simplenews_subscriptions_multi_block_form(&$form_state) {
   else {
     $form['mail'] = array(
       '#type' => 'textfield',
-      '#title' => t('email'),
+      '#title' => t('Email'),
       '#size' => 20,
       '#maxlength' => 128,
       '#weight' => 10,
