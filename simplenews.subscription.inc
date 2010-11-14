@@ -134,11 +134,6 @@ function simplenews_block_form(&$form_state, $tid) {
       $form['action'] = array('#type' => 'value', '#value' => 'subscribe');
       $form['#attributes'] = array('class' => 'simplenews-subscribe');
     }
-    $form['display_mail'] = array(
-      '#type' => 'item',
-      '#title' => t('User'),
-      '#value' => check_plain($user->name),
-    );
     $form['mail'] = array('#type' => 'value', '#value' => $user->mail);
   }
   else {
