@@ -1104,6 +1104,7 @@ function simplenews_admin_settings_subscription(&$form_state) {
   $form['simplenews_subscription']['confirm_pages'] = array(
     '#type' => 'fieldset',
     '#title' => t('Confirmation pages'),
+    '#description' => t('If defined, these pages show after subscription / removal instead of the regular message box.'),
     '#collapsible' => FALSE,
   );
   $form['simplenews_subscription']['confirm_pages']['simplenews_confirm_subscribe_page'] = array(

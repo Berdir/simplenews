@@ -262,8 +262,7 @@ function simplenews_menu() {
   $items['newsletter/confirm'] = array(
     'type' => MENU_CALLBACK,
     'page callback' => 'simplenews_confirm_subscription',
-    // @todo: open this permission - check later - allow unsubscribe
-    'access arguments' => array('subscribe to newsletters'),
+    'access callback' => TRUE,
     'file' => 'simplenews.subscription.inc',
   );
 

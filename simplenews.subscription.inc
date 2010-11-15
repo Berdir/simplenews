@@ -445,12 +445,20 @@ function simplenews_subscriptions_multi_block_form(&$form_state) {
  * email or the unsubscribe link in the footer of the newsletter. It handles
  * both subscription addition and subscription removal.
  *
+ * Calling URLs are:
+ * newsletter/confirm/add
+ * newsletter/confirm/add/$HASH
+ * newsletter/confirm/remove
+ * newsletter/confirm/remove/$HASH
+ *
  * @see simplenews_confirm_add_form()
  * @see simplenews_confirm_removal_form()
  */
 function simplenews_confirm_subscription() {
   $arguments = func_get_args();
+  // add or remove
   $op1 = array_shift($arguments);
+  // private key hash
   $op2 = array_shift($arguments);
 
   $md5 = drupal_substr($op2, 0, 10);
