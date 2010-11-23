@@ -303,7 +303,8 @@ function simplenews_mail_spool($nid = NULL, $vid = NULL, $limit = NULL) {
         $check_counter = 0;
         // Break the sending if a percentage of max execution time was exceeded.
         $elapsed = _simplenews_measure_usec();
-        if ($elapsed > SIMPLENEWS_SEND_TIME_LIMIT * $max_execution_time) {
+        if ($max_execution_time
+          && $elapsed > SIMPLENEWS_SEND_TIME_LIMIT * $max_execution_time) {
           watchdog('simplenews', 'Sending interrupted: PHP maximum execution time almost exceeded. Remaining newsletters will be sent during the next cron run. If this warning occurs regularly you should reduce the !cron_throttle_setting.', array('!cron_throttle_setting' => l(t('Cron throttle setting'), 'admin/settings/simplenews/mail')), WATCHDOG_WARNING);
           break;
         }
