@@ -2113,21 +2113,6 @@ function simplenews_help($path, $arg) {
         '@handbook' => 'http://drupal.org/node/197057'
       )) . "</p>\n";
       return $help;
-    case 'node/add/simplenews':
-      $help  = '<ul>';
-      $help .= "<li>" . t('Add this newsletter issue to a newsletter by selecting a newsletter from the select list. Send a newsletter or a test newsletter by selecting the appropriate radio button and submitting the node.') . "</li>\n";
-      if (user_access('administer simplenews settings')) {
-        $help .= "<li>" . t('Set default send options at <a href="@configuration">Administer > Site configuration > Simplenews > Newsletter</a>.', array(
-          '@configuration' => url('admin/settings/simplenews/newsletter')
-        )) . "</li>\n";
-      }
-      if (user_access('administer newsletters')) {
-        $help .= "<li>" . t('Set newsletter specific options at <a href="@configuration">Administer > Content management > Newsletters > Newsletters</a>.', array(
-          '@configuration' => url('admin/content/simplenews/types')
-        )) . "</li>\n";
-      }
-      $help .= "</ul>";
-      return $help;
     case 'admin/settings/simplenews/newsletter':
       $help = '<ul>';
       $help .= '<li>'. t('These settings are default to all newsletters. Newsletter specific settings can be found at the <a href="@page">newsletter\'s settings page</a>.', array(
@@ -2164,6 +2149,26 @@ function simplenews_help($path, $arg) {
     case 'admin/content/node-type/simplenews/display/simplenews':
       $help = '<p>' . t("'Plain' display settings apply to the content of emails sent in plain text format. 'HTML' display settings apply to both HTML and plain text alternative content of emails sent in HTML format.") . "</p>\n";
       return $help;
+  }
+
+  // Cover node add simplenews content types.
+  if ($arg[0]=='node' && $arg[1]=='add') {
+    if (in_array($arg[2], variable_get('simplenews_content_types', array('simplenews')))) {
+      $help  = '<ul>';
+      $help .= "<li>" . t('Add this newsletter issue to a newsletter by selecting a newsletter from the select list. Send a newsletter or a test newsletter by selecting the appropriate radio button and submitting the node.') . "</li>\n";
+      if (user_access('administer simplenews settings')) {
+        $help .= "<li>" . t('Set default send options at <a href="@configuration">Administer > Site configuration > Simplenews > Newsletter</a>.', array(
+          '@configuration' => url('admin/settings/simplenews/newsletter')
+        )) . "</li>\n";
+      }
+      if (user_access('administer newsletters')) {
+        $help .= "<li>" . t('Set newsletter specific options at <a href="@configuration">Administer > Content management > Newsletters > Newsletters</a>.', array(
+          '@configuration' => url('admin/content/simplenews/types')
+        )) . "</li>\n";
+      }
+      $help .= "</ul>";
+      return $help;
+    }
   }
 }
 
