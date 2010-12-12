@@ -2153,7 +2153,8 @@ function simplenews_help($path, $arg) {
 
   // Cover node add simplenews content types.
   if ($arg[0]=='node' && $arg[1]=='add') {
-    if (in_array($arg[2], variable_get('simplenews_content_types', array('simplenews')))) {
+    $type = str_replace('-', '_', $arg[2]);
+    if (in_array($type, variable_get('simplenews_content_types', array('simplenews')))) {
       $help  = '<ul>';
       $help .= "<li>" . t('Add this newsletter issue to a newsletter by selecting a newsletter from the select list. Send a newsletter or a test newsletter by selecting the appropriate radio button and submitting the node.') . "</li>\n";
       if (user_access('administer simplenews settings')) {
