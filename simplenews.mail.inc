@@ -249,7 +249,7 @@ function simplenews_mail_mail($nid, $vid, $mail, $key = 'node') {
       'status' => SIMPLENEWS_SPOOL_DONE,
       'error' => TRUE,
     );
-    watchdog('simplenews', 'Newsletter not send: newsletter issue does not exist (nid = @nid; vid = @vid).', array('@nid' => $message['nid'], '@vid' => $message['vid']), WATCHDOG_ERROR);
+    watchdog('simplenews', 'Newsletter not sent: newsletter issue does not exist (nid = @nid; vid = @vid).', array('@nid' => $nid, '@vid' => $vid), WATCHDOG_ERROR);
   }
 
   return isset($message['result']) ? $message['result'] : FALSE;
