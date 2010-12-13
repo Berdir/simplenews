@@ -2012,15 +2012,22 @@ function simplenews_token_values($type, $object = NULL, $options = array()) {
       $account = $object['account'];
       $node = $object['node'];
       $language = isset($account->language) ? $account->language : language_default();
+      $langcode = $language->language;
       $urlargs = array('absolute' => TRUE, 'language' => $language);
 
       // Build tokens for 'simplenews' only.
       $values['simplenews-receiver-name']       = !empty($account->name) ? check_plain($account->name) : check_plain(variable_get('anonymous', 'Anonymous'));
-      // TODO: this is NOT the translated URL
+
       $values['simplenews-newsletter-url'] = url('node/' . $node->nid, $urlargs);
-
+      // Try to switch to translation if possible.
+      if ($node->tnid) {
+        $translations = translation_node_get_translations($node->tnid);
+        $node_translated = $translations[$langcode];
+        if ($node_translated) {
+          $values['simplenews-newsletter-url'] = url('node/' . $node_translated->nid, $urlargs);
+        }
+      }
       // Intentionally fall through (no break).
-
     case 'simplenews_subscription':
       $account = $object['account'];
       $newsletter = $object['newsletter'];
