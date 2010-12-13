@@ -11,6 +11,8 @@
  * @file
  * Simplnews node handling, sent email, newsletter block and general hooks
  *
+ * TODO: rework tnid conditions. If nodetype translateable, tnid=0 as long as there's no translation present.
+ *
  * @ingroup simplenews
  */
 
@@ -395,13 +397,12 @@ function simplenews_nodeapi(&$node, $op, $teaser, $page) {
       $send_with_permission = $node->simplenews['send'] == SIMPLENEWS_COMMAND_SEND_NOW && user_access('send newsletter');
 
       // {simplenews_newsletters} data might be missing if an uninstall happened at some time with simplenews nodes created. try to insert if missing.
-      $result = db_query("
+      $sn_nid = db_result(db_query("
         SELECT nid
         FROM {simplenews_newsletters}
         WHERE nid = %d",
-        $node->nid);
-      $result = db_result($result);
-      if (!is_numeric($result)) {
+        $node->nid));
+      if (!is_numeric($sn_nid)) {
         // Insert node
         $s_status = $send_with_permission ? SIMPLENEWS_STATUS_SEND_PENDING : SIMPLENEWS_STATUS_SEND_NOT;
         db_query("
@@ -476,13 +477,16 @@ function simplenews_nodeapi(&$node, $op, $teaser, $page) {
 
       // Send newsletter or test newsletter
       module_load_include('inc', 'simplenews', 'simplenews.mail');
-      if ($send_with_permission) {
-        // Send newsletter to all subscribers
-        simplenews_send_node($node);
-      }
-      elseif ($node->simplenews['send'] == SIMPLENEWS_COMMAND_SEND_TEST) {
-        // Send test newsletter to test address(es)
-        simplenews_send_test($node);
+      // Avoid resend of a sent node on save/update (if default action is send)
+      if ($node->simplenews['s_status'] != SIMPLENEWS_STATUS_SEND_PENDING) {
+        if ($send_with_permission) {
+          // Send newsletter to all subscribers
+          simplenews_send_node($node);
+        }
+        elseif ($node->simplenews['send'] == SIMPLENEWS_COMMAND_SEND_TEST) {
+          // Send test newsletter to test address(es)
+          simplenews_send_test($node);
+        }
       }
       break;
     case 'delete':
@@ -497,15 +501,16 @@ function simplenews_nodeapi(&$node, $op, $teaser, $page) {
 
       // Check if pending emails of this newsletter issue exist and delete these too.
       module_load_include('inc', 'simplenews', 'simplenews.mail');
-      // @todo: delete directly in db, not via $pending
-      $pending = simplenews_get_spool(SIMPLENEWS_SPOOL_PENDING, $node->nid, $node->vid);
-      if (!empty($pending)) {
-        simplenews_update_spool(array_keys($pending), array('status' => SIMPLENEWS_SPOOL_DONE, 'error' => TRUE));
-        drupal_set_message(t('Newsletter %title was deleted but had pending emails. They can no longer be sent.', array(
-          '%title' => $node->title
+      $count = simplenews_clear_spool_node($node);
+
+      if ($count) {
+        drupal_set_message(t('Newsletter %title was deleted but had @count pending emails. They can no longer be sent.', array(
+          '%title' => $node->title,
+          '@count' => $count,
         )), 'warning');
-        watchdog('simplenews', 'Newsletter %title deleted with pending emails. Emails can no longer be sent.', array(
-          '%title' => $node->title
+        watchdog('simplenews', 'Newsletter %title deleted with @count pending emails. Emails can no longer be sent.', array(
+          '%title' => $node->title,
+          '@count' => $count,
         ), WATCHDOG_ALERT);
       }
       break;
@@ -1735,7 +1740,6 @@ function simplenews_mail($key, &$message, $params) {
   switch ($key) {
     case 'node':
     case 'test':
-
       // Message header, body and mail headers are buffered to increase
       // perfomance when sending multiple mails. Buffered data only contains
       // general data, no recipient specific content. Tokens are used
@@ -1903,7 +1907,6 @@ function simplenews_mail($key, &$message, $params) {
       '%subject' => $message['subject']
     ), WATCHDOG_DEBUG);
   }
-
 }
 
 /**
@@ -2013,6 +2016,7 @@ function simplenews_token_values($type, $object = NULL, $options = array()) {
 
       // Build tokens for 'simplenews' only.
       $values['simplenews-receiver-name']       = !empty($account->name) ? check_plain($account->name) : check_plain(variable_get('anonymous', 'Anonymous'));
+      // TODO: this is NOT the translated URL
       $values['simplenews-newsletter-url'] = url('node/' . $node->nid, $urlargs);
 
       // Intentionally fall through (no break).

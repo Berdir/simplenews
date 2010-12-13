@@ -262,6 +262,8 @@ function simplenews_mail_mail($nid, $vid, $mail, $key = 'node') {
  * Sending is triggered by cron or immediately when the node is saved.
  * Mail data is retreived from the spool, rendered and send one by one
  * If sending is succesful the message is marked as send in the spool.
+ *
+ * TODO: Redesign API to allow language counter in multilingual sends.
  */
 function simplenews_mail_spool($nid = NULL, $vid = NULL, $limit = NULL) {
   // Send pending messages from database cache
@@ -445,6 +447,8 @@ function simplenews_count_spool($nid, $vid, $status = SIMPLENEWS_SPOOL_PENDING) 
  *
  * All records with status 'send' and time stamp before the expiration date
  * are removed from the spool.
+ *
+ * @return Count deleted
  */
 function simplenews_clear_spool() {
   $expiration_time = time() - variable_get('simplenews_spool_expire', 0) * 86400;
@@ -453,15 +457,22 @@ function simplenews_clear_spool() {
     WHERE status = %d
       AND timestamp <= %d",
     SIMPLENEWS_SPOOL_DONE, $expiration_time);
+  $deleted_count = db_affected_rows();
+  return $deleted_count;
 }
+
 /**
- * Remove records from mail spool table from node.
+ * Remove records from mail spool table for node.
+ *
+ * @return Count deleted
  */
 function simplenews_clear_spool_node($node) {
   db_query("
     DELETE FROM {simplenews_mail_spool}
     WHERE nid = %d",
     $node->nid);
+  $deleted_count = db_affected_rows();
+  return $deleted_count;
 }
 
 /**
