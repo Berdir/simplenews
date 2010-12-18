@@ -887,7 +887,7 @@ function simplenews_admin_settings_submit($form, &$form_state) {
   unset($form_state['values']['simplenews_content_types']);
 
   drupal_set_message(t('Updated vocabulary %name.', array('%name' => $vocabulary['name'])));
-  watchdog('simplenews', 'Updated vocabulary %name.', array('%name' => $vocabulary['name']), WATCHDOG_NOTICE, l(t('edit'), 'admin/content/taxonomy/edit/vocabulary/'. $form_state['values']['vid']));
+  watchdog('simplenews', 'Updated vocabulary %name.', array('%name' => $vocabulary['name']), WATCHDOG_NOTICE, l(t('edit'), 'admin/content/taxonomy/edit/vocabulary/'. $form_state['values']['simplenews_vid']));
 }
 
 /**
