@@ -81,7 +81,7 @@ function simplenews_send_newsletter_action(&$object, $context = array()) {
 
     module_load_include('inc', 'simplenews', 'simplenews.mail');
 
-    // Determine newsletter receipients
+    // Determine newsletter recipients
     $accounts = array();
     if ($context['hook'] == 'user' || $context['hook'] == 'simplenews') {
       $accounts[] = $context['account'];

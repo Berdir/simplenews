@@ -9,9 +9,9 @@
 
 /**
  * @file
- * Simplnews node handling, sent email, newsletter block and general hooks
+ * Simplenews node handling, sent email, newsletter block and general hooks
  *
- * TODO: rework tnid conditions. If nodetype translateable, tnid=0 as long as there's no translation present.
+ * TODO: rework tnid conditions. If nodetype translatable, tnid=0 as long as there's no translation present.
  *
  * @ingroup simplenews
  */
@@ -65,7 +65,7 @@ define('SIMPLENEWS_SEND_CHECK_INTERVAL', 100);
 define('SIMPLENEWS_SEND_TIME_LIMIT', 0.8);
 
 /**
- * CAPTURE THE PHP MAX EXUCUTION TIME BEFORE drupal_cron_run() CHANGES THIS.
+ * CAPTURE THE PHP MAX EXECUTION TIME BEFORE drupal_cron_run() CHANGES THIS.
  * THIS IS A WORK AROUND FOR DRUPAL6.14 BUG. SEE http://drupal.org/node/584334
  */
 define('SIMPLENEWS_MAX_EXECUTION_TIME', ini_get('max_execution_time'));
@@ -345,7 +345,7 @@ function simplenews_nodeapi(&$node, $op, $teaser, $page) {
           'account' => $user,
           'newsletter' => taxonomy_get_term($tid),
         );
-        // Check for function_exists to avoid fatal errors in 6--1 to 6--2 upgrade pathes.
+        // Check for function_exists to avoid fatal errors in 6--1 to 6--2 upgrade paths.
         if (isset($node->body) && function_exists('token_replace')) {
           $node->body = token_replace($node->body, 'simplenews', $context);
         }
@@ -555,7 +555,7 @@ function simplenews_clone_node_alter(&$node, $original_node, $method) {
  * NOTE: This function can not handle free tagging tags.
  *       In case of free tagging see taxonomy_node_save() for example code.
  *       Note that free tagging can create new terms at node add/edit. This
- *       contradicts with the current set-up of simpelnews.
+ *       contradicts with the current set-up of simplenews.
  */
 function simplenews_validate_taxonomy($taxonomy) {
   // Get newsletter tids.
@@ -702,7 +702,7 @@ function simplenews_form_alter(&$form, $form_state, $form_id) {
       }
       else {
         // Show newsletter sending options if newsletter has not been send yet.
-        // If send a nodification is shown.
+        // If sent, a notification is shown.
         if (!isset($simplenews_values['s_status']) || (isset($simplenews_values['s_status']) && $simplenews_values['s_status'] == SIMPLENEWS_STATUS_SEND_NOT)) {
 
           // Add dynamic text for send button.
@@ -948,7 +948,7 @@ function simplenews_user($op, &$edit, &$account, $category = NULL) {
       break;
     case 'insert':
       //  suppress login of different groups (e.g. logintoboggan) where mail address is not authenticated yet. Opt in/out settings are ignored in non-anonymous cases.
-      // The user registation form may contain (hidden) form element to
+      // The user registration form may contain (hidden) form element to
       // subscribe to newsletters. Data of these elements are stored in
       // the $account->data variable.
       // We subscribe the user according to the (hidden) form elements.
@@ -1341,7 +1341,7 @@ function simplenews_forms($form_id, $args) {
 function _simplenews_user_load($mail) {
   $account = user_load(array('mail' => $mail));
   if ($account === FALSE) {
-    // Construct anonymous user since we don't have a user that matches that e-amil.
+    // Construct anonymous user since we don't have a user that matches that e-mail.
     $account = new stdClass();
     $account->uid = 0;
     $account->mail = $mail;
@@ -1597,12 +1597,12 @@ function simplenews_user_is_subscribed($mail, $tid, $reset = FALSE) {
  *     newsletter_subscriptions : array of newsletter subscription objects
  *     uid  :  user id. 0 if account is anonymous user
  *     mail :  user email address. empty if email is unknown
- *     name :  always empty. Added for compatebility with user account object
+ *     name :  always empty. Added for compatibility with user account object
  *     language : language object. User preferred or default language
  *   )
  */
 function simplenews_get_subscription($account) {
-  // Load subscription data based on available account informatioin
+  // Load subscription data based on available account information
   // NOTE that the order of checking for snid, mail and uid is critical. mail must be checked *before* uid. See simplenews_subscribe_user()
   if (isset($account->snid)) {
     $subscription = db_fetch_object(db_query("
@@ -1741,11 +1741,11 @@ function simplenews_mail($key, &$message, $params) {
     case 'node':
     case 'test':
       // Message header, body and mail headers are buffered to increase
-      // perfomance when sending multiple mails. Buffered data only contains
+      // performance when sending multiple mails. Buffered data only contains
       // general data, no recipient specific content. Tokens are used
       // for recipient data and will later be replaced.
       // When mailing multiple newsletters in one page call or cron run,
-      // data is once stored and subsequently retreived from the
+      // data is once stored and subsequently retrieved from the
       // static $messages variable.
       // $message buffer is node and language specific.
       static $messages = array();
@@ -1756,7 +1756,7 @@ function simplenews_mail($key, &$message, $params) {
       $nid = $context['node']->nid;
       if (module_exists('translation')) {
         // If the node has translations and a translation is required
-        // the equivalent of the node in the required langugage is used
+        // the equivalent of the node in the required language is used
         // or the base node (nid == tnid) is used.
         if ($tnid = $context['node']->tnid) {
           if ($langcode != $context['node']->language) {

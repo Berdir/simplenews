@@ -139,7 +139,7 @@ msgid "Subscribe new account"
 msgstr ""
 
 #: simplenews.admin.inc:184
-msgid "None: This newsletter is not listed on the user registration page.<br />Default on: This newsletter is listed on the user registion page and is selected by default.<br />Default off: This newsletter is listed on the user registion page and is not selected by default.<br />Silent: A new user is automatically subscribed to this newsletter. The newsletter is not listed on the user registration page."
+msgid "None: This newsletter is not listed on the user registration page.<br />Default on: This newsletter is listed on the user registration page and is selected by default.<br />Default off: This newsletter is listed on the user registration page and is not selected by default.<br />Silent: A new user is automatically subscribed to this newsletter. The newsletter is not listed on the user registration page."
 msgstr ""
 
 #: simplenews.admin.inc:187
@@ -555,7 +555,7 @@ msgid "2 weeks"
 msgstr ""
 
 #: simplenews.admin.inc:975
-msgid "Newsletter mails are spooled. How long must messages be retained in the spool after successfull sending. Keeping the message in the spool allows mail statistics (which is not yet implemented). If cron is not used, immediate expiration is advised."
+msgid "Newsletter mails are spooled. How long must messages be retained in the spool after successful sending. Keeping the message in the spool allows mail statistics (which is not yet implemented). If cron is not used, immediate expiration is advised."
 msgstr ""
 
 #: simplenews.admin.inc:979

@@ -14,12 +14,12 @@
  * @param integer or object $node Newsletter node to be sent. integer = nid; object = node object
  * @param array $accounts  account objects to send the newsletter to.
  *   account = object (
- *     snid     = subscription id. 0 if no subscription record exists
- *     tids     = array(tid) array of newsletter tid's
- *     uid      = user id. 0 if subscriber is anonymous user.
+ *     snid     = subscription id, or 0 if no subscription record exists.
+ *     tids     = array(tid) array of newsletter tid's.
+ *     uid      = user id, or 0 if subscriber is anonymous user.
  *     mail     = user email address.
- *     name     = <empty>. Added for compatebility with user account object
- *     language = language object. User preferred of default language
+ *     name     = <empty>. Added for compatibility with user account object.
+ *     language = language object. User-preferred or default language.
  *   )
  *   NOTE: either snid, mail or uid is required.
  */
@@ -159,7 +159,7 @@ function simplenews_send_test($node) {
  * @param $mail target email address
  * @param $key email key [node|test]
  *
- * @return TRUE if email is succesfully delivered by php mail()
+ * @return TRUE if email is successfully delivered by php mail()
  */
 function simplenews_mail_mail($nid, $vid, $mail, $key = 'node') {
   static $cache;
@@ -232,7 +232,7 @@ function simplenews_mail_mail($nid, $vid, $mail, $key = 'node') {
     }
     else {
       // This error may be caused by faulty mailserver configuration or overload.
-      // Some systems try to contact the target server immediately and return error if the domain or mail account is inexisting. See #780132.
+      // Some systems try to contact the target server immediately and return error if the domain or mail account is nonexistent. See #780132.
       // For now stop sending as this will result in an infinite loop.
       // @todo: Add counter of tries and abort after N tries. Build stats.
       $message['result'] = array(
@@ -260,8 +260,8 @@ function simplenews_mail_mail($nid, $vid, $mail, $key = 'node') {
  *
  * Individual newsletter emails are stored in database spool.
  * Sending is triggered by cron or immediately when the node is saved.
- * Mail data is retreived from the spool, rendered and send one by one
- * If sending is succesful the message is marked as send in the spool.
+ * Mail data is retrieved from the spool, rendered and send one by one
+ * If sending is successful the message is marked as send in the spool.
  *
  * TODO: Redesign API to allow language counter in multilingual sends.
  */
@@ -313,7 +313,7 @@ function simplenews_mail_spool($nid = NULL, $vid = NULL, $limit = NULL) {
       }
     }
 
-    // Report sent result and elapsed time. On Windows systems retrusage() is
+    // Report sent result and elapsed time. On Windows systems getrusage() is
     // not implemented and hence no elapsed time is available.
     if (function_exists('getrusage')) {
       watchdog('simplenews', '%success emails sent in %sec seconds, %fail failed sending.', array('%success' => $count_success, '%sec' => round(_simplenews_measure_usec(), 1), '%fail' => $count_fail));
@@ -360,9 +360,9 @@ function simplenews_save_spool($message) {
 }
 
 /**
- * Retreive data from mail spool
+ * Retrieve data from mail spool
  *
- * @param string  $status Status of data to be retreived (0 = hold, 1 = pending, 2 = send)
+ * @param string  $status Status of data to be retrieved (0 = hold, 1 = pending, 2 = send)
  * @param integer $nid node id
  * @param integer $vid node version id
  * @param integer $limit The maximum number of mails to load from the spool
@@ -484,9 +484,9 @@ function simplenews_clear_spool_node($node) {
  * The spool table holds data for emails to be sent and (optionally)
  * already send emails. The simplenews_newsletters table contains the overall
  * sent status of each newsletter issue (node).
- * Newsletter issues get the status pending when sending is innitiated. As
- * long as unsend emails exist in the spool, the status of the newsletter remains
- * unsend. When no pending emails are found the newsletter status is set 'send'.
+ * Newsletter issues get the status 'pending' when sending is initiated. As
+ * long as unsent emails exist in the spool, the status of the newsletter remains
+ * 'unsent'. When no pending emails are found the newsletter status is set to 'sent'.
  *
  * Translated newsletters are a group of nodes that share the same tnid ({node}.tnid).
  * Only one node of the group is found in the spool, but all nodes should share
@@ -511,7 +511,7 @@ function simplenews_send_status_update() {
     $counts[$newsletter->tnid][$newsletter->nid . '-' . $newsletter->vid] = simplenews_count_spool($newsletter->nid, $newsletter->vid);
   }
 
-  // Determine which nodes are send per translation group and per individual node.
+  // Determine which nodes are sent per translation group and per individual node.
   foreach ($counts as $tnid => $node_count) {
     // The sum of emails per tnid is the combined status result for the group of translated nodes.
     // Untranslated nodes have tnid == 0 which will be ignored later.
@@ -601,7 +601,7 @@ function _simplenews_headers($node, $from) {
 /**
  * Build formatted from-name and email for a mail object.
  *
- * Each newsletter (serie; tid) can have a different from address.
+ * Each newsletter (series; tid) can have a different from address.
  * The from name and address depend on the newsletter term tid which is included in the $node object
  *
  * @param object $node Node object of a simplenews newsletter
@@ -645,7 +645,7 @@ function simplenews_html_to_text($text, $inline_hyperlinks = TRUE) {
   // By replacing <a> tag by only its URL the URLs will be placed inline
   // in the email body and are not converted to a numbered reference list
   // by drupal_html_to_text().
-  // URL are converted to abolute URL as drupal_html_to_text() would have.
+  // URL are converted to absolute URL as drupal_html_to_text() would have.
   if ($inline_hyperlinks) {
     $pattern = '@<a[^>]+?href="([^"]*)"[^>]*?>(.+?)</a>@is';
     $text = preg_replace_callback($pattern, '_simplenews_absolute_mail_urls', $text);
@@ -662,7 +662,7 @@ function simplenews_html_to_text($text, $inline_hyperlinks = TRUE) {
 /**
  * Helper function for simplenews_html_to_text().
  *
- * Replaces URLs with abolute URLs.
+ * Replaces URLs with absolute URLs.
  */
 function _simplenews_absolute_mail_urls($match) {
   global $base_url, $base_path;

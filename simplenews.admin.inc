@@ -195,7 +195,7 @@ function simplenews_admin_types_form(&$form_state, $tid = NULL) {
     '#title' => t('Subscribe new account'),
     '#options' => $options,
     '#default_value' => variable_get('simplenews_new_account_'. $term->tid, 'none'),
-    '#description' => t('None: This newsletter is not listed on the user registration page.<br />Default on: This newsletter is listed on the user registion page and is selected by default.<br />Default off: This newsletter is listed on the user registion page and is not selected by default.<br />Silent: A new user is automatically subscribed to this newsletter. The newsletter is not listed on the user registration page.'),
+    '#description' => t('None: This newsletter is not listed on the user registration page.<br />Default on: This newsletter is listed on the user registration page and is selected by default.<br />Default off: This newsletter is listed on the user registration page and is not selected by default.<br />Silent: A new user is automatically subscribed to this newsletter. The newsletter is not listed on the user registration page.'),
   );
 
   $options = array('hidden' => t('Hidden'), 'single' => t('Single'), 'double' => t('Double'));
@@ -452,7 +452,7 @@ function simplenews_subscription_multiple_delete_confirm_submit($form, &$form_st
  * Menu callback: Mass subscribe to newsletters.
  *
  * @see simplenews_subscription_list_add_submit()
- * @todo Add 32char description field as subsription source
+ * @todo Add 32char description field as subscription source
  */
 function simplenews_subscription_list_add() {
   global $language;
@@ -642,7 +642,7 @@ function simplenews_admin_export_after_build($form, $form_element) {
  * Menu callback: Mass subscribe to newsletters.
  *
  * @see simplenews_subscription_list_remove_submit()
- * @todo Add 32char description field as unsubsription source
+ * @todo Add 32char description field as unsubscription source
  */
 function simplenews_subscription_list_remove() {
   $form['emails'] = array(
@@ -730,13 +730,13 @@ function simplenews_subscription_admin($form_state) {
  * Build the form for admin subscription.
  *
  * Form consists of a filter fieldset, an operation fieldset and a list of
- * subscriptions maching the filter criteria.
+ * subscriptions matching the filter criteria.
  *
  * @see simplenews_subscription_list_form_validate()
  * @see simplenews_subscription_list_form_submit()
  */
 function simplenews_subscription_list_form() {
-//TODO: Subscriber maintanance needs overhaul now we have more data availabale.
+//TODO: Subscriber maintenance needs overhaul now we have more data available.
 
   // Table header. Used as tablesort default
   $header = array(
@@ -1019,7 +1019,7 @@ function simplenews_admin_settings_mail(&$form_state) {
     '#title' => t('Mail spool expiration'),
     '#options' => array(0 => t('Immediate'), 1 => t('1 day'), 7 => t('1 week'), 14 => t('2 weeks')),
     '#default_value' => variable_get('simplenews_spool_expire', 0),
-    '#description' => t('Newsletter mails are spooled. How long must messages be retained in the spool after successfull sending. Keeping the message in the spool allows mail statistics (which is not yet implemented). If cron is not used, immediate expiration is advised.'),
+    '#description' => t('Newsletter mails are spooled. How long must messages be retained in the spool after successfully sending. Keeping the message in the spool allows mail statistics (which is not yet implemented). If cron is not used, immediate expiration is advised.'),
   );
   $form['simplenews_mail_backend']['simplenews_debug'] = array(
     '#type' => 'checkbox',

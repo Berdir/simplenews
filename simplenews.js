@@ -1,7 +1,7 @@
 // $Id$
 
 /**
- * Set text of Save button dependent on the selected send option.
+ * Set text of Save button depending on the selected send option.
  */
 Drupal.behaviors.simplenewsCommandSend = function (context) {
   var simplenewsSendButton = function () {

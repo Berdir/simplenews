@@ -130,7 +130,7 @@ function simplenews_schema() {
         'default' => 0,
       ),
       'sent_subscriber_count' => array(
-        'description' => 'The count of subcsribers to the newsletter when it was sent.',
+        'description' => 'The count of subscribers to the newsletter when it was sent.',
         'type' => 'int',
         'not null' => TRUE,
         'default' => 0,
@@ -188,7 +188,7 @@ function simplenews_schema() {
         'not null' => TRUE,
         ),
       'mail' => array(
-        'description' => 'The formatted email address of mail message receipient.',
+        'description' => 'The formatted email address of mail message recipient.',
         'type' => 'varchar',
         'length' => 255,
         'not null' => TRUE,
@@ -221,7 +221,7 @@ function simplenews_schema() {
         'size' => 'tiny',
       ),
       'error' => array(
-        'description' => 'A boolean indicating whether an error occured while sending the email.',
+        'description' => 'A boolean indicating whether an error occurred while sending the email.',
         'type' => 'int',
         'size' => 'tiny',
         'not null' => TRUE,
@@ -475,7 +475,7 @@ function simplenews_update_6001() {
         'default' => '',
       ),
       'mail' => array(
-        'description' => 'The formatted email address of mail message receipient.',
+        'description' => 'The formatted email address of mail message recipient.',
         'type' => 'varchar',
         'length' => 255,
         'not null' => TRUE,
@@ -560,7 +560,7 @@ function simplenews_update_6004() {
         'not null' => TRUE,
         ),
       'mail' => array(
-        'description' => 'The formatted email address of mail message receipient.',
+        'description' => 'The formatted email address of mail message recipient.',
         'type' => 'varchar',
         'length' => 255,
         'not null' => TRUE,
@@ -841,7 +841,7 @@ function simplenews_update_6251() {
 function simplenews_update_6252() {
   $ret = array();
   db_add_field($ret, 'simplenews_newsletters', 'sent_subscriber_count', array(
-    'description' => 'The count of subcsribers to the newsletter when it was sent.',
+    'description' => 'The count of subscribers to the newsletter when it was sent.',
     'type' => 'int',
     'not null' => TRUE,
     'default' => 0,
@@ -862,7 +862,7 @@ function simplenews_update_6252() {
 }
 
 /**
- * Add timestamp field to simplenews sibscriptions table.
+ * Add timestamp field to simplenews subscriptions table.
  * Port timestamps from `simplenews_snid_tid` table to `simplenews_subscriptions`
  */
 function simplenews_update_6253() {
