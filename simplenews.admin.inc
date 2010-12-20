@@ -437,6 +437,9 @@ function simplenews_subscription_list_add_submit($form, &$form_state) {
   $emails = preg_split("/[\s,]+/", $form_state['values']['emails']);
   foreach ($emails as $email) {
     $email = trim($email);
+    if ($email == '') {
+      continue;
+    }
     if (valid_email_address($email)) {
       foreach ($checked_newsletters as $tid) {
         $newsletter = taxonomy_get_term($tid);
