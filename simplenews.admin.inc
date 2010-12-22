@@ -920,7 +920,14 @@ function simplenews_admin_settings_newsletter(&$form_state) {
   $form['simplenews_default_options']['simplenews_priority'] = array(
     '#type' => 'select',
     '#title' => t('Priority'),
-    '#options' => array(0 => t('none'), 1 => t('highest'), 2 => t('high'), 3 => t('normal'), 4 => t('low'), 5 => t('lowest')),
+    '#options' => array(
+      SIMPLENEWS_PRIORITY_NONE => t('none'),
+      SIMPLENEWS_PRIORITY_HIGHEST => t('highest'),
+      SIMPLENEWS_PRIORITY_HIGH => t('high'),
+      SIMPLENEWS_PRIORITY_NORMAL => t('normal'),
+      SIMPLENEWS_PRIORITY_LOW => t('low'),
+      SIMPLENEWS_PRIORITY_LOWEST => t('lowest')
+    ),
     '#description' => t('Note that email priority is ignored by a lot of email programs.'),
     '#default_value' => variable_get('simplenews_priority', 0),
   );
@@ -933,7 +940,10 @@ function simplenews_admin_settings_newsletter(&$form_state) {
   $form['simplenews_default_options']['simplenews_send'] = array(
     '#type' => 'radios',
     '#title' => t('Default send action'),
-    '#options' => array(0 => t("Don't send now"), 2 => t('Send one test newsletter to the test address'), 1 => t('Send newsletter')),
+    '#options' => array(
+      SIMPLENEWS_COMMAND_SEND_TEST => t('Send one test newsletter to the test address'),
+      SIMPLENEWS_COMMAND_SEND_NOW => t('Send newsletter')
+    ),
     '#default_value' => variable_get('simplenews_send', 0),
   );
   $form['simplenews_test_address'] = array(
