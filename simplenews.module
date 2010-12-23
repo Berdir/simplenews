@@ -1748,6 +1748,13 @@ function simplenews_mail($key, &$message, $params) {
         $subject = token_replace($subject, 'node', $context['node']);
         $subject = str_replace(array("\r", "\n"), '', $subject);
         $message['subject'] = $messages[$nid][$langcode]['subject'] = $subject;
+        
+        // Set the active language to the node's language.
+        // This needs to be done as otherwise the language used to send the mail
+        // is the language of the user logged in.
+        if (module_exists('i18n')) {
+          i18n_selection_mode('node', $node->language);
+        }
 
         // Build message body
         // Processing node body mimics node_view() with full node view
@@ -1774,6 +1781,11 @@ function simplenews_mail($key, &$message, $params) {
           $footer = theme(array('simplenews_newsletter_footer__' . $context['node']->simplenews['tid'],
             'simplenews_newsletter_footer'), $context['node'], $key, $message['language']);
           $messages[$nid][$langcode]['footer'] = $footer;
+        }
+        
+        // Reset the language to the original settings.
+        if (module_exists('i18n')) {
+          i18n_selection_mode('reset');
         }
 
       }
