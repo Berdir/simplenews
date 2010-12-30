@@ -187,6 +187,12 @@ function simplenews_schema() {
         'unsigned' => TRUE,
         'not null' => TRUE,
         ),
+      'snid' => array(
+        'description' => 'Foreign key for subscriber table ({simplenews_subscriptions}.snid)',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        ),
       'mail' => array(
         'description' => 'The formatted email address of mail message recipient.',
         'type' => 'varchar',
@@ -883,6 +889,30 @@ function simplenews_update_6253() {
       SELECT MIN(timestamp)
       FROM {simplenews_snid_tid}
       WHERE snid = s.snid
+    )");
+  return $ret;
+}
+
+/**
+ * Add snid field to simplenews spool table.
+ */
+function simplenews_update_6254() {
+  $ret = array();
+  db_add_field($ret, 'simplenews_mail_spool', 'snid', array(
+        'description' => 'Foreign key for subscriber table ({simplenews_subscriptions}.snid)',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      )
+  );
+  // populate snid for previous mail spool entries
+  db_query("
+    UPDATE {simplenews_mail_spool} s
+    SET s.snid = (
+      SELECT snid
+      FROM {simplenews_subscriptions}
+      WHERE mail = s.mail
     )");
   return $ret;
 }

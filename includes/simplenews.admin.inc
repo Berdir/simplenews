@@ -923,14 +923,7 @@ function simplenews_admin_settings_newsletter(&$form_state) {
   $form['simplenews_default_options']['simplenews_priority'] = array(
     '#type' => 'select',
     '#title' => t('Priority'),
-    '#options' => array(
-      SIMPLENEWS_PRIORITY_NONE => t('none'),
-      SIMPLENEWS_PRIORITY_HIGHEST => t('highest'),
-      SIMPLENEWS_PRIORITY_HIGH => t('high'),
-      SIMPLENEWS_PRIORITY_NORMAL => t('normal'),
-      SIMPLENEWS_PRIORITY_LOW => t('low'),
-      SIMPLENEWS_PRIORITY_LOWEST => t('lowest')
-    ),
+    '#options' => simplenews_get_priority(),
     '#description' => t('Note that email priority is ignored by a lot of email programs.'),
     '#default_value' => variable_get('simplenews_priority', 0),
   );
@@ -1429,4 +1422,15 @@ function template_preprocess_simplenews_status(&$variables) {
     $variables['image'] = base_path() . drupal_get_path('module', 'simplenews') .'/'. $images[$variables['status']];
   }
   $variables['alt'] = $variables['title'] = $title[$variables['status']];
+}
+
+function simplenews_get_priority() {
+  return array(
+    SIMPLENEWS_PRIORITY_NONE => t('none'),
+    SIMPLENEWS_PRIORITY_HIGHEST => t('highest'),
+    SIMPLENEWS_PRIORITY_HIGH => t('high'),
+    SIMPLENEWS_PRIORITY_NORMAL => t('normal'),
+    SIMPLENEWS_PRIORITY_LOW => t('low'),
+    SIMPLENEWS_PRIORITY_LOWEST => t('lowest'),  
+  );
 }

@@ -514,7 +514,7 @@ function simplenews_views_data() {
         'handler' => 'views_handler_relationship',
         'base' => 'users',
         'base field' => 'uid',
-        'label' => t('user'),
+        'label' => t('User'),
       ),
     );
     

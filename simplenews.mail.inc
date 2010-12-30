@@ -46,8 +46,8 @@ function simplenews_send_node($node, $accounts = array()) {
       // No accounts specified.  Write all active subscriber addresses to mail spool.
       db_query('
         INSERT INTO {simplenews_mail_spool}
-        (mail, nid, vid, tid, status, timestamp)
-        SELECT s.mail, %d, %d, t.tid, %d, %d
+        (snid, mail, nid, vid, tid, status, timestamp)
+        SELECT s.snid, s.mail, %d, %d, t.tid, %d, %d
         FROM {simplenews_subscriptions} s
         INNER JOIN {simplenews_snid_tid} t
           ON s.snid = t.snid
@@ -335,6 +335,7 @@ function simplenews_mail_spool($nid = NULL, $vid = NULL, $limit = NULL) {
  * Save mail message in mail cache table.
  *
  * @param array $message data array to be stored
+ *  $message['snid']
  *  $message['mail']
  *  $message['nid']
  *  $message['vid']
@@ -350,8 +351,9 @@ function simplenews_save_spool($message) {
 
   db_query("
     INSERT INTO {simplenews_mail_spool}
-      (mail, nid, vid, tid, status, timestamp)
-    VALUES ('%s', %d, %d, %d, %d, %d)",
+      (snid, mail, nid, vid, tid, status, timestamp)
+    VALUES (%d, '%s', %d, %d, %d, %d, %d)",
+    $message['snid'],
     $message['mail'],
     $message['nid'],
     $message['vid'],

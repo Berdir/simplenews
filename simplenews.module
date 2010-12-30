@@ -410,19 +410,15 @@ function simplenews_node_tab_send_form($form_state, $node) {
         '#value' => key($format_options),
       );
     }
+    
+    // include function that provides the priority values
+    module_load_include('inc', 'simplenews', 'includes/simplenews.admin');
 
     $form['simplenews']['advanced']['priority'] = array(
       '#type' => 'select',
       '#title' => t('Email priority'),
       '#default_value' => isset($simplenews_values['priority']) ? $simplenews_values['priority'] : variable_get('simplenews_priority', SIMPLENEWS_PRIORITY_NONE),
-      '#options' => array(
-        SIMPLENEWS_PRIORITY_NONE => t('none'),
-        SIMPLENEWS_PRIORITY_HIGHEST => t('highest'),
-        SIMPLENEWS_PRIORITY_HIGH => t('high'),
-        SIMPLENEWS_PRIORITY_NORMAL => t('normal'),
-        SIMPLENEWS_PRIORITY_LOW => t('low'),
-        SIMPLENEWS_PRIORITY_LOWEST => t('lowest'),
-      ),
+      '#options' => simplenews_get_priority(),
     );
     $form['simplenews']['advanced']['receipt'] = array(
       '#type' => 'checkbox',
