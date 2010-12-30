@@ -33,7 +33,7 @@ function simplenews_views_data() {
   );
 
   $data['simplenews_subscriptions']['table']['join'] = array(
-    //...to the node table
+    //...to the users table
     'users' => array(
       'left_field' => 'uid',
       'field' => 'uid',
