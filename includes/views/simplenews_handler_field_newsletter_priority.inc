@@ -14,6 +14,6 @@ class simplenews_handler_field_newsletter_priority extends views_handler_field {
   function render($values) {
     module_load_include('inc', 'simplenews', 'simplenews.admin');
     $p = simplenews_get_priority();
-    return $p[$values->{$this->field_alias}];
+    return check_plain($p[$values->{$this->field_alias}]);
   }
 }
