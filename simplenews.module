@@ -638,6 +638,19 @@ function simplenews_nodeapi(&$node, $op, $teaser, $page) {
         )));
       }
       break;
+    case 'insert':
+    case 'update':
+      // Initialize $node->simplenews in case it does not exist
+      // (which should be the default case)
+      if (!isset($node->simplenews)) {
+        $node->simplenews = _simplenews_get_node_form_defaults();
+      }
+      // Get Simplenews vid
+      $simplenews_vid = variable_get('simplenews_vid', '');
+      $node->simplenews['tid'] = $node->taxonomy[$simplenews_vid];
+      // Call the same update function as tab submit function
+      simplenews_newsletter_update($node, $node->simplenews);
+      break;
     case 'delete':
       $result = db_query('
         DELETE FROM {simplenews_newsletters}
