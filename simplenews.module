@@ -1788,7 +1788,7 @@ function simplenews_mail($key, &$message, $params) {
           //  We might pass snid / context to theme functions.
           // Build and buffer message footer
           $footer = theme(array('simplenews_newsletter_footer__' . $context['node']->simplenews['tid'],
-            'simplenews_newsletter_footer'), $context['node'], $key, $message['language']);
+            'simplenews_newsletter_footer'), $context, $key, $message['language']);
           $messages[$nid][$langcode]['footer'] = $footer;
         }
         
@@ -2371,7 +2371,7 @@ function simplenews_theme() {
     ),
     'simplenews_newsletter_footer' => array(
       'template' => 'simplenews-newsletter-footer',
-      'arguments' => array('node' => NULL, 'key' => NULL, 'language' => NULL),
+      'arguments' => array('context' => NULL, 'key' => NULL, 'language' => NULL),
       'pattern' => 'simplenews_newsletter_footer__',
       'path' => $path . '/theme',
     ),
@@ -2483,7 +2483,7 @@ function template_preprocess_simplenews_newsletter_body(&$variables) {
  * @see simplenews-newsletter-footer.tpl.php
  */
 function template_preprocess_simplenews_newsletter_footer(&$variables) {
-  $variables['format'] = $variables['node']->simplenews['s_format'];
+  $variables['format'] = $variables['context']['node']->simplenews['s_format'];
   $variables['unsubscribe_text'] = t('Unsubscribe from this newsletter', array(), $variables['language']->language);
   $variables['test_message'] = t('This is a test version of the newsletter.', array(), $variables['language']->language);
 }
