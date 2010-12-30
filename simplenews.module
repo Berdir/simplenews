@@ -106,7 +106,7 @@ function simplenews_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('simplenews_admin_news'),
     'access callback' => 'simplenews_newsletter_access',
-    'file' => 'simplenews.admin.inc',
+    'file' => 'includes/simplenews.admin.inc',
   );
   $items['admin/content/simplenews/sent'] = array(
     'title' => 'Issues',
@@ -124,7 +124,7 @@ function simplenews_menu() {
     'page callback' => 'simplenews_types_overview',
     'access callback' => 'user_access',
     'access arguments' => array('administer newsletters'),
-    'file' => 'simplenews.admin.inc',
+    'file' => 'includes/simplenews.admin.inc',
     'weight' => -8,
   );
   $items['admin/content/simplenews/types/edit/%'] = array(
@@ -132,14 +132,14 @@ function simplenews_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('simplenews_admin_types_form', 5),
     'access arguments' => array('administer newsletters'),
-    'file' => 'simplenews.admin.inc',
+    'file' => 'includes/simplenews.admin.inc',
   );
   $items['admin/content/simplenews/types/delete/%'] = array(
     'type' => MENU_CALLBACK,
     'page callback' => 'drupal_get_form',
     'page arguments' => array('simplenews_admin_types_delete', 5),
     'access arguments' => array('administer newsletters'),
-    'file' => 'simplenews.admin.inc',
+    'file' => 'includes/simplenews.admin.inc',
   );
   $items['admin/content/simplenews/types/list'] = array(
     'title' => 'List newsletters',
@@ -152,7 +152,7 @@ function simplenews_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('simplenews_admin_types_form'),
     'access arguments' => array('administer newsletters'),
-    'file' => 'simplenews.admin.inc',
+    'file' => 'includes/simplenews.admin.inc',
     'weight' => -9,
   );
 
@@ -162,7 +162,7 @@ function simplenews_menu() {
     'page arguments' => array('simplenews_subscription_multiple_delete_confirm'),
     'access callback' => 'user_access',
     'access arguments' => array('administer simplenews subscriptions'),
-    'file' => 'simplenews.admin.inc',
+    'file' => 'includes/simplenews.admin.inc',
   );
   $items['admin/content/simplenews/users'] = array(
     'title' => 'Subscriptions',
@@ -172,7 +172,7 @@ function simplenews_menu() {
     'page arguments' => array('simplenews_subscription_admin'),
     'access callback' => 'user_access',
     'access arguments' => array('administer simplenews subscriptions'),
-    'file' => 'simplenews.admin.inc',
+    'file' => 'includes/simplenews.admin.inc',
     'weight' => -7,
   );
   $items['admin/content/simplenews/users/edit/%'] = array(
@@ -180,7 +180,7 @@ function simplenews_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('simplenews_subscriptions_admin_form', 5),
     'access arguments' => array('administer simplenews subscriptions'),
-    'file' => 'simplenews.subscription.inc',
+    'file' => 'includes/simplenews.subscription.inc',
     );
   $items['admin/content/simplenews/users/list'] = array(
     'title' => 'List',
@@ -193,7 +193,7 @@ function simplenews_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('simplenews_subscription_list_add'),
     'access arguments' => array('administer simplenews subscriptions'),
-    'file' => 'simplenews.admin.inc',
+    'file' => 'includes/simplenews.admin.inc',
     'weight' => -9,
   );
   $items['admin/content/simplenews/users/export'] = array(
@@ -202,7 +202,7 @@ function simplenews_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('simplenews_subscription_list_export'),
     'access arguments' => array('administer simplenews subscriptions'),
-    'file' => 'simplenews.admin.inc',
+    'file' => 'includes/simplenews.admin.inc',
     'weight' => -7,
   );
   $items['admin/content/simplenews/users/unsubscribe'] = array(
@@ -211,7 +211,7 @@ function simplenews_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('simplenews_subscription_list_remove'),
     'access arguments' => array('administer simplenews subscriptions'),
-    'file' => 'simplenews.admin.inc',
+    'file' => 'includes/simplenews.admin.inc',
     'weight' => -8,
   );
 
@@ -221,7 +221,7 @@ function simplenews_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('simplenews_admin_settings'),
     'access arguments' => array('administer simplenews settings'),
-    'file' => 'simplenews.admin.inc',
+    'file' => 'includes/simplenews.admin.inc',
   );
   $items['admin/settings/simplenews/general'] = array(
     'title' => 'General',
@@ -236,7 +236,7 @@ function simplenews_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('simplenews_admin_settings_newsletter'),
     'access arguments' => array('administer simplenews settings'),
-    'file' => 'simplenews.admin.inc',
+    'file' => 'includes/simplenews.admin.inc',
     'weight' => -9,
   );
   $items['admin/settings/simplenews/subscription'] = array(
@@ -246,7 +246,7 @@ function simplenews_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('simplenews_admin_settings_subscription'),
     'access arguments' => array('administer simplenews settings'),
-    'file' => 'simplenews.admin.inc',
+    'file' => 'includes/simplenews.admin.inc',
     'weight' => -8,
   );
   $items['admin/settings/simplenews/mail'] = array(
@@ -256,7 +256,7 @@ function simplenews_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('simplenews_admin_settings_mail'),
     'access arguments' => array('administer simplenews settings'),
-    'file' => 'simplenews.admin.inc',
+    'file' => 'includes/simplenews.admin.inc',
     'weight' => -7,
   );
 
@@ -264,7 +264,7 @@ function simplenews_menu() {
     'type' => MENU_CALLBACK,
     'page callback' => 'simplenews_confirm_subscription',
     'access callback' => TRUE,
-    'file' => 'simplenews.subscription.inc',
+    'file' => 'includes/simplenews.subscription.inc',
   );
 
   $items['newsletter/subscriptions'] = array(
@@ -273,7 +273,7 @@ function simplenews_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('simplenews_subscriptions_page_form'),
     'access arguments' => array('subscribe to newsletters'),
-    'file' => 'simplenews.subscription.inc',
+    'file' => 'includes/simplenews.subscription.inc',
   );
   $items['node/%node/simplenews'] = array(
     'title' => 'Newsletter',
@@ -505,7 +505,7 @@ function simplenews_node_tab_send_form_submit($form, &$form_state) {
   // Update $node before send
   $node->simplenews = _simplenews_flatten_array($values['simplenews']);
   // Send newsletter or test newsletter
-  module_load_include('inc', 'simplenews', 'simplenews.mail');
+  module_load_include('inc', 'simplenews', 'includes/simplenews.mail');
   if ($values['simplenews']['send'] == SIMPLENEWS_COMMAND_SEND_NOW) {
     // Send newsletter to all subscribers
     simplenews_send_node($node);
@@ -653,7 +653,7 @@ function simplenews_nodeapi(&$node, $op, $teaser, $page) {
       }
 
       // Check if pending emails of this newsletter issue exist and delete these too.
-      module_load_include('inc', 'simplenews', 'simplenews.mail');
+      module_load_include('inc', 'simplenews', 'includes/simplenews.mail');
       $count = simplenews_clear_spool_node($node);
 
       if ($count) {
@@ -798,7 +798,7 @@ function simplenews_form_alter(&$form, $form_state, $form_id) {
  * Implementation of hook_cron().
  */
 function simplenews_cron() {
-  module_load_include('inc', 'simplenews', 'simplenews.mail');
+  module_load_include('inc', 'simplenews', 'includes/simplenews.mail');
   simplenews_mail_spool();
   simplenews_clear_spool();
   // Update sent status for newsletter admin panel.
@@ -1031,9 +1031,9 @@ function simplenews_user($op, &$edit, &$account, $category = NULL) {
     case 'form':
       if ($category == 'newsletter') {
         // This is reached only if op=categories access callback passed.
-        module_load_include('inc', 'simplenews', 'simplenews.mail');
+        module_load_include('inc', 'simplenews', 'includes/simplenews.mail');
         $subscription = simplenews_get_subscription($account);
-        module_load_include('inc', 'simplenews', 'simplenews.subscription');
+        module_load_include('inc', 'simplenews', 'includes/simplenews.subscription');
         $form_state = array();
         $form = simplenews_subscriptions_account_form($form_state, $account);
         return $form;
@@ -1220,7 +1220,7 @@ function simplenews_block($op = 'list', $delta = 0, $edit = array()) {
       // Special block for multi
       if ($delta == 0) {
         if (user_access('subscribe to newsletters')) {
-          module_load_include('inc', 'simplenews', 'simplenews.subscription');
+          module_load_include('inc', 'simplenews', 'includes/simplenews.subscription');
           // render block only if permitted
           $block = array(
             'subject' => t('Newsletters'),
@@ -1236,7 +1236,7 @@ function simplenews_block($op = 'list', $delta = 0, $edit = array()) {
         $newsletters = simplenews_get_newsletters(variable_get('simplenews_vid', ''));
         // Only display a block if $delta is a valid newsletter term id.
         if (in_array($delta, array_keys($newsletters))) {
-          module_load_include('inc', 'simplenews', 'simplenews.subscription');
+          module_load_include('inc', 'simplenews', 'includes/simplenews.subscription');
           // $delta is validated, the block can be displayed.
           $block = array(
             'subject' => check_plain($newsletters[$delta]->name),
@@ -1374,7 +1374,7 @@ function simplenews_subscribe_user($mail, $tid, $confirm = TRUE, $source = 'unkn
   }
 
   if ($confirm) {
-    module_load_include('inc', 'simplenews', 'simplenews.mail');
+    module_load_include('inc', 'simplenews', 'includes/simplenews.mail');
     // Send confirmation email to user to complete subscription or to tell
     // them that he or she is already subscribed.
     // Confirmation mail is in the user preferred language which is by default the language_default().
@@ -1450,7 +1450,7 @@ function simplenews_unsubscribe_user($mail, $tid, $confirm = TRUE, $source = 'un
   }
 
   if ($confirm) {
-    module_load_include('inc', 'simplenews', 'simplenews.mail');
+    module_load_include('inc', 'simplenews', 'includes/simplenews.mail');
     // Send confirmation email to user to confirm unsubscribe
     // or to tell them that he or she is not subscribed
     // Confirmation mail is in the user preferred language.
@@ -1670,7 +1670,7 @@ function simplenews_recent_newsletters($tid, $count = 5) {
  *          [tokens]              : tokens for variable replacement. Defaults to: user_mail_tokens()
  */
 function simplenews_mail($key, &$message, $params) {
-  module_load_include('inc', 'simplenews', 'simplenews.mail');
+  module_load_include('inc', 'simplenews', 'includes/simplenews.mail');
   $context = $params['context'];
   $langcode = $message['language']->language;
 
@@ -1864,6 +1864,7 @@ function simplenews_mail($key, &$message, $params) {
 function simplenews_views_api() {
   return array(
     'api' => 2,
+    'path' => drupal_get_path('module', 'simplenews') . '/includes/views',
   );
 }
 
@@ -2000,7 +2001,7 @@ function simplenews_token_values($type, $object = NULL, $options = array()) {
             $newsletter->tid = $tid;
         }
       }
-      module_load_include('inc', 'simplenews', 'simplenews.mail');
+      module_load_include('inc', 'simplenews', 'includes/simplenews.mail');
       // Translate newsletter name
       $newsletter_name = _simplenews_tt_newsletter_name($newsletter, $language->language);
       // Info for simplenews-from-name and simplenews-from-mail tokens
@@ -2329,37 +2330,46 @@ function simplenews_valid_email_address($email = '') {
  * Implementation of hook_theme().
  */
 function simplenews_theme() {
+  $path = drupal_get_path('module', 'simplenews');
+
   return array(
     'simplenews_multi_block' => array(
       'template' => 'simplenews-multi-block',
       'arguments' => array(),
+      'path' => $path . '/theme',
     ),
     'simplenews_block' => array(
       'template' => 'simplenews-block',
+      'path' => $path . '/theme',
       'arguments' => array('tid' => NULL),
       'pattern' => 'simplenews_block__',
     ),
     'simplenews_status' => array(
       'template' => 'simplenews-status',
-      'file' => 'simplenews.admin.inc',
+      'file' => 'includes/simplenews.admin.inc',
+      'path' => $path . '/theme',
       'arguments' => array('status' => NULL, 'source' => NULL, 'already_sent' => NULL, 'sent_subscriber_count' => NULL),
     ),
     'simplenews_newsletter_subject' => array(
       'arguments' => array('name' => NULL, 'title' => NULL, 'language' => NULL),
+      'path' => $path . '/theme',
     ),
     'simplenews_newsletter_body' => array(
       'template' => 'simplenews-newsletter-body',
       'arguments' => array('node' => NULL, 'language' => NULL),
       'pattern' => 'simplenews_newsletter_body__',
+      'path' => $path . '/theme',
     ),
     'simplenews_newsletter_footer' => array(
       'template' => 'simplenews-newsletter-footer',
       'arguments' => array('node' => NULL, 'key' => NULL, 'language' => NULL),
       'pattern' => 'simplenews_newsletter_footer__',
+      'path' => $path . '/theme',
     ),
     'simplenews_subscription_list' => array(
-      'file' => 'simplenews.admin.inc',
+      'file' => 'includes/simplenews.admin.inc',
       'arguments' => array('form' => NULL),
+      'path' => $path . '/theme',
     ),
   );
 }
@@ -2388,7 +2398,7 @@ function template_preprocess_simplenews_block(&$variables) {
   // @todo: clean localization / i18n needed
   $variables['message'] = check_plain(variable_get('simplenews_block_m_' . $tid, t('Stay informed on our latest news!')));
   if (user_access('subscribe to newsletters')) {
-    module_load_include('inc', 'simplenews', 'simplenews.subscription');
+    module_load_include('inc', 'simplenews', 'includes/simplenews.subscription');
     $variables['form'] = drupal_get_form('simplenews_block_form_' . $tid);
     $variables['subscription_link'] = l(t('Manage my subscriptions'), 'newsletter/subscriptions');
   }
