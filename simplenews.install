@@ -874,13 +874,12 @@ function simplenews_update_6252() {
 function simplenews_update_6253() {
   $ret = array();
   db_add_field($ret, 'simplenews_subscriptions', 'timestamp', array(
-        'description' => 'UNIX timestamp of when the user first subscribed to a newsletter.',
-        'type' => 'int',
-        'unsigned' => TRUE,
-        'not null' => TRUE,
-        'default' => 0,
-      )
-  );
+    'description' => 'UNIX timestamp of when the user first subscribed to a newsletter.',
+    'type' => 'int',
+    'unsigned' => TRUE,
+    'not null' => TRUE,
+    'default' => 0,
+  ));
   // http://dev.mysql.com/doc/refman/5.1/en/correlated-subqueries.html
   // this subquery already works with mysql 4.
   db_query("
@@ -899,13 +898,12 @@ function simplenews_update_6253() {
 function simplenews_update_6254() {
   $ret = array();
   db_add_field($ret, 'simplenews_mail_spool', 'snid', array(
-        'description' => 'Foreign key for subscriber table ({simplenews_subscriptions}.snid)',
-        'type' => 'int',
-        'unsigned' => TRUE,
-        'not null' => TRUE,
-        'default' => 0,
-      )
-  );
+    'description' => 'Foreign key for subscriber table ({simplenews_subscriptions}.snid)',
+    'type' => 'int',
+    'unsigned' => TRUE,
+    'not null' => TRUE,
+    'default' => 0,
+  ));
   // populate snid for previous mail spool entries
   db_query("
     UPDATE {simplenews_mail_spool} s
@@ -913,6 +911,7 @@ function simplenews_update_6254() {
       SELECT snid
       FROM {simplenews_subscriptions}
       WHERE mail = s.mail
-    )");
+    )"
+  );
   return $ret;
 }
