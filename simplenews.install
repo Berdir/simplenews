@@ -911,6 +911,7 @@ function simplenews_update_6254() {
       SELECT snid
       FROM {simplenews_subscriptions}
       WHERE mail = s.mail
+      LIMIT 1
     )"
   );
   return $ret;
