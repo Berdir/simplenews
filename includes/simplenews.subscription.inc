@@ -337,7 +337,7 @@ function simplenews_subscriptions_page_form_submit($form, &$form_state) {
         drupal_set_message(t('You will receive a confirmation email shortly containing further instructions on how to complete your subscription.'));
       }
       else {
-        drupal_set_message(t('You where added to the chosen mailing list.'));
+        drupal_set_message(t('You were added to the chosen mailing list.'));
       }
       break;
     case t('Unsubscribe'):
@@ -356,7 +356,7 @@ function simplenews_subscriptions_page_form_submit($form, &$form_state) {
         drupal_set_message(t('You will receive a confirmation email shortly containing further instructions on how to cancel your subscription.'));
       }
       else {
-        drupal_set_message(t('You where added to the chosen mailing list.'));
+        drupal_set_message(t('You were added to the chosen mailing list.'));
       }
       break;
   }
