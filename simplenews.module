@@ -324,8 +324,7 @@ function simplenews_node_tab_page($node = NULL) {
  */
 function simplenews_node_tab_send_form($form_state, $node) {
   // Prepare
-  $simplenews_values = array();
-  $simplenews_values = _simplenews_get_node_form_defaults();
+  $simplenews_values = _simplenews_get_node_defaults();
   if (isset($node->simplenews) && !empty($node->simplenews)) {
     $simplenews_values = $node->simplenews;
   }
@@ -365,7 +364,7 @@ function simplenews_node_tab_send_form($form_state, $node) {
     $form['simplenews']['send'] = array(
       '#type' => 'radios',
       '#title' => t('Send action'),
-      '#default_value' => isset($simplenews_values['send']) ? $simplenews_values['send'] : variable_get('simplenews_send', SIMPLENEWS_COMMAND_SEND_TEST),
+      '#default_value' => variable_get('simplenews_send', SIMPLENEWS_COMMAND_SEND_TEST),
       '#options' => $options,
       '#attributes' => array('class' => 'simplenews-command-send'),
     );
@@ -428,12 +427,14 @@ function simplenews_node_tab_send_form($form_state, $node) {
     );
   }
   else {
+   
     $form['simplenews']['none'] = array(
       '#type' => 'checkbox',
-      '#title' => t('This newsletter has been sent'),
       '#return_value' => 0,
       '#attributes' => array('checked' => 'checked', 'disabled' => 'disabled'),
     );
+    
+    $form['simplenews']['none']['#title'] = ($simplenews_values['s_status'] == SIMPLENEWS_STATUS_SEND_READY) ? t('This newsletter has been sent.') :  t('This newsletter is pending.');
     // We return now, because there's no point in having a submit button
     return $form;
   }
@@ -480,6 +481,13 @@ function simplenews_node_tab_send_form_submit($form, &$form_state) {
   // Get the node
   $values = $form_state['values'];
   $node = node_load($values['nid']);
+  
+  $s_status = SIMPLENEWS_STATUS_SEND_NOT;
+  if ($values['simplenews']['send'] == SIMPLENEWS_COMMAND_SEND_NOW) {
+    $s_status = SIMPLENEWS_STATUS_SEND_PENDING;
+  }
+  $values['simplenews']['s_status'] = $s_status;
+  
   // Is this a multilingual newsletter ?
   // When this node is selected for translation all translation of this node
   // will be sent too.
@@ -492,10 +500,12 @@ function simplenews_node_tab_send_form_submit($form, &$form_state) {
         $translation = node_load($translation->nid);
         simplenews_newsletter_update($translation, $values['simplenews']);
       }
-    } else {
+    }
+    else {
       simplenews_newsletter_update($node, $values['simplenews']);
     }
-  } else {
+  }
+  else {
     simplenews_newsletter_update($node, $values['simplenews']);
   }
   // Update $node before send
@@ -519,15 +529,14 @@ function simplenews_node_tab_send_form_submit($form, &$form_state) {
  * @param array $param the values which to update the newsletter with
  */
 function simplenews_newsletter_update($node, $param = array()) {
-  $send = $param['send'] == SIMPLENEWS_COMMAND_SEND_NOW;
-  $s_status = $send ? SIMPLENEWS_STATUS_SEND_PENDING : SIMPLENEWS_STATUS_SEND_NOT;
-  // Is there already a corresponding newsletter ?
+ // Is there already a corresponding newsletter ?
   $sn_nid = db_result(db_query("
     SELECT nid
     FROM {simplenews_newsletters}
     WHERE nid = %d",
     $node->nid
   ));
+
   if (!is_numeric($sn_nid)) {
     // No newsletter => we create it
     db_query("
@@ -537,7 +546,7 @@ function simplenews_newsletter_update($node, $param = array()) {
       $node->nid,
       $node->vid,
       $param['tid'],
-      $s_status,
+      $param['s_status'],
       $param['advanced']['s_format'],
       $param['advanced']['priority'],
       $param['advanced']['receipt']
@@ -555,7 +564,7 @@ function simplenews_newsletter_update($node, $param = array()) {
       WHERE nid = %d",
       $node->vid,
       $param['tid'],
-      $s_status,
+      $param['s_status'],
       $param['advanced']['s_format'],
       $param['advanced']['priority'],
       $param['advanced']['receipt'],
@@ -643,7 +652,14 @@ function simplenews_nodeapi(&$node, $op, $teaser, $page) {
       // Initialize $node->simplenews in case it does not exist
       // (which should be the default case)
       if (!isset($node->simplenews)) {
-        $node->simplenews = _simplenews_get_node_form_defaults();
+        $node->simplenews = db_fetch_array(db_query('
+        SELECT *
+        FROM {simplenews_newsletters}
+        WHERE nid = %d',
+        $node->nid));
+      }
+      if (!isset($node->simplenews)) {
+        $node->simplenews = _simplenews_get_node_defaults();
       }
       // Get Simplenews vid
       $simplenews_vid = variable_get('simplenews_vid', '');
@@ -2287,14 +2303,13 @@ function _simplenews_format_options() {
 /**
  * Get defaults for the simplenews node form.
  */
-function _simplenews_get_node_form_defaults() {
+function _simplenews_get_node_defaults() {
   $defaults = array(
     'advanced' => array(
       's_format' => variable_get('simplenews_format', 'plain'),
       'priority' => variable_get('simplenews_priority', SIMPLENEWS_PRIORITY_NONE),
       'receipt' => variable_get('simplenews_receipt', 0),
     ),
-    'send' => variable_get('simplenews_send', SIMPLENEWS_COMMAND_SEND_TEST),
     's_status' => '0',
     'test_address' => variable_get('simplenews_test_address', variable_get('site_mail', ini_get('sendmail_from'))),
   );
