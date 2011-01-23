@@ -1281,6 +1281,7 @@ function simplenews_block($op = 'list', $delta = 0, $edit = array()) {
  * hook_forms() is required to provide unique form id for each block form.
  */
 function simplenews_forms($form_id, $args) {
+  $forms = array();
   $match = preg_match('/simplenews_block_form_(\d+)/', $form_id, $matches);
   if ($match) {
     $forms['simplenews_block_form_' . $matches[1]] = array(
