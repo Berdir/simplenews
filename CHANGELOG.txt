@@ -23,7 +23,6 @@ Simplenews 2.0 (Jan 01, 2011)
     o #1012142 by Sutharsan: hide test module from the module list
     o #1010592 by DrupOn, miro_dietiker: separates include folder
     o #668730 by DrupOn, miro_dietiker: integration with Views module
-
   Other changes:
     o #875672, #684864, #943980, #841520, #996392 by miro_dietiker, #292634 by miopa, miro_dietiker & Sutharsan, #839504 by fmjrey & miro_dietiker, #285719 by Sutharsan: lots of mutilanguage-related fixes
     o #1004634 by AlexisWilke: empty emails are taken as erroneous emails
@@ -52,14 +51,58 @@ TODO: add RC and BETA date & fixes
 
 Simplenews 1.3 (May 21, 2010)
   Maintainer: Sutharsan
-http://drupal.org/node/805680
+  http://drupal.org/node/805680
+  Bug fixes
+    o #804252 by Sutharsan: Fixed: Database update error in 6.x-1.2
 
 Simplenews 1.2 (May 19, 2010)
-http://drupal.org/node/803254
+  http://drupal.org/node/803254
+  Security
+    o #662720 by miro_dietiker and Sutharsan: Fixes User can edit other user's account newsletter data.
+  Bugs
+    o #761800 by Sutharsan: Fixed various E_ALL notices.
+    o #767556 by Sutharsan: Schema mismatch after version update.
 
 Simplenews 1.1 (March 30, 2010)
-http://drupal.org/node/757256
+  http://drupal.org/node/757256
+  Bug fixes
+    o #Fixed Installation message not very useful if Help module is disabled. (#687956 by Sutharsan)
+    o #simplenews_recent_newsletters() not compatible with PostgreSQL in Drupal 6.16 (#734196 by AlexisWilke)
+    o #Fixed Missing return value in _update_N() function. (#716740 by AlexWilke)
+    o #Fixed: Mail spool not working correctly in PostgreSQL. (#722266 by AlexisWilke)
+    o #Fixed empty delimiter when sending (test) emails with short link text. (#680278 by Sutharsan)
+    o #Fixed Documentation added for missing site name in URL. (#439016 by Sutharsan)
+    o #Fixed Double escaping removed from Simplenews Actions. (#650494 by Simplenews)
+    o #Fixed newsletter send status should be updated on cron. (#585900 by hanoii\)
+    o #Fixed Simplenews does not take the recipient's text mail preference into account. (#401014 by miro_dietiker)
+    o #Fixed Various String issues. (#518564 by FrankT)
+    o #Fixed Header from mail inconsistent. (#581460 by miro_dietiker)
+    o #Fixed Typo in admin form. (#527262 by joachim)
+    o #Fixed "Manage my subscription" is being output in wrong way. (#520670 by neochief)
+    o #Fixed Various String issues. (#518564 by FrankT)
+    o #Fixed Link to translation source newsletter in newsletter editing form is incomplete for subsites. (#500686 by Sutharsan)
+    o #Fixed Wrong closing tag in simplenews_help (#459322 by sharlak)
+    o #Added update 6200 for compatibility with rev 1.223 (HEAD)
+    o #Added Handling non-existing nodes during send. (#412234 by Sutharsan)
 
 Simplenews 1.0 (Nov 26, 2009)
-http://drupal.org/node/643692
+  http://drupal.org/node/643692
+  Bug fixes
+    o #584334 by allartk, Sutharsan: Sending interrupted: PHP maximum execution time almost exceeded.
+    o #476756 by burn_ru, Karlheinz, Sutharsan: Fixed URL displayed twice in email
+    o #374222 by sutharsan: Fixed Template files do not work when using admin theme.
+    o #530232 by jamespharaoh: Fixed Do not allow an empty taxonomy term in the newsletter node form.
+    o #515274 by Dmitriy.trt: Fixed Make Vocabulary required at install. Fixed Losing content type settings when saving Vocabulary form.
+    o #153291 by Sutharsan: Fixed use unformatted from address on WIN-OS platforms.
+    o #367488: Added enable simplenews to send using HTML module.
+    o #365507 by Roberto Gerola, com2: Fixed !confirmation_url and !newsletter not replaced for anonymous users.
+    o #398496 by Sutharsan: Fixed !site, !mailto, !date not exploded in confirmation mails.
+    o #425890 by Sutharsan: Fixed Link does not take into account the installation directory
+  Other fixes
+    o #399966 by Sutharsan: Fixed My newsletters tab in users profile without persmission to subscribe.
+    o #457004 by univate: Fixed hook_user should not return anything for $op='view'.
+    o #541128 by Sutharsan: Fixed Handle capitals in email address the right way.
+    o #400988 by plach: Fixed UI typo.
+    o #484484 by mrfelton: simplenews.install should not use t() in hook_schema().
+    o #290695 by Xano, Sutharsan: Change 'e-mail' into 'email'
 
