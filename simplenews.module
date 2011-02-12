@@ -651,14 +651,14 @@ function simplenews_nodeapi(&$node, $op, $teaser, $page) {
     case 'update':
       // Initialize $node->simplenews in case it does not exist
       // (which should be the default case)
-      if (!isset($node->simplenews)) {
+      if (empty($node->simplenews)) {
         $node->simplenews = db_fetch_array(db_query('
         SELECT *
         FROM {simplenews_newsletters}
         WHERE nid = %d',
         $node->nid));
       }
-      if (!isset($node->simplenews)) {
+      if (empty($node->simplenews)) {
         $node->simplenews = _simplenews_get_node_defaults();
       }
       // Get Simplenews vid
