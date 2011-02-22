@@ -222,19 +222,16 @@ function simplenews_subscribe_user_action(&$object, $context = array()) {
  * Implementation of a configurable Drupal action.
  */
 function simplenews_subscribe_user_action_form($context) {
-  if (!isset($context['newsletter'])) {
-    $context['newsletter'] = array();
-  }
-
   $tree = taxonomy_get_tree(variable_get('simplenews_vid', ''));
   $terms = array();
   foreach ($tree as $newsletter) {
     $terms[$newsletter->tid] = $newsletter->name;
   }
-  $form['newsletter'] = array(
+  $form['tid'] = array(
     '#title' => t('Newsletter'),
     '#type' => 'select',
     '#options' => $terms,
+    '#default_value' => isset($context['tid']) ? $context['tid'] : key($terms),
     '#description' => t('The newsletter series the user will be subscribed to.'),
   );
   return $form;
@@ -247,8 +244,8 @@ function simplenews_subscribe_user_action_submit($form, $form_state) {
   $form_values = $form_state['values'];
 
   $params = array(
-    'tid' => $form_values['newsletter'],
-    'name' => $form['newsletter']['#options'][$form_values['newsletter']],
+    'tid' => $form_values['tid'],
+    'name' => $form['tid']['#options'][$form_values['tid']],
   );
   return $params;
 }
@@ -299,19 +296,16 @@ function simplenews_unsubscribe_user_action(&$object, $context = array()) {
  * Implementation of a configurable Drupal action.
  */
 function simplenews_unsubscribe_user_action_form($context) {
-  if (!isset($context['newsletter'])) {
-    $context['newsletter'] = array();
-  }
-
   $tree = taxonomy_get_tree(variable_get('simplenews_vid', ''));
   $terms = array();
   foreach ($tree as $newsletter) {
     $terms[$newsletter->tid] = $newsletter->name;
   }
-  $form['newsletter'] = array(
+  $form['tid'] = array(
     '#title' => t('Newsletter'),
     '#type' => 'select',
     '#options' => $terms,
+    '#default_value' => isset($context['tid']) ? $context['tid'] : key($terms),
     '#description' => t('The newsletter series the user will be unsubscribed from.'),
   );
   return $form;
@@ -324,8 +318,8 @@ function simplenews_unsubscribe_user_action_submit($form, $form_state) {
   $form_values = $form_state['values'];
 
   $params = array(
-    'tid' => $form_values['newsletter'],
-    'name' => $form['newsletter']['#options'][$form_values['newsletter']],
+    'tid' => $form_values['tid'],
+    'name' => $form['tid']['#options'][$form_values['tid']],
   );
   return $params;
 }
