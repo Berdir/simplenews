@@ -393,7 +393,11 @@ function simplenews_admin_types_delete_submit($form, &$form_state) {
     $term = taxonomy_get_term($tid);
     taxonomy_del_term($tid);
     variable_del('simplenews_from_name_'. $tid);
+    variable_del('simplenews_email_subject_'. $tid);
     variable_del('simplenews_from_address_'. $tid);
+    variable_del('simplenews_hyperlinks_'. $tid);
+    variable_del('simplenews_new_account_'. $tid);
+    variable_del('simplenews_opt_inout_'. $tid);
     drupal_set_message(t('Newsletter %title has been deleted.', array('%title' => $term->name)));
   }
 }
