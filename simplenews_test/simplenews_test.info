@@ -1,4 +1,3 @@
-; $Id$
 name = Simplenews test
 description = Simplenews helper module for test framework. Do not use in a production environment!
 dependencies[] = simplenews
