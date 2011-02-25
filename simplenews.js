@@ -1,4 +1,3 @@
-// $Id$
 
 /**
  * Set text of Save button dependent on the selected send option.
