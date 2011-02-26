@@ -191,6 +191,7 @@ function simplenews_schema() {
         'type' => 'int',
         'unsigned' => TRUE,
         'not null' => TRUE,
+        'default' => 0,
         ),
       'mail' => array(
         'description' => 'The formatted email address of mail message recipient.',
