@@ -340,3 +340,52 @@ function simplenews_hook_info() {
     ),
   );
 }
+
+
+/**
+ * Implementation of hook_taxonomy().
+ *
+ * Deletes actions related to newsletter when it is deleted (term deleted).
+ */
+function simplenews_action_taxonomy($op, $type, $term = NULL) {
+  if ($op == 'delete' && $term['vid'] == variable_get('simplenews_vid', '')) {
+    switch ($type) {
+      case 'term':
+        $result = db_query("
+          SELECT aid, parameters FROM {actions}
+          WHERE callback IN ('simplenews_subscribe_user_action', 'simplenews_unsubscribe_user_action')
+        ");
+        while ($action = db_fetch_object($result)) {
+          $parameters = unserialize($action->parameters);
+          if ( $parameters['tid'] == $term['tid'] ) {
+            actions_delete($action->aid);
+          }
+        }
+        break;
+    }
+  }
+}
+
+/**
+  * Implementation of hook_nodeapi().
+  *
+  * Deletes actions related to newsletter issue when it is deleted (node deleted).
+ */
+function simplenews_action_nodeapi(&$node, $op, $teaser, $page) {
+  // Operate only on node types set in 'simplenews_content_types' variable.
+  if (!in_array($node->type, variable_get('simplenews_content_types', array('simplenews')))) {
+    return;
+  }
+
+  switch ($op) {
+    case 'delete':
+      $result = db_query("SELECT aid, parameters FROM {actions} WHERE callback='simplenews_send_newsletter_action'");
+      while ($action = db_fetch_object($result)) {
+        $parameters = unserialize($action->parameters);
+        if ( $parameters['nid'] == $node->nid ) {
+          actions_delete($action->aid);
+        }
+      }
+    break;
+  }
+}
