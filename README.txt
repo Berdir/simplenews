@@ -41,16 +41,17 @@ INSTALLATION
     Select the content type Simplenews uses for newsletters.
     Select the taxonomy term Simplenews uses to manage newsletter series.
 
- 5. ENABLE SIMPLENEWS BLOCK
+ 5. ENABLE SIMPLENEWS BLOCKS
 
-    With the Simplenews block users can subscribe to a newsletter. For each
-    newsletter one block is available.
-    Enable the Simplenews block on the Administer blocks page:
+    With the Simplenews block users can subscribe to a newsletter. If you
+    select the multi-signup block, you can subscribe to several newsletters at
+    once. Otherwise, for each newsletter one block is available.
+    Enable the Simplenews blocks on the Administer blocks page:
       Administer > Site building > Blocks.
 
- 6. CONFIGURE SIMPLENEWS BLOCK
+ 6. CONFIGURE SIMPLENEWS BLOCKS
 
-    Configure the Simplenews block on the Block configuration page. You reach
+    Configure the Simplenews blocks on the Block configuration page. You reach
     this page from Block admin page (Administer > Site building > Blocks). 
     Click the 'Configure' link of the appropriate simplenews block.
  
