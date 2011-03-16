@@ -1196,7 +1196,7 @@ function theme_simplenews_subscription_list($form) {
     }
   }
   else  {
-    $rows[] = array(array('data' => t('No subscriptions available.'), 'colspan' => '4'));
+    $rows[] = array(array('data' => t('No subscriptions available.'), 'colspan' => '5'));
   }
 
   // Render table header, pager and form
