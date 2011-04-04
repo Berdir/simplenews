@@ -191,7 +191,7 @@ function simplenews_mail_mail($nid, $vid, $mail, $key = 'node') {
       $message = drupal_mail('simplenews', $key, $subscription->mail, $subscription->language, $params, $params['from']['formatted'], FALSE);
       $to = isset($message['params']['context']['account']) ? $message['params']['context']['account'] : $message['to'];
       $plain = $message['params']['context']['node']->simplenews['s_format'] == 'plain' ? TRUE : NULL;
-      $message['result'] = mimemail(
+      $mimemail_result = mimemail(
         $message['from'],
         $to,
         $message['subject'],
@@ -202,6 +202,12 @@ function simplenews_mail_mail($nid, $vid, $mail, $key = 'node') {
         isset($message['params']['context']['node']->files) ? $message['params']['context']['node']->files : array(),
         $message['id']
       );
+      // Mimemail has changed its API (see http://drupal.org/node/808518) but we keep backward compatibility
+      if (is_array($mimemail_result)) {
+        $message = $mimemail_result;
+      } else {
+        $message['result'] = $mimemail_result;
+      }
     }
     else {
       $message = drupal_mail('simplenews', $key, $subscription->mail, $subscription->language, $params, $params['from']['formatted'], TRUE);
