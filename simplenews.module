@@ -1442,6 +1442,7 @@ function simplenews_subscribe_user($mail, $tid, $confirm = TRUE, $source = 'unkn
     // Execute simplenews subscribe trigger.
     simplenews_call_actions('subscribe', $subscription);
   }
+  module_invoke_all('simplenews_subscribe_user', $subscription);
   return $subscription;
 }
 
@@ -1502,7 +1503,7 @@ function simplenews_unsubscribe_user($mail, $tid, $confirm = TRUE, $source = 'un
     // Execute simplenews unsubscribe trigger
     simplenews_call_actions('unsubscribe', $subscription);
   }
-
+  module_invoke_all('simplenews_unsubscribe_user', $subscription);
   return TRUE;
 }
 
