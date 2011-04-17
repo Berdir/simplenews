@@ -2370,9 +2370,8 @@ function simplenews_theme() {
       'pattern' => 'simplenews_block__',
     ),
     'simplenews_status' => array(
-      'template' => 'simplenews-status',
+      'template' => 'theme/simplenews-status',
       'file' => 'includes/simplenews.admin.inc',
-      'path' => $path . '/theme',
       'arguments' => array('status' => NULL, 'source' => NULL, 'already_sent' => NULL, 'sent_subscriber_count' => NULL),
     ),
     'simplenews_newsletter_subject' => array(
