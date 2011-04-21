@@ -78,7 +78,7 @@ function simplenews_action_info_alter(&$actions) {
 function simplenews_send_newsletter_action(&$object, $context = array()) {
   if ($context['hook'] == 'cron' || $context['hook'] == 'user' || $context['hook'] == 'simplenews') {
 
-    module_load_include('inc', 'simplenews', 'simplenews.mail');
+    module_load_include('inc', 'simplenews', 'includes/simplenews.mail');
 
     // Determine newsletter recipients
     $accounts = array();
