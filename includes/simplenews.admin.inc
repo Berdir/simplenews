@@ -319,6 +319,13 @@ function simplenews_admin_types_form_submit($form, &$form_state) {
   $termdata['name'] = $form_state['values']['name'];
   $termdata['description'] = $form_state['values']['description'];
   $termdata['weight'] = $form_state['values']['weight'];
+
+  // Maintain hierarchy
+  $parents = taxonomy_get_parents($form_state['values']['tid']);
+  foreach ($parents as $parent) {
+    $termdata['parent'][] = $parent->tid;
+  }
+
   switch (taxonomy_save_term($termdata)) {
     case SAVED_NEW:
       drupal_set_message(t('Created new term %name.', array('%name' => $form_state['values']['name'])));
