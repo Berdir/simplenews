@@ -652,11 +652,7 @@ function simplenews_nodeapi(&$node, $op, $teaser, $page) {
       // Initialize $node->simplenews in case it does not exist
       // (which should be the default case)
       if (empty($node->simplenews)) {
-        $node->simplenews = db_fetch_array(db_query('
-        SELECT *
-        FROM {simplenews_newsletters}
-        WHERE nid = %d',
-        $node->nid));
+        $node->simplenews = _simplenews_get_newsletter_settings($node);
       }
       if (empty($node->simplenews)) {
         $node->simplenews = _simplenews_get_node_defaults();
@@ -703,6 +699,45 @@ function simplenews_nodeapi(&$node, $op, $teaser, $page) {
   }
 }
 
+/**
+ * This helper function retrieves simplenews settings from database
+ * and formats in for simplenews friendly default structure.
+ *
+ * @param stdClass $node
+ *   $node for which we are looking for simplenews settings
+ * @return array
+ *   Function returns simplenews settings or NULL value
+ *
+ */
+function _simplenews_get_newsletter_settings (stdClass $node) {
+  $simplenews =  db_fetch_array(
+    db_query('
+      SELECT *
+      FROM {simplenews_newsletters}
+      WHERE nid = %d',
+      $node->nid
+    )
+  );
+
+  if (is_array($simplenews)) {
+    $advanced_settings = array(
+      's_format',
+      'priority',
+      'receipt'
+    );
+
+    $simplenews['advanced'] = array();
+    foreach ($advanced_settings as $adv_field) {
+      $simplenews['advanced'][$adv_field] = $simplenews[$adv_field];
+      unset($simplenews[$adv_field]);
+    }
+
+    return $simplenews;
+  }
+  else {
+    return NULL;
+  }
+}
 /**
  * Validate if selected terms are Newsletter taxonomy terms.
  *
