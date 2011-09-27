@@ -12,7 +12,7 @@
 class SimplenewsTestCase extends DrupalWebTestCase {
 
   public function setUp() {
-    parent::setUp('taxonomy', 'simplenews', 'simplenews_test');
+    parent::setUp('taxonomy', 'simplenews');
 
     //$this->simplenews_admin_user = $this->drupalCreateUser(array('administer newsletters', 'administer simplenews settings', 'administer simplenews subscriptions'));
     //$this->sender_user = $this->drupalCreateUser(array('create simplenews content', 'edit own simplenews content', 'send newsletter'));
