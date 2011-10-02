@@ -344,8 +344,6 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
 
 /**
  * @todo:
- * Subscriptions list, mass subscribe, mass unsubscribe, export
- * Newsletter (term) create, read, edit, delete
  * Newsletter node create, send draft, send final
  */
 
@@ -508,18 +506,17 @@ class SimpleNewsAdministrationTestCase extends SimplenewsTestCase {
 
     // Unsubscribe from a newsletter category.
     $edit = array(
-      'newsletters[' . $off_double_block_tid . ']' => FALSE,
+      'newsletter-' . $off_double_block_tid => FALSE,
     );
-    $this->drupalPost(NULL, $edit, t('Subscribe'));
-    // @todo: Confirm unsubscribe.
-    //debug($this->drupalGetMails());
+    $this->drupalPost(NULL, $edit, t('Save'));
+    $this->assertNoFieldChecked('edit-newsletter-' . $off_double_block_tid);
   }
 
   /**
    * Test newsletter subscription management.
    */
   function testSubscriptionManagement() {
-    $admin_user = $this->drupalCreateUser(array('administer newsletters', 'administer simplenews settings', 'administer simplenews subscriptions'));
+    $admin_user = $this->drupalCreateUser(array('administer newsletters', 'administer simplenews settings', 'administer simplenews subscriptions', 'administer taxonomy'));
     $this->drupalLogin($admin_user);
 
     // Create a second category.
@@ -683,7 +680,7 @@ class SimpleNewsAdministrationTestCase extends SimplenewsTestCase {
 
     // Delete newsletter category.
     $this->drupalPost('taxonomy/term/' . $first . '/edit', array(), t('Delete'));
-    $this->assertText(t('This taxonomy term is part of simplenews newsletter category @name. Deleting this term will delete the newsletter category and all subscriptions to category D7 newsletter. This action cannot be undone.', array('@name' => $categories[$first]->name)), t('Confirmation message displayed.'));
+    $this->assertText(t('This taxonomy term is part of simplenews newsletter category @name. Deleting this term will delete the newsletter category and all subscriptions to category @name. This action cannot be undone.', array('@name' => $categories[$first]->name)), t('Confirmation message displayed.'));
     $this->drupalPost(NULL, array(), t('Delete'));
 
     $this->assertText(t('All subscriptions to newsletter @newsletter have been deleted.', array('@newsletter' => $categories[$first]->name)));
@@ -692,7 +689,7 @@ class SimpleNewsAdministrationTestCase extends SimplenewsTestCase {
     $this->assertFalse(simplenews_category_load($first));
     $this->assertFalse(db_query('SELECT tid FROM {simplenews_category} WHERE tid = :tid', array(':tid' => $first))->fetchField());
     $this->assertFalse(db_query('SELECT * FROM {block} WHERE module = :module AND delta = :tid', array(':module' => 'simplenews', ':tid' => $first))->fetchField());
-        
+
 
     // Verify that all subscriptions of that category have been removed.
     $this->drupalGet('admin/people/simplenews');
@@ -758,8 +755,6 @@ class SimpleNewsAdministrationTestCase extends SimplenewsTestCase {
 
     // Delete content type.
     // @todo: Add assertions.
-    $this->drupalPost('admin/structure/types/manage/' . $type . '/delete', $edit, t('Delete'));
-
-    
+    $this->drupalPost('admin/structure/types/manage/' . $type . '/delete', array(), t('Delete'));
   }
 }
