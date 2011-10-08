@@ -851,7 +851,8 @@ function simplenews_subscription_list_add_submit($form, &$form_state) {
     drupal_set_message(t('The following addresses were added or updated: %added.', array('%added' => $added)));
 
     $list_names = array();
-    foreach (simplenews_categories_load_multiple($checked_lists) as $category) {
+    foreach ($checked_lists as $tid) {
+      $category = simplenews_category_load($tid);
       $list_names[] = $category->name;
     }
     drupal_set_message(t('The addresses were subscribed to the following newsletters: %newsletters.', array('%newsletters' => implode(', ', $list_names))));

@@ -743,7 +743,8 @@ function simplenews_taxonomy_term_delete($term) {
   // will also delete the subscriptions to the category.
   if ($term->vid == variable_get('simplenews_vid', 0)) {
     $category = simplenews_category_load($term->tid);
-    // Add name and description from $term object.
+    // Add name and description from $term object, as the term object has
+    // already been deleted and those properties failed to load.
     $category->name = $term->name;
     $category->description = $term->description;
     simplenews_category_delete($category);
