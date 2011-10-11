@@ -124,8 +124,6 @@ function simplenews_init() {
 
 /**
  * Implementation of hook_menu().
- * @todo Add $form to drupal_get_form() callback functions: http://drupal.org/node/224333#hook_forms_signature
- * @todo Review admin path due to D7's changed information architecture
  */
 function simplenews_menu() {
     $items['admin/content/simplenews'] = array(
@@ -137,39 +135,34 @@ function simplenews_menu() {
     'access arguments' => array('administer newsletters'),
     'file' => 'includes/simplenews.admin.inc',
   );
-  $items['admin/structure/simplenews'] = array(
+  $items['admin/config/services/simplenews'] = array(
     'title' => 'Newsletters',
-    'description' => 'List, add and edit newsletter categories.',
+    'description' => 'Manage and configure newsletters',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('simplenews_admin_categories'),
     'access arguments' => array('administer newsletters'),
     'file' => 'includes/simplenews.admin.inc',
   );
-/*
-  // TODO Don't need this?
-  $items['admin/content/simplenews/list'] = array(
-    'title' => 'List newsletters',
-    'type' => MENU_DEFAULT_LOCAL_TASK,
-    'weight' => -10,
-  );
-*/
-  $items['admin/structure/simplenews/%simplenews_category/edit'] = array(
+  $items['admin/config/services/simplenews/categories'] = array(
     'title' => 'Newsletters',
-    'type' => MENU_CALLBACK,
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+  );
+
+  $items['admin/config/services/simplenews/categories/%simplenews_category/edit'] = array(
+    'title' => 'Newsletters',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('simplenews_admin_category_form', 3),
     'access arguments' => array('administer newsletters'),
     'file' => 'includes/simplenews.admin.inc',
   );
-  $items['admin/structure/simplenews/%simplenews_category/delete'] = array(
+  $items['admin/config/services/simplenews/categories/%simplenews_category/delete'] = array(
     'title' => 'Newsletters',
-    'type' => MENU_CALLBACK,
     'page callback' => 'drupal_get_form',
     'page arguments' => array('simplenews_admin_category_delete', 3),
     'access arguments' => array('administer newsletters'),
     'file' => 'includes/simplenews.admin.inc',
   );
-  $items['admin/structure/simplenews/add'] = array(
+  $items['admin/config/services/simplenews/categories/add'] = array(
     'title' => 'Add newsletter category',
     'type' => MENU_LOCAL_ACTION,
     'page callback' => 'drupal_get_form',
@@ -198,7 +191,6 @@ function simplenews_menu() {
   );
   $items['admin/people/simplenews/users/edit/%'] = array(
     'title' => 'Subscriptions',
-    'type' => MENU_CALLBACK,
     'page callback' => 'drupal_get_form',
     'page arguments' => array('simplenews_admin_users_form', 5),
     'access arguments' => array('administer simplenews subscriptions'),
@@ -231,20 +223,8 @@ function simplenews_menu() {
     'file' => 'includes/simplenews.admin.inc',
     'weight' => 10,
   );
-
-  // Configuration links.
-  $items['admin/config/simplenews'] = array(
-    'title' => 'Simplenews',
-    'description' => 'Manage simplenews configuration.',
-    'position' => 'right',
-    'weight' => -10,
-    'page callback' => 'system_admin_menu_block_page',
-    'access arguments' => array('access administration pages'),
-    'file' => 'system.admin.inc',
-    'file path' => drupal_get_path('module', 'system'),
-  );
-  $items['admin/config/simplenews/general'] = array(
-    'title' => 'General',
+  $items['admin/config/services/simplenews/settings'] = array(
+    'title' => 'Settings',
     'description' => 'Simplenews vocabulary setting.',
     'page callback' => 'drupal_get_form',
     'weight' => -20,
@@ -252,8 +232,14 @@ function simplenews_menu() {
     'access arguments' => array('administer simplenews settings'),
     'file' => 'includes/simplenews.admin.inc',
     'file path' => drupal_get_path('module', 'simplenews'),
+    'type' => MENU_LOCAL_TASK,
   );
-  $items['admin/config/simplenews/newsletter'] = array(
+  $items['admin/config/services/simplenews/settings/general'] = array(
+    'title' => 'General',
+    'weight' => -20,
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+  );
+  $items['admin/config/services/simplenews/settings/newsletter'] = array(
     'title' => 'Newsletter',
     'description' => 'Newsletter default settings and sender data.',
     'page callback' => 'drupal_get_form',
@@ -262,8 +248,9 @@ function simplenews_menu() {
     'access arguments' => array('administer simplenews settings'),
     'file' => 'includes/simplenews.admin.inc',
     'file path' => drupal_get_path('module', 'simplenews'),
+    'type' => MENU_DEFAULT_LOCAL_TASK,
   );
-  $items['admin/config/simplenews/subscription'] = array(
+  $items['admin/config/services/simplenews/settings/subscription'] = array(
     'title' => 'Subscription',
     'description' => 'Subscription settings, opt-in/out confirmation email text.',
     'page callback' => 'drupal_get_form',
@@ -272,8 +259,9 @@ function simplenews_menu() {
     'access arguments' => array('administer simplenews settings'),
     'file' => 'includes/simplenews.admin.inc',
     'file path' => drupal_get_path('module', 'simplenews'),
+    'type' => MENU_DEFAULT_LOCAL_TASK,
   );
-  $items['admin/config/simplenews/mail'] = array(
+  $items['admin/config/services/simplenews/settings/mail'] = array(
     'title' => 'Send mail',
     'description' => 'Send mail, cron and debug options.',
     'page callback' => 'drupal_get_form',
@@ -282,6 +270,7 @@ function simplenews_menu() {
     'access arguments' => array('administer simplenews settings'),
     'file' => 'includes/simplenews.admin.inc',
     'file path' => drupal_get_path('module', 'simplenews'),
+    'type' => MENU_DEFAULT_LOCAL_TASK,
   );
 
   $items['newsletter/confirm'] = array(
