@@ -2491,6 +2491,7 @@ function _simplenews_get_token_info($modules) {
  * Implementation of hook_token_info().
  */
 function simplenews_token_info() {
+  // @todo Add desription to the types and extend available tokens.
   $types['simplenews-subscriber'] = array(
     'name' => t('Simplenews subscriber'),
     'needs-data' => 'account',
