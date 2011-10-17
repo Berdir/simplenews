@@ -627,7 +627,7 @@ function simplenews_admin_category_form_submit($form, &$form_state) {
   //dpm($form_state);
   $op = isset($form_state['values']['op']) ? $form_state['values']['op'] : '';
   if ($op == t('Delete')) {
-    $form_state['redirect'] = 'admin/config/servies/simplenews/categories/' . $form_state['values']['tid'] . '/delete';
+    $form_state['redirect'] = 'admin/config/services/simplenews/categories/' . $form_state['values']['tid'] . '/delete';
     return;
   }
 
