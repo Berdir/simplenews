@@ -375,7 +375,7 @@ class SimpleNewsAdministrationTestCase extends SimplenewsTestCase {
     $admin_user = $this->drupalCreateUser(array('administer blocks', 'administer content types', 'administer nodes', 'access administration pages', 'administer permissions', 'administer newsletters', 'administer simplenews subscriptions'));
     $this->drupalLogin($admin_user);
 
-    $this->drupalGet('admin/structure/simplenews');
+    $this->drupalGet('admin/config/services/simplenews');
 
     // Create a category for all possible setting combinations.
     $new_account = array('none', 'off', 'on', 'silent');
@@ -523,7 +523,7 @@ class SimpleNewsAdministrationTestCase extends SimplenewsTestCase {
     $edit = array(
       'name' => $name = $this->randomName(),
     );
-    $this->drupalPost('admin/structure/simplenews/add', $edit, t('Save'));
+    $this->drupalPost('admin/config/services/simplenews/add', $edit, t('Save'));
 
     // Add a number of users to each category separately and then a another
     //bunch to both
