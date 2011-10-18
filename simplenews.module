@@ -2819,6 +2819,53 @@ function simplenews_format_options() {
 }
 
 /**
+ * Returns the new account options.
+ */
+function simplenews_new_account_options() {
+  return array(
+    'none' => t('None'),
+    'on' => t('Default on'),
+    'off' => t('Default off'),
+    'silent' => t('Silent'),
+  );
+}
+
+/**
+ * Return the hyperlink options.
+ */
+function simplenews_hyperlinks_options() {
+  return array(
+    0 => t('Append hyperlinks as a numbered reference list'),
+    1 => t('Display hyperlinks inline with the text')
+  );
+}
+
+/**
+ * Returns the opt in/out options.
+ */
+function simplenews_opt_inout_options() {
+  return array(
+    SIMPLENEWS_OPT_INOUT_HIDDEN => t('Hidden'),
+    SIMPLENEWS_OPT_INOUT_SINGLE => t('Single'),
+    SIMPLENEWS_OPT_INOUT_DOUBLE => t('Double'),
+  );
+}
+
+/**
+ * Function to provide the various simplenews mail priorities for newsletter categories
+ */
+function simplenews_get_priority() {
+  return array(
+    SIMPLENEWS_PRIORITY_NONE => t('none'),
+    SIMPLENEWS_PRIORITY_HIGHEST => t('highest'),
+    SIMPLENEWS_PRIORITY_HIGH => t('high'),
+    SIMPLENEWS_PRIORITY_NORMAL => t('normal'),
+    SIMPLENEWS_PRIORITY_LOW => t('low'),
+    SIMPLENEWS_PRIORITY_LOWEST => t('lowest'),
+  );
+}
+
+/**
  * Implementation of hook_locale().
  */
 function simplenews_locale($op = 'groups', $group = NULL) {

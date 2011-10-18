@@ -366,6 +366,8 @@ function simplenews_install() {
  */
 function simplenews_uninstall() {
   db_query("DELETE FROM {variable} WHERE name LIKE 'simplenews_%%'");
+
+  field_delete_field('simplenews_category_format');
 }
 
 /**
@@ -376,14 +378,14 @@ function _simplenews_install_nodetype() {
   $type = node_type_get_type('simplenews');
   if (!$type) {
     $type = node_type_set_defaults(array(
-      'type' => 'simplenews',
-      'name' => t('Simplenews newsletter'),
-      'base' => 'node_content',
-      'description' => t('A newsletter issue to be sent to subscribed email addresses.'),
-      'locked' => 0,
-      'custom' => 1,
-      'modified' => 1,
-    ));
+        'type' => 'simplenews',
+        'name' => t('Simplenews newsletter'),
+        'base' => 'node_content',
+        'description' => t('A newsletter issue to be sent to subscribed email addresses.'),
+        'locked' => 0,
+        'custom' => 1,
+        'modified' => 1,
+      ));
     node_type_save($type);
     node_add_body_field($type);
   }
@@ -402,14 +404,62 @@ function _simplenews_init_simplenews_vocabulary() {
   $vocabulary = reset($vocabularies);
   if (!$vocabulary) {
     $vocabulary = new stdClass();
-    $vocabulary->name         = t('Newsletter');
+    $vocabulary->name = t('Newsletter');
     $vocabulary->machine_name = 'newsletter';
-    $vocabulary->description  = t('Simplenews newsletter categories.');
-    $vocabulary->weight       = '0';
-    $vocabulary->hierarchy    = '0';
-    $vocabulary->module       = 'simplenews';
+    $vocabulary->description = t('Simplenews newsletter categories.');
+    $vocabulary->weight = '0';
+    $vocabulary->hierarchy = '0';
+    $vocabulary->module = 'simplenews';
+    taxonomy_vocabulary_save($vocabulary);
   }
-  taxonomy_vocabulary_save($vocabulary);
+
+  $fields = array(
+    array(
+      'bundle' => $vocabulary->machine_name,
+      'name' => 'simplenews_format',
+      'callback' => 'simplenews_format_options',
+      'label' => 'E-mail format',
+      'description' => 'Format of the newsletter e-mail (plain, html).',
+      'default' => 'plain',
+    ),
+    array(
+      'bundle' => $vocabulary->machine_name,
+      'name' => 'simplenews_priority',
+      'callback' => 'simplenews_get_priority',
+      'label' => 'E-mail prioriy',
+      'description' => 'E-mail priority according to RFC 2156 and RFC 5231 (0 = none; 1 = highest; 2 = high; 3 = normal; 4 = low; 5 = lowest).',
+      'default' => 0,
+    ),
+    array(
+      'bundle' => $vocabulary->machine_name,
+      'name' => 'simplenews_new_account',
+      'callback' => 'simplenews_new_account_options',
+      'label' => 'Subscribe new account',
+      'description' => 'None: This newsletter is not listed on the user registration page.<br />
+Default on: This newsletter is listed on the user registion page and is selected by default.<br />
+Default off: This newsletter is listed on the user registion page and is not selected by default.<br />
+Silent: A new user is automatically subscribed to this newsletter. The newsletter is not listed on the user registration page.',
+      'default' => 'none',
+    ),
+    array(
+      'bundle' => $vocabulary->machine_name,
+      'name' => 'simplenews_opt_inout',
+      'callback' => 'simplenews_opt_inout_options',
+      'label' => 'Opt-in/out method',
+      'description' => 'Hidden: This newsletter does not appear on subscription forms. No unsubscription footer in newsletter.<br /> Single: Users are (un)subscribed immediately, no confirmation email is sent.<br />Double: When (un)subscribing at a subscription form, anonymous users receive an (un)subscription confirmation email. Authenticated users are (un)subscribed immediately.',
+      'default' => 'double',
+    ),
+    array(
+      'bundle' => $vocabulary->machine_name,
+      'name' => 'simplenews_hyperlinks',
+      'callback' => 'simplenews_hyperlinks_options',
+      'label' => 'Hyperlink conversion',
+      'default' => 1,
+    ),
+  );
+  foreach ($fields as $field) {
+    _simplenews_add_field($field);
+  }
   variable_set('simplenews_vid', $vocabulary->vid);
 
   // Create a newsletter taxonomy term if none exists.
@@ -420,6 +470,57 @@ function _simplenews_init_simplenews_vocabulary() {
     $term->description = t('@site_name newsletter categories.', array('@site_name' => variable_get('site_name', 'Drupal')));
     $term->vid = $vocabulary->vid;
     taxonomy_term_save($term);
+  }
+}
+
+/**
+ * Adds a list field to the newsletter taxonomy_term bundle.
+ */
+function _simplenews_add_field($data) {
+  $data += array(
+    'default' => '',
+    'description' => '',
+    'type' => 'list_text',
+    'widget' => 'options_select',
+    'formatter' => 'hidden',
+  );
+  $field = field_info_field($data['name']);
+  $instance = field_info_instance('taxonomy_term', $data['name'], $data['bundle']);
+  if (empty($field)) {
+    $field = array(
+      'field_name' => $data['name'],
+      'type' => $data['type'],
+      'cardinality' => 1,
+      'locked' => TRUE,
+      'translatable' => FALSE,
+    );
+    if (!empty($data['callback'])) {
+      $field['settings']['allowed_values_function'] = $data['callback'];
+    }
+    $field = field_create_field($field);
+  }
+
+  if (empty($instance)) {
+    $instance = array(
+      'label' => $data['label'],
+      'description' => $data['description'],
+      'field_name' => $data['name'],
+      'bundle' => $data['bundle'],
+      'entity_type' => 'taxonomy_term',
+      'required' => TRUE,
+      'default_value' => array(array('value' => $data['default'])),
+      'widget' => array(
+        'type' => $data['widget_type'],
+      ),
+      //'settings' => array(),
+      'display' => array(
+        'default' => array(
+          'label' => 'hidden',
+          'type' => $data['formatter'],
+        ),
+      ),
+    );
+    field_create_instance($instance);
   }
 }
 
@@ -436,18 +537,18 @@ function _simplenews_init_simplenews_category() {
         $category = new stdClass();
         $category->tid = $term->tid;
         // @todo use a function for category default values
-        $category->from_name      = variable_get('site_name', 'Drupal');
-        $category->email_subject  ='[[simplenews-category:name]] [node:title]';
-        $category->from_address   = variable_get('site_mail', ini_get('sendmail_from'));
-        $category->format         = 'plain';
-        $category->priority       = SIMPLENEWS_PRIORITY_NONE;
-        $category->receipt        = 0;
-        $category->hyperlinks     = 1;
-        $category->new_account    = 'none';
-        $category->opt_inout      = 'double';
-        $category->block          = 0;
+        $category->from_name = variable_get('site_name', 'Drupal');
+        $category->email_subject = '[[simplenews-category:name]] [node:title]';
+        $category->from_address = variable_get('site_mail', ini_get('sendmail_from'));
+        $category->format = 'plain';
+        $category->priority = SIMPLENEWS_PRIORITY_NONE;
+        $category->receipt = 0;
+        $category->hyperlinks = 1;
+        $category->new_account = 'none';
+        $category->opt_inout = 'double';
+        $category->block = 0;
         if ($first) {
-          $category->block        = 1;
+          $category->block = 1;
           $first = FALSE;
         }
         simplenews_category_save($category);
@@ -464,12 +565,13 @@ function _simplenews_init_simplenews_category() {
 function _simplenews_get_blocks() {
   $query = db_select('block', 'b');
   $result = $query
-    ->fields('b', array('delta'))
-    ->condition('b.status', 1)
-    ->condition('b.module', 'simplenews')
-    ->execute();
+      ->fields('b', array('delta'))
+      ->condition('b.status', 1)
+      ->condition('b.module', 'simplenews')
+      ->execute();
   return $result->fetchAllAssoc('delta');
 }
+
 /**
  * Data conversion of block delta.
  * Field type conversions: newsletter priority.
@@ -812,7 +914,6 @@ function simplenews_update_7000() {
   // @todo Test schema update !!
   // See: http://api.drupal.org/api/function/db_change_field/7
   // @todo Test data update !!
-
   // Convert tokens in variables to D7 format.
   $variables = array('simplenews_confirm_subscribe_subject', 'simplenews_confirm_subscribe_unsubscribed', 'simplenews_confirm_subscribe_subscribed', 'simplenews_confirm_unsubscribe_subscribed', 'simplenews_confirm_unsubscribe_unsubscribed');
   _simplenews_convert_tokens_in_variable($variables);
@@ -925,7 +1026,7 @@ function simplenews_update_7000() {
         'new_account' => variable_get('simplenews_new_account_' . $term->tid, 'none'),
         'opt_inout' => variable_get('simplenews_opt_inout_' . $term->tid, 'double'),
         'block' => isset($blocks[$term->tid]) ? 1 : 0,
-        ))
+      ))
       ->execute();
   }
 
@@ -959,7 +1060,7 @@ function simplenews_update_7000() {
     'description' => 'A serialized array of name value pairs that are related to the email address.',
   ));
 
- // Rename field {simplenews_mail_spool}.s_status to "status".
+  // Rename field {simplenews_mail_spool}.s_status to "status".
   db_change_field('simplenews_newsletter', 's_status', 'status', array(
     'description' => 'sent status of the newsletter issue (0 = not sent; 1 = pending; 2 = sent). ',
     'type' => 'int',
@@ -989,3 +1090,4 @@ function simplenews_update_7000() {
 function simplenews_update_7001() {
   db_add_index('simplenews_mail_spool', 'snid_tid', array('snid', 'tid'));
 }
+

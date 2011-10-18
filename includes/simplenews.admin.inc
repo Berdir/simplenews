@@ -1874,17 +1874,3 @@ function theme_simplenews_subscription_filter_form($variables) {
   $output .= drupal_render_children($form);
   return $output;
 }
-
-/**
- * Function to provide the various simplenews mail priorities for newsletter categories
- */
-function simplenews_get_priority() {
-  return array(
-    SIMPLENEWS_PRIORITY_NONE => t('none'),
-    SIMPLENEWS_PRIORITY_HIGHEST => t('highest'),
-    SIMPLENEWS_PRIORITY_HIGH => t('high'),
-    SIMPLENEWS_PRIORITY_NORMAL => t('normal'),
-    SIMPLENEWS_PRIORITY_LOW => t('low'),
-    SIMPLENEWS_PRIORITY_LOWEST => t('lowest'),
-  );
-}
