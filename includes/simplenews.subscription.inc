@@ -160,7 +160,7 @@ function simplenews_confirm_subscription() {
 }
 
 /**
- * Generate the confirm subscription form.
+ * FAPI CONFIRM ADD form.
  *
  * @see simplenews_confirm_add_form_submit()
  */
@@ -187,6 +187,9 @@ function simplenews_confirm_add_form($form, &$form_state, $mail, $newsletter) {
   );
 }
 
+/**
+ * FAPI CONFIRM ADD form_submit.
+ */
 function simplenews_confirm_add_form_submit($form, &$form_state) {
   simplenews_subscribe_user($form_state['values']['mail'], $form_state['values']['newsletter']->tid, FALSE, 'website');
 
