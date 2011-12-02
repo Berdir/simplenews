@@ -495,20 +495,20 @@ class SimpleNewsAdministrationTestCase extends SimplenewsTestCase {
         }
         else if ($category->new_account == 'on' || $category->name == 'off-double-block' || $category->new_account == 'silent') {
           // All on, silent and the explicitly selected category should be checked.
-          $this->assertFieldChecked('edit-newsletter-' . $category->tid);
+          $this->assertFieldChecked('edit-newsletters-' . $category->tid);
         }
         else {
-          $this->assertNoFieldChecked('edit-newsletter-' . $category->tid);
+          $this->assertNoFieldChecked('edit-newsletters-' . $category->tid);
         }
       }
     }
 
     // Unsubscribe from a newsletter category.
     $edit = array(
-      'newsletter-' . $off_double_block_tid => FALSE,
+      'newsletters[' . $off_double_block_tid . ']' => FALSE,
     );
     $this->drupalPost(NULL, $edit, t('Save'));
-    $this->assertNoFieldChecked('edit-newsletter-' . $off_double_block_tid);
+    $this->assertNoFieldChecked('edit-newsletters-' . $off_double_block_tid);
   }
 
   /**
