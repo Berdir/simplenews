@@ -752,6 +752,28 @@ function simplenews_taxonomy_term_delete($term) {
 }
 
 /**
+ * Implements hook_taxonomy_term_load().
+ */
+function hook_taxonomy_term_load($terms) {
+  $tids = array();
+  foreach ($terms as $term) {
+    if ($term->vid == variable_get('simplenews_vid', 0)) {
+      $tids[] = $term->vid;
+    }
+  }
+  if (!empty($tids)) {
+    $result = db_query('SELECT * from {simplenews_category} where tid in (:tids)', array(':tids' => $tids));
+    foreach ($result as $row) {
+      foreach ($row as $key => $value) {
+        if ($key != 'tid') {
+          $terms[$row->tid]->$key = $row->$key;
+        }
+      }
+    }
+  }
+}
+
+/**
  * Implementation of hook_form_alter().
  */
 function simplenews_form_alter(&$form, &$form_state, $form_id) {
@@ -2249,12 +2271,8 @@ function simplenews_category_path($category) {
  *   Newsletter category object.
  *   FALSE if category does not exist.
  */
-function simplenews_category_load($tid, $reset = FALSE) {
-  if (!is_numeric($tid)) {
-    return FALSE;
-  }
-  $categories = simplenews_categories_load_multiple(array($tid), $reset);
-  return $categories ? $categories[$tid] : FALSE;
+function simplenews_category_load($tid) {
+  return taxonomy_term_load($tid);
 }
 
 /**
