@@ -142,7 +142,7 @@ class SimplenewsTestCase extends DrupalWebTestCase {
 
 class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
   /**
-   * Implementation of getInfo().
+   * Implement getInfo().
    */
   function getInfo() {
     return array(
@@ -557,7 +557,7 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
 class SimpleNewsAdministrationTestCase extends SimplenewsTestCase {
 
   /**
-   * Implementation of getInfo().
+   * Implement getInfo().
    */
   function getInfo() {
     return array(

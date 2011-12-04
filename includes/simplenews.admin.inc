@@ -5,8 +5,6 @@
  * Newsletter admin, subscription admin, simplenews settings
  *
  * @ingroup simplenews
- * @todo Redo all database functions: http://drupal.org/node/224333#dbtng
- * @todo Where possible build re-usable functions wrapped around database calls.
  */
 
 /**
@@ -98,7 +96,7 @@ function _simplenews_issue_filter_default() {
 }
 
 /**
- * @todo
+ * Form submit callback for the newsletter issue filter.
  */
 function simplenews_issue_filter_form_submit($form, &$form_state) {
   switch ($form_state['values']['op']) {
@@ -223,7 +221,7 @@ function simplenews_simplenews_issue_operations() {
 }
 
 /**
- * @todo
+ * Form vaidate callback for the issue list operations.
  */
 function simplenews_admin_issues_validate($form, &$form_state) {
   if (isset($form_state['input']['operation'])) {
@@ -231,18 +229,11 @@ function simplenews_admin_issues_validate($form, &$form_state) {
     if (empty($nids)) {
       form_set_error('', t('No items selected.'));
     }
-    else {
-      switch ($form_state['input']['operation']) {
-        case 'send':
-        //@todo If 'send': check if selected items are un-sent.
-
-      }
-    }
   }
 }
 
 /**
- * @todo
+ * Form submit callback for the issue operations.
  */
 function simplenews_admin_issues_submit($form, &$form_state) {
   // Call operation functions as defined in hook_simplenews_issue_operations().
@@ -350,7 +341,7 @@ function simplenews_admin_categories() {
 }
 
 /**
- * @todo
+ * Form submit callback for the simplenews categories.
  */
 function simplenews_admin_categories_submit($form, &$form_state) {
   foreach ($form_state['values'] as $tid => $category) {
@@ -363,7 +354,7 @@ function simplenews_admin_categories_submit($form, &$form_state) {
 }
 
 /**
- * @todo
+ * Form builder function, display a list of simplenews categories.
  */
 function theme_simplenews_admin_categories($variables) {
   $form = $variables['form'];
@@ -613,7 +604,7 @@ function simplenews_admin_category_form($form, &$form_state, $edit = array()) {
 }
 
 /**
- * @todo
+ * Form validation callback for a newsletter category form.
  */
 function simplenews_admin_category_form_validate($form, &$form_state) {
   if ($form_state['clicked_button']['#value'] != t('Delete')) {
@@ -626,7 +617,7 @@ function simplenews_admin_category_form_validate($form, &$form_state) {
 }
 
 /**
- * @todo
+ * Form submit callback for a newsletter category form.
  */
 function simplenews_admin_category_form_submit($form, &$form_state) {
   //dpm($form_state);
@@ -690,7 +681,7 @@ function simplenews_admin_category_delete($form, &$form_state, $category) {
 }
 
 /**
- * @todo
+ * Form submit callback for deleting a simplenews category.
  */
 function simplenews_admin_category_delete_submit($form, &$form_state) {
   $tid = $form_state['values']['tid'];

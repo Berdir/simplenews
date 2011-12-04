@@ -12,9 +12,7 @@
  *
  * @ingroup simplenews
  * @todo Where possible build re-usable functions wrapped around database calls.
- * @todo Change documentation of hook_foo implementations: http://drupal.org/node/224333#implementation_hook_comment
  * @todo Consider context support for t(): http://drupal.org/node/224333#locale_context
- * @todo Language code in t() now as array: http://drupal.org/node/224333#locale_context
  * @todo Coding standards: type hinting
  * @todo Implement hook_requirements()?; http://api.drupal.org/api/function/hook_requirements/7
  * @todo Separate token function into simplenews.tokens.inc
@@ -87,7 +85,7 @@ define('SIMPLENEWS_OPT_INOUT_DOUBLE', 'double');
 define('SIMPLENEWS_UNLIMITED', -1);
 
 /**
- * Implementation of hook_permission().
+ * Implements hook_permission().
  *
  * @todo Change sort order where required: http://drupal.org/node/224333#sorting_permissions
  * @todo Review the use of 'administer nodes': http://drupal.org/node/224333#bypass_node_access
@@ -114,17 +112,16 @@ function simplenews_permission() {
 }
 
 /**
- * Implementation of hook_init().
+ * Implements hook_init().
  *
- * @todo Check parameters of drupal_add_css: http://drupal.org/node/224333#drupal_add_js_options
  * @todo move this to a specific form theme function ?
  */
 function simplenews_init() {
-  drupal_add_css(drupal_get_path('module', 'simplenews') . '/simplenews.css');
+  drupal_add_css(drupal_get_path('module', 'simplenews') . '/simplenews.css', array('every_page' => TRUE));
 }
 
 /**
- * Implementation of hook_menu().
+ * Implements hook_menu().
  */
 function simplenews_menu() {
     $items['admin/content/simplenews'] = array(
@@ -309,7 +306,7 @@ function simplenews_menu() {
 }
 
 /**
- * Implementation of hook_admin_paths().
+ * Implements hook_admin_paths().
  */
 function simplenews_admin_paths() {
   $paths = array(
@@ -319,14 +316,14 @@ function simplenews_admin_paths() {
 }
 
 /**
- * Implementation of hook_node_type_delete().
+ * Implements hook_node_type_delete().
  */
 function simplenews_node_type_delete($info) {
   drupal_static_reset('simplenews_get_content_types');
 }
 
 /**
- * Implementation of hook_node_type_update().
+ * Implements hook_node_type_update().
  */
 function simplenews_node_type_update($info) {
   drupal_static_reset('simplenews_get_content_types');
@@ -406,7 +403,7 @@ function simplenews_get_term_values($node) {
 }
 
 /**
- * Implementation of hook_node_validate().
+ * Implements hook_node_validate().
  */
 function simplenews_node_validate($node, $form) {
   if (!simplenews_check_node_types($node->type)) {
@@ -432,7 +429,25 @@ function simplenews_node_validate($node, $form) {
 }
 
 /**
- * Implementation of hook_node_insert().
+ * Implements hook_node_presave().
+ */
+function simplenews_node_presave($node) {
+  if (!simplenews_check_node_types($node->type)) {
+    return;
+  }
+
+  // Note that $node is NO full node object, see node_form_validate().
+  // Complete $node!
+  $newsletter = simplenews_newsletter_load($node->nid);
+  //$newsletter = simplenews_newsletter_load($node->nid, $node->vid);
+  if (!$newsletter) {
+    $newsletter = (object)simplenews_newsletter_defaults($node);
+  }
+  $node->simplenews = $newsletter;
+}
+
+/**
+ * Implements hook_node_insert().
  */
 function simplenews_node_insert($node) {
   if (!simplenews_check_node_types($node->type)) {
@@ -464,7 +479,7 @@ function simplenews_newsletter_defaults($node = NULL) {
 }
 
 /**
- * Implementation of hook_node_update().
+ * Implements hook_node_update().
  */
 function simplenews_node_update($node) {
   if (!simplenews_check_node_types($node->type)) {
@@ -494,7 +509,7 @@ function simplenews_node_update($node) {
 }
 
 /**
- * Implementation of hook_node_delete().
+ * Implements hook_node_delete().
  */
 function simplenews_node_delete($node) {
   if (!simplenews_check_node_types($node->type)) {
@@ -518,7 +533,7 @@ function simplenews_node_delete($node) {
 }
 
 /**
- * Implementation of hook_node_load().
+ * Implements hook_node_load().
  */
 function simplenews_node_load($nodes, $types) {
   // We only support Simplenews enabled content types.
@@ -688,7 +703,7 @@ function simplenews_get_category_field($bundle_name) {
 }
 
 /**
- * Implementation of hook_form_FORM_ID_alter().
+ * Implements hook_form_FORM_ID_alter().
  *
  * Add checkbox to the content type form to use the content type as newsletter.
  */
@@ -702,11 +717,9 @@ function simplenews_form_node_type_form_alter(&$form, $form_state) {
 }
 
 /**
- * Implementation of hook_form_FORM_ID_alter().
+ * Implements hook_form_FORM_ID_alter().
  *
  * Add a warning message to taxonomy term delete form.
- *
- * @todo move this function to a .inc file.
  */
 function simplenews_form_taxonomy_form_term_alter(&$form, $form_state) {
   if (isset($form_state['confirm_delete']) && $form_state['confirm_delete']) {
@@ -718,11 +731,9 @@ function simplenews_form_taxonomy_form_term_alter(&$form, $form_state) {
 }
 
 /**
- * Implementation of hook_taxonomy_term_delete().
+ * Implements hook_taxonomy_term_delete().
  *
  * Delete simplenews category if taxonomy term is delete.
- *
- * @todo move this function to a .inc file.
  */
 function simplenews_taxonomy_term_delete($term) {
   // A simplenews newsletter category can not exist without the associated
@@ -738,7 +749,7 @@ function simplenews_taxonomy_term_delete($term) {
 }
 
 /**
- * Implementation of hook_form_alter().
+ * Implements hook_form_alter().
  */
 function simplenews_form_alter(&$form, &$form_state, $form_id) {
   // Add Simplenews settings to simplenews newsletter node form.
@@ -779,7 +790,7 @@ function _simplenews_node_form(&$form, $form_state) {
 }
 
 /**
- * Implementation of hook_entity_info_alter().
+ * Implements hook_entity_info_alter().
  */
 function simplenews_entity_info_alter(&$info) {
   // Add the 'Plain', 'HTML' and 'Text alternative' view mode for nodes in email.
@@ -800,7 +811,7 @@ function simplenews_entity_info_alter(&$info) {
 }
 
 /**
- * Implementation of hook_field_ui_view_modes_tabs().
+ * Implements hook_field_ui_view_modes_tabs().
  */
 function simplenews_field_ui_view_modes_tabs() {
   $modes = array(
@@ -814,7 +825,7 @@ function simplenews_field_ui_view_modes_tabs() {
 
 
 /**
- * Implementation of hook_cron().
+ * Implements hook_cron().
  */
 function simplenews_cron() {
   module_load_include('inc', 'simplenews', 'includes/simplenews.mail');
@@ -825,7 +836,7 @@ function simplenews_cron() {
 }
 
 /**
- * Implementation of hook_simplenews_category_delete().
+ * Implements hook_simplenews_category_delete().
  *
  * For the time being we use mailing list and category in sync.
  * Deletes the newsletter list when category is deleted.
@@ -844,7 +855,7 @@ function simplenews_simplenews_category_delete($category) {
 }
 
 /**
- * Implementation of hook_form_FORM_ID_alter().
+ * Implements hook_form_FORM_ID_alter().
  *
  * Add simplenews subscription fields to user register form.
  * @todo mode this function to another place in the module.
@@ -878,7 +889,6 @@ function simplenews_form_user_register_form_alter(&$form, &$form_state) {
       '#description' => t('Select the newsletter(s) to which you wish to subscribe.'),
       '#weight' => 5,
     );
-    // @todo Change 'newsletters' to 'list'.
     $form['simplenews']['newsletters'] = array(
       '#type' => 'checkboxes',
       '#options' => $options,
@@ -895,7 +905,7 @@ function simplenews_form_user_register_form_alter(&$form, &$form_state) {
 
 
 /**
- * Implementation of hook_user_insert().
+ * Implements hook_user_insert().
  *
  * Update uid and preferred language when the new account was already subscribed.
  */
@@ -904,8 +914,7 @@ function simplenews_user_insert(&$edit, $account, $category) {  // Use the email
   $subscriber->mail = $edit['mail'];
   $subscription = simplenews_get_subscription($subscriber);
   // If the user is subscribed, we update the subscriber with uid and language.
-  if ($subscription->snid) {
-    // @todo Write a function to save/update a subscription and use it here.
+  if (!empty($subscription->snid)) {
     $subscriber->uid = $edit['uid'];
     $subscriber->language = $edit['language'];
     $subscriber->activated = 1;
@@ -945,7 +954,7 @@ function simplenews_user_insert(&$edit, $account, $category) {  // Use the email
 }
 
 /**
- * Implementation of hook_user_login().
+ * Implements hook_user_login().
  *
  * Subscribe user to a newsletter as per registration form.
  */
@@ -961,7 +970,7 @@ function simplenews_user_login(&$edit, $account) {
 }
 
 /**
- * Implementation of hook_user_presave().
+ * Implements hook_user_presave().
  *
  * User data (mail, status, language) is synchronized with subscriber.
  * This function handles existing user account, simplenews_user_insert takes
@@ -976,24 +985,20 @@ function simplenews_user_presave(&$edit, $account, $category) {
         $subscription = simplenews_get_subscription((object)array('uid' => $account->uid));
         // Only process existing subscriptions.
         if ($subscription->snid) {
+          $subscriber = simplenews_subscriber_load($subscription->snid);
           // Update mail, status and language if they are changed.
           // @todo convert this code to simplenews_subscriber_save().
           $fields = array();
           if (isset($edit['mail'])) {
-            $fields['mail'] = $edit['mail'];
+            $subscriber->mail = $edit['mail'];
           }
           if (isset($edit['status']) && variable_get('simplenews_sync_account', TRUE)) {
-            $fields['activated'] = $edit['status'];
+            $subscriber->activated = $edit['status'];
           }
           if (isset($edit['language'])) {
-            $fields['language'] = $edit['language'];
+            $subscriber->language = $edit['language'];
           }
-          if (!empty($fields)) {
-            $query = db_update('simplenews_subscriber')
-              ->condition('snid', $subscription->snid)
-              ->fields($fields)
-              ->execute();
-          }
+          simplenews_subscriber_save($subscriber);
         }
       }
       break;
@@ -1001,7 +1006,7 @@ function simplenews_user_presave(&$edit, $account, $category) {
 }
 
 /**
- * Implementation of hook_user_cancel().
+ * Implements hook_user_cancel().
  */
 function simplenews_user_cancel($edit, $account, $method) {
  // Deactivate subscriber when account is disabled via cancel user.
@@ -1015,7 +1020,7 @@ function simplenews_user_cancel($edit, $account, $method) {
 }
 
 /**
- * Implementation of hook_user_delete().
+ * Implements hook_user_delete().
  */
 function simplenews_user_delete($account) {
   // Delete subscription and all newsletter subscriptions when account is removed.
@@ -1031,7 +1036,7 @@ function simplenews_user_delete($account) {
 }
 
 /**
- * Implementation of hook_user_categories().
+ * Implements hook_user_categories().
  */
 function simplenews_user_categories() {
   $output[] = array(
@@ -1045,7 +1050,7 @@ function simplenews_user_categories() {
 }
 
 /**
- * Implementation of hook_form_FORM_ID_alter().
+ * Implements hook_form_FORM_ID_alter().
  *
  * Add simplenews subscription management form to account category 'Newsletters'
  */
@@ -1060,9 +1065,7 @@ function simplenews_form_user_profile_form_alter(&$form, &$form_state) {
 }
 
 /**
- * Implementation of hook_user_view().
- *
- * @todo Check if hidden newsletters are not listed.
+ * Implements hook_user_view().
  */
 function simplenews_user_view($account, $build_mode) {
   global $user;
@@ -1109,7 +1112,7 @@ function simplenews_user_view($account, $build_mode) {
 }
 
 /**
- * Implementation of hook_block_info().
+ * Implements hook_block_info().
  */
 function simplenews_block_info() {
   $blocks = array();
@@ -1132,7 +1135,7 @@ function simplenews_block_info() {
 }
 
 /**
- * Implementation of hook_block_configure().
+ * Implements hook_block_configure().
  */
 function simplenews_block_configure($delta = '') {
   // Special block for multi
@@ -1190,7 +1193,7 @@ function simplenews_block_configure($delta = '') {
 }
 
 /**
- * Implementation of hook_block_save().
+ * Implements hook_block_save().
  */
 function simplenews_block_save($delta = '', $edit = array()) {
   if ($delta == 0) {
@@ -1207,7 +1210,7 @@ function simplenews_block_save($delta = '', $edit = array()) {
 }
 
 /**
- * Implementation of hook_block_view().
+ * Implements hook_block_view().
  */
 function simplenews_block_view($delta = '') {
   // Special block for multi
@@ -1239,7 +1242,7 @@ function simplenews_block_view($delta = '') {
 }
 
 /**
- * Implementation of hook_forms().
+ * Implements hook_forms().
  *
  * All form blocks are build using simplenews_block_form().
  * hook_forms() is required to provide unique form id for each block form.
@@ -1260,13 +1263,10 @@ function simplenews_forms($form_id, $args) {
 /**
  * Load a user or creates a dummy anonymous user.
  *
- * @return account
- *   object (
- *     mail,   email address
- *     uid,    uid or 0 for anonymous
- *   )
+ * @return
+ *   A user object if a user with that mail address exists, otherwise an object
+ *   with the properties mail and uid (set to 0).
  *
- * @todo Rewrite to use the new user_load(): http://drupal.org/node/224333#user_load_multiple
  */
 function _simplenews_user_load($mail) {
   $account = user_load_by_mail($mail);
@@ -1714,19 +1714,13 @@ function simplenews_subscriber_save(&$subscriber) {
  * Delete subscriber from the database.
  *
  * @param $snid
- *   Simplenews subscriber object or subscriber ID.
+ *   Simplenews subscriber object.
  */
-function simplenews_subscriber_delete($subscriber) {
-  if (!is_object($subscriber)) {
-    // @todo What's the purpose of this test? Eventually loading the subscriber?
-  }
-
-  if ($subscriber) {
-    db_delete('simplenews_subscriber')
-      ->condition('snid', $subscriber->snid)
-      ->execute();
-    module_invoke_all('simplenews_subscriber_delete', $subscriber);
-  }
+function simplenews_subscriber_delete(stdClass $subscriber) {
+  db_delete('simplenews_subscriber')
+    ->condition('snid', $subscriber->snid)
+    ->execute();
+  module_invoke_all('simplenews_subscriber_delete', $subscriber);
 }
 
 /**
@@ -1803,8 +1797,6 @@ function _simplenews_subscription_manager_form($subscription) {
  * @param integer $count
  *   The number of newsletters.
  *
- * @todo Replace 'class' string by array.
- * @see http://drupal.org/node/224333#class_attribute_array
  * @todo Replace this list by a View.
  */
 function simplenews_recent_newsletters($tid, $count = 5) {
@@ -1825,7 +1817,7 @@ function simplenews_recent_newsletters($tid, $count = 5) {
 }
 
 /**
- * Implementation of hook_mail().
+ * Implements hook_mail().
  *
  * Send simplenews mails using drupal mail API
  * @see drupal_mail()
@@ -2113,7 +2105,7 @@ function simplenews_newsletter_delete($newsletter) {
 }
 
 /**
- * Implementation of hook_token_info().
+ * Implements hook_token_info().
  */
 function simplenews_token_info() {
   // @todo Add desription to the types and extend available tokens.
@@ -2173,7 +2165,7 @@ function simplenews_token_info() {
 }
 
 /**
- * Implementation of hook_tokens().
+ * Implements hook_tokens().
  *
  */
 function simplenews_tokens($type, $tokens, $data = array(), $options = array()) {
@@ -2303,7 +2295,7 @@ function simplenews_private_key() {
 }
 
 /**
- * Implementation of hook_help().
+ * Implements hook_help().
  *
  * @todo Rewrite help text to match the new terminology, the new data architecture, the new admin pages, the news node-form interface.
  */
@@ -2435,7 +2427,7 @@ function simplenews_format_options() {
 }
 
 /**
- * Implementation of hook_locale().
+ * Implements hook_locale().
  */
 function simplenews_locale($op = 'groups', $group = NULL) {
   switch ($op) {
@@ -2527,7 +2519,7 @@ function _simplenews_get_node_form_defaults() {
 }
 
 /**
- * Implementation of hook_theme().
+ * Implements hook_theme().
  *
  * @todo Theme definitions must register how it integrates with drupal_render(): http://drupal.org/node/224333#hook_theme_render_changes
  */
@@ -3064,7 +3056,7 @@ function simplenews_field_extra_fields() {
 
 
 /**
- * Implementation of hook_node_access().
+ * Implements hook_node_access().
  *
  * Don't allow deletion when a newsletter is pending
  */

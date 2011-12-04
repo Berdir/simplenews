@@ -421,9 +421,9 @@ function simplenews_count_spool($nid, $status = array(SIMPLENEWS_SPOOL_PENDING, 
  *
  * All records with status 'send' and time stamp before the expiration date
  * are removed from the spool.
- * @todo Replace time(): http://drupal.org/node/224333#time
  *
- * @return Count deleted
+ * @return
+ *   Number of deleted spool rows.
  */
 function simplenews_clear_spool() {
   $expiration_time = REQUEST_TIME - variable_get('simplenews_spool_expire', 0) * 86400;
