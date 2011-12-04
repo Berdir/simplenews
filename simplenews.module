@@ -2521,7 +2521,6 @@ function _simplenews_get_node_form_defaults() {
 /**
  * Implements hook_theme().
  *
- * @todo Theme definitions must register how it integrates with drupal_render(): http://drupal.org/node/224333#hook_theme_render_changes
  */
 function simplenews_theme() {
   $path = drupal_get_path('module', 'simplenews');
@@ -2587,7 +2586,6 @@ function simplenews_theme() {
  *
  * @see simplenews-block.tpl.php
  * @see theme_simplenews-block()
- * @todo use drupal_render() with drupal_get_form(): http://drupal.org/node/224333#unrendered
  */
 function template_preprocess_simplenews_block(&$variables) {
   global $user;
