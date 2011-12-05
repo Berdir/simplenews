@@ -434,7 +434,6 @@ function simplenews_node_insert($node) {
   $newsletter = $node->simplenews;
 
   $newsletter->nid = $node->nid;
-  $newsletter->vid = $node->vid;
   $newsletter->status = SIMPLENEWS_STATUS_SEND_NOT;
   $terms = simplenews_get_term_values($node);
   $newsletter->tid = $terms[0]['tid'];
@@ -447,7 +446,6 @@ function simplenews_node_insert($node) {
 function simplenews_newsletter_defaults($node = NULL) {
   $newsletter = array(
     'nid' => NULL,
-    'vid' => NULL,
     'tid' => NULL,
     'status' => SIMPLENEWS_STATUS_SEND_NOT,
     'sent_subscriber_count' => 0,
@@ -455,7 +453,6 @@ function simplenews_newsletter_defaults($node = NULL) {
 
   if ($node) {
     $newsletter['nid'] = $node->nid;
-    $newsletter['vid'] = $node->vid;
     $terms = simplenews_get_term_values($node);
     $newsletter['tid'] = $terms[0]['tid'];
   }
@@ -518,9 +515,7 @@ function simplenews_node_load($nodes, $types) {
     if (!$newsletter) {
       $newsletter = (object)simplenews_newsletter_defaults($node);
     }
-    if ($nodes[$nid]->vid == $newsletter->vid) {
-      $nodes[$nid]->simplenews = $newsletter;
-    }
+    $nodes[$nid]->simplenews = $newsletter;
   }
 }
 
@@ -2254,11 +2249,8 @@ function simplenews_get_mailing_lists($show_all = FALSE) {
 /**
  * @todo
  */
-function simplenews_newsletter_load($nid, $vid = NULL, $reset = FALSE) {
+function simplenews_newsletter_load($nid, $reset = FALSE) {
   $conditions = array();
-  if (isset($vid)) {
-    $conditions[] = array('vid' => $vid);
-  }
   $newsletters = simplenews_newsletter_load_multiple(array($nid), $conditions, $reset);
   return $newsletters ? reset($newsletters) : FALSE;
 }
@@ -2300,7 +2292,7 @@ function simplenews_newsletter_load_multiple($nids = array(), $conditions = arra
  */
 function simplenews_newsletter_save($newsletter) {
   db_merge('simplenews_newsletter')
-    ->key(array('nid' => $newsletter->nid, 'vid' => $newsletter->vid))
+    ->key(array('nid' => $newsletter->nid))
     ->fields(array(
       'tid' => $newsletter->tid,
       'status' => $newsletter->status,
@@ -2322,7 +2314,6 @@ function simplenews_newsletter_delete($newsletter) {
   if ($newsletter) {
     db_delete('simplenews_newsletter')
       ->condition('nid', $newsletter->nid)
-      ->condition('vid', $newsletter->vid)
       ->execute();
   }
 }

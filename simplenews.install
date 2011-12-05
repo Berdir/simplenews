@@ -103,12 +103,6 @@ function simplenews_schema() {
         'not null' => TRUE,
         'default' => 0,
       ),
-      'vid' => array(
-        'description' => 'The {node}.vid that identifies the version used as newsletter.',
-        'type' => 'int',
-        'not null' => TRUE,
-        'default' => 0,
-      ),
       'tid' => array(
         'description' => 'The newsletter category {simplenews_category}.tid this newsletter belongs to.',
         'type' => 'int',
@@ -134,10 +128,6 @@ function simplenews_schema() {
       'nid' => array(
         'table' => 'node',
         'columns' => array('nid' => 'nid'),
-      ),
-      'vid' => array(
-        'table' => 'node',
-        'columns' => array('vid' => 'vid'),
       ),
     ),
   );
@@ -271,12 +261,6 @@ function simplenews_schema() {
         'not null' => TRUE,
         'default' => 0,
       ),
-      'vid' => array(
-        'description' => 'The {node}.vid of this newsletter.',
-        'type' => 'int',
-        'not null' => TRUE,
-        'default' => 0,
-      ),
       'tid' => array(
         'description' => 'The {simplenews_category}.tid this newsletter belongs to.',
         'type' => 'int',
@@ -329,10 +313,6 @@ function simplenews_schema() {
       'nid' => array(
         'table' => 'node',
         'columns' => array('nid' => 'nid'),
-      ),
-      'vid' => array(
-        'table' => 'node',
-        'columns' => array('vid' => 'vid'),
       ),
       'tid' => array(
         'table' => 'simplenews_category',
@@ -717,5 +697,17 @@ function simplenews_update_7000() {
 function simplenews_update_7001() {
   if (!db_index_exists('simplenews_mail_spool', 'snid_tid')) {
     db_add_index('simplenews_mail_spool', 'snid_tid', array('snid', 'tid'));
+  }
+}
+
+/**
+ * Drop support for node revisioning.
+ */
+function simplenews_update_7002() {
+  if (db_field_exists('simplenews_newsletter', 'vid')) {
+    db_drop_field('simplenews_newsletter', 'vid');
+  }
+  if (db_field_exists('simplenews_mail_spool', 'vid')) {
+    db_drop_field('simplenews_mail_spool', 'vid');
   }
 }
