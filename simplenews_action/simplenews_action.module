@@ -187,7 +187,7 @@ function simplenews_action_cron_run(&$object, $context = array()) {
  *   @see simplenews_action_subscribe_user_submit()
  */
 function simplenews_action_subscribe_user(&$object, $context = array()) {
-  if ($context['hook'] == 'user') {
+  if ($context['group'] == 'user') {
     if (isset($context['slid'])) {
       // This action is only called in the context of user. User data is in $context.
       $account = $context['account'];
@@ -208,8 +208,8 @@ function simplenews_action_subscribe_user_form($context) {
 
   $lists = simplenews_get_mailing_lists(TRUE);
   $options = array();
-  foreach ($tree as $newsletter) {
-    $options[$list->slid] = $list->name;
+  foreach ($lists as $newsletter) {
+    $options[$newsletter->tid] = $newsletter->name;
   }
   $form['list'] = array(
     '#title' => t('Mailing list'),
@@ -248,7 +248,7 @@ function simplenews_action_subscribe_user_submit($form, $form_state) {
  * @todo Replace time(): http://drupal.org/node/224333#time
  */
 function simplenews_action_unsubscribe_user(&$object, $context = array()) {
-  if ($context['hook'] == 'user') {
+  if ($context['group'] == 'user') {
     if (isset($context['slid'])) {
       // This action is only called in the context of user. User data is in $context.
       $account = $context['account'];
@@ -276,8 +276,8 @@ function simplenews_action_unsubscribe_user_form($context) {
 
   $lists = simplenews_get_mailing_lists(TRUE);
   $options = array();
-  foreach ($tree as $newsletter) {
-    $options[$list->slid] = $list->name;
+  foreach ($lists as $newsletter) {
+    $options[$newsletter->tid] = $newsletter->name;
   }
   $form['list'] = array(
     '#title' => t('Mailing list'),
