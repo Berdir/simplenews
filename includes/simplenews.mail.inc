@@ -766,3 +766,4 @@ class SimplenewsHTMLTestingMailSystem implements MailSystemInterface {
     return TRUE;
   }
 }
+
