@@ -662,13 +662,23 @@ function simplenews_get_category_field($bundle_name) {
 }
 
 /**
- * Implementation of hook_form_FORM_ID_alter().
+ * Implements hook_form_FORM_ID_alter().
  *
  * Add checkbox to the content type form to use the content type as newsletter.
+ * Add Selectbox for plaintext field selection.
  */
 function simplenews_form_node_type_form_alter(&$form, $form_state) {
-  // Add option to use content type as simplenews newsletter.
-  $form['workflow']['simplenews_content_type'] = array(
+
+  $form['simplenews'] = array(
+    '#type' => 'fieldset',
+    '#title' => 'Newsletter',
+    '#collapsible' => TRUE,
+    '#collapsed' => FALSE,
+    '#group' => 'additional_settings',
+  );
+  
+  // Add option to use content type as simplenews newsletter.  
+  $form['simplenews']['simplenews_content_type'] = array(
     '#type' => 'checkbox',
     '#title' => t('Use as simplenews newsletter'),
     '#default_value' => variable_get('simplenews_content_type_' . $form['#node_type']->type, 0),
@@ -2435,7 +2445,7 @@ function simplenews_format_options() {
   $options = array(
     'plain' => t('plain'),
   );
-  if (module_exists('mimemail') || module_exists('htmlmail')) {
+  if (simplenews_html_transmitter_modules()) {
     $options['html'] = t('html');
   }
   return $options;
@@ -2589,6 +2599,12 @@ function simplenews_theme() {
     ),
     'simplenews_field' => array(
       'render element' => 'element',
+    ),
+    'simplenews_newsletter_plaintext_body' => array(
+      'variables' => array(
+        'node' => NULL,
+        'plain_field' => NULL,
+      ),
     ),
   );
 }
@@ -2746,6 +2762,12 @@ function template_preprocess_simplenews_newsletter_body(&$variables) {
   unset($variables['build']['links']);
   unset($variables['build']['comments']);
 
+  if ($variables['category']->format == 'html') {
+    // hide the plaintext field for html mails since the plaintext part has it's own theme function
+    $field_plaintext = simplenews_get_plaintext_field_name($variables['build']['#bundle']);
+    hide($variables['build'][$field_plaintext]);
+  }
+
   $variables['title'] = check_plain($variables['build']['#node']->title);
 
   // Add specific suggestions that can override the default implementation.
@@ -2810,6 +2832,21 @@ function theme_simplenews_newsletter_footer($variables) {
   return $output;
 }
 
+/**
+* Theme the newsletter message subject and alternative plaintext body. 
+*/
+function theme_simplenews_newsletter_plaintext_body($variables) {
+  // In an override of this function, $text can be loaded with other field from the node.
+  $text  = $variables['node']->title . "\n\n";
+  if ($variables['plain_field'] == 'body') {
+    $text .= $variables['node']->body['und'][0]['value'] . "\n\n";
+  } 
+  else {
+    $plain = $variables['node']->$variables['plain_field'];
+    $text .= $plain['und'][0]['value'] . "\n\n";
+  }
+  return $text;
+}
 
 /**
  * Helper function to filter checked boxes from form values.
@@ -3149,4 +3186,40 @@ function simplenews_simplenews_source_cache_info() {
       'description' => t('This caches the rendered content to be sent for multiple recipients. It is not possible to use subscriber specific theming but tokens can be used for personalization.'),
     ),
   );
+}
+
+/*
+ * Function either checks if a compatible transmitter
+ * module exists or gets all possible transmitter modules.
+ */
+function simplenews_html_transmitter_modules() {
+  
+  // @todo get this info by a hook that provides info about 
+  // mail transmission modules
+  $transmitters = array(
+    'mimemail',
+    'htmlmail',
+  );
+  
+  foreach($transmitters as $transmitter) {
+    if (module_exists($transmitter)) {
+      return TRUE;
+    }        
+  }
+  return FALSE;
+}
+
+/*
+ * Function gets the fieldname of an optional plaintext field.
+ * 
+ * Note: At the moment only one (the first) plaintext field 
+ * will be detected. 
+ */
+function simplenews_get_plaintext_field_name($bundle) {
+  $fieldinfo = field_info_instances('node', $bundle);
+    foreach($fieldinfo as $field_name => $info) {
+      // check if field has a plaintext_textarea widget
+      if ($info['widget']['type'] != 'plaintext_textarea') continue;
+      else return $info['field_name'];
+    }
 }

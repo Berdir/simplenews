@@ -1332,7 +1332,7 @@ function simplenews_admin_settings_newsletter($form, &$form_state) {
     '#description' => t('These options will be the defaults for new newsletters, but can be overridden in the newsletter editing form.'),
   );
   $description = t('Default newsletter format.');
-  if (!module_exists('mimemail')) {
+  if (!simplenews_html_transmitter_modules()) {
     $description .= ' ' . t('Install <a href="!mime_mail_url">Mime Mail</a> module or <a href="!html_url">HTML Mail</a> module to send newsletters in HTML format.',
                             array('!mime_mail_url' => 'http://drupal.org/project/mimemail', '!html_url' => 'http://drupal.org/project/htmlmail')
                           );

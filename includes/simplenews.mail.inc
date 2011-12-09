@@ -169,9 +169,9 @@ function simplenews_send_source(SimplenewsSourceInterface $source) {
     $via_mimemail = '';
     if (module_exists('mimemail')) {
       $via_mimemail = t('Sent via Mime Mail');
-    }
-    // @todo Add line break before %mimemail.
-    if ($message['result']) {
+      }
+      // @todo Add line break before %mimemail.
+      if ($message['result']) {
       watchdog('simplenews', 'Outgoing email. Message type: %type<br />Subject: %subject<br />Recipient: %to %mimemail', array('%type' => $source->getKey(), '%to' => $message['to'], '%subject' => $message['subject'], '%mimemail' => $via_mimemail), WATCHDOG_DEBUG);
     }
     else {
