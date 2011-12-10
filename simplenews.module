@@ -1867,151 +1867,20 @@ function simplenews_mail($key, &$message, $params) {
  * @param array $params
  *   Parameter array as used by hook_mail().
  */
-function simplenews_build_node_mail(&$message, $params) {
-  $context = $params['context'];
-  $category = $context['category'];
+function simplenews_build_node_mail(&$message, $params, SimplenewsSourceInterface $source) {
   $key = $params['key'];
 
-  // Message header, body and mail headers are buffered to increase
-  // performance when sending multiple mails. Buffered data only contains
-  // general data, no recipient specific content. Tokens are used
-  // for recipient data and will later be replaced.
-  // When mailing multiple newsletters in one page call or cron run,
-  // data is once stored and subsequently retrieved from the
-  // static $messages variable.
-  // $message buffer is node and language specific.
-  $messages = &drupal_static(__FUNCTION__, array());
-
-  // By default the the node is send which is supplied in the function call.
-  // When translation is used, the availability of translations is checked
-  // and when available the translation of the preferred language is selected.
-  $nid = $context['node']->nid;
-  // @todo Make language selection a separate function.
-  $langcode = $message['language'];
-  if (module_exists('translation')) {
-    // If the node has translations and a translation is required
-    // the equivalent of the node in the required language is used
-    // or the base node (nid == tnid) is used.
-    if ($tnid = $context['node']->tnid) {
-      if ($langcode != $context['node']->language) {
-        $translations = translation_node_get_translations($tnid);
-        // A translation is available in the preferred language.
-        if ($translation = $translations[$langcode]) {
-          $nid = $translation->nid;
-          $langcode = $translation->language;
-        }
-        else {
-          // No translation found which matches the preferred language.
-          foreach ($translations as $translation) {
-            if ($translation->nid == $tnid) {
-              $nid = $tnid;
-              $langcode = $translation->language;
-              break;
-            }
-          }
-        }
-      }
-    }
-    // If a translation of the node is used and this node is not available in
-    // the message buffer, then load this node.
-    if ($nid != $context['node']->nid && !isset($messages[$nid][$langcode])) {
-      $context['node'] = node_load($nid);
-    }
-  }
-
-  // Check if this node-language pair has been buffered.
-  // If not, build the message and store it for later use.
-  if (!isset($messages[$nid][$langcode])) {
-
-    // Use the default theme to render the email content.
-    // We temporary clear the $custom_theme to prevent the admin theme
-    // from being used when the newsletter is sent from the
-    // node add/edit form and the admin theme is other than the
-    // default theme. When no $custom_theme is set, the
-    // After theming the email $custom_theme is restored.
-    global $custom_theme;
-    $org_custom_theme = $custom_theme;
-    $custom_theme = '';
-
-    $node = clone $context['node'];
-
-    // Add simplenews specific header data
-    module_load_include('inc', 'simplenews', 'includes/simplenews.mail');
-    $headers = array_merge($message['headers'], _simplenews_headers($category, $params['from']['address']));
-    $headers['From'] = $params['from']['formatted'];
-    $message['headers'] = $messages[$nid][$langcode]['headers'] = $headers;
-
-    // Build email subject and perform some sanitizing.
-    // Line breaks are removed from the email subject to prevent injection of
-    // malicious data into the email header.
-    $subject = token_replace($category->email_subject, $context, array('sanitize' => FALSE));
-    $subject = str_replace(array("\r", "\n"), '', $subject);  // @todo Check if this is done by drupal_mail()
-    $message['subject'] = $messages[$nid][$langcode]['subject'] = $subject;
-
-    // Set the active language to the node's language.
-    // This needs to be done as otherwise the language used to send the mail
-    // is the language of the user logged in.
-    // @todo Rewrite this code for drupal 7.
-//    if (module_exists('i18n')) {
-//         i18n_selection_mode('node', $node->language);
-//    }
-
-    // Build message body
-// @todo move this code to a function. We need to do this twice for HTML and Plain text Alternative.
-    // @todo restore the format selection.
-    //$build = node_view($node, 'email_' . $category->format);
-    // Supported view modes: 'email_plain', 'email_html', 'email_textalt'
-    $build = node_view($node, 'email_plain');
-    // @todo Use simplenews_newsletter_body as #theme?
-    unset($build['#theme']);
-    foreach (element_children($build) as $child) {
-      $build[$child]['#theme'] = 'simplenews_field';
-    }
-// END move this code to a function.
-
-    $body = theme('simplenews_newsletter_body', array('build' => $build, 'category' => $category, 'language' => $message['language']));
-
-    // Buffer body text node and language specific
-    $messages[$nid][$langcode]['body'] = $body;
-
-    // @todo Move hidden footer into preprocess function.
-    //      We need to replace this concept. A footer is depending on the subscription list, not anymore on the newsletter category.
-    //      In the future this will also depend on whether the receiver is subscribed to a list or not a list member at all.
-    if ($category->opt_inout != SIMPLENEWS_OPT_INOUT_HIDDEN) {
-      // Build and buffer message footer
-      $footer = theme('simplenews_newsletter_footer',
-        array(
-          'build' => $build,
-          'category' => $category,
-          'context' => $context,
-          'key' => $key,
-          'language' => $message['language'],
-        )
-      );
-      $messages[$nid][$langcode]['footer'] = $footer;
-    }
-
-    // Reset the language to the original settings.
-    // @todo Rewrite this code for drupal 7.
-//    if (module_exists('i18n')) {
-//      i18n_selection_mode('reset');
-//    }
-
-    // Restore the custom theme.
-    $custom_theme = $org_custom_theme;
-  }
-  else {
-    // Get message data from buffer
-    $message['headers'] = $messages[$nid][$langcode]['headers'];
-    $message['subject'] = $messages[$nid][$langcode]['subject'];
-    $body               = $messages[$nid][$langcode]['body'];
-    $footer             = $messages[$nid][$langcode]['footer'];
-  }
+  // Get message data from source.
+  $message['headers'] = $source->getHeaders($message['headers']);
+  $message['subject'] = $source->getSubject();
+  $body               = $source->getBody();
+  $footer             = $source->getFooter();
 
   // Build message body, replace tokens.
+  $message['body']['body'] = token_replace($body, $source->getTokenContext(), array('sanitize' => FALSE));
+
   // Convert to plain text if required.
-  $message['body']['body'] = token_replace($body, $context, array('sanitize' => FALSE));
-  if ($category->format == 'plain') {
+  if ($source->getCategory()->format == 'plain') {
     module_load_include('inc', 'simplenews', 'includes/simplenews.mail');
     $message['body']['body'] = simplenews_html_to_text($message['body']['body'], $category->hyperlinks);
   }
@@ -2020,6 +1889,7 @@ function simplenews_build_node_mail(&$message, $params) {
   $message['body']['footer'] = token_replace($footer, $context, array('sanitize' => FALSE));
 
   // Add user specific header data.
+  $message['headers']['From'] = $params['from']['formatted'];
   $message['headers']['List-Unsubscribe'] = '<' . token_replace('[simplenews-subscriber:unsubscribe-url]', $context, array('sanitize' => FALSE)) . '>';
 }
 

@@ -83,7 +83,7 @@ function simplenews_send_node($node, $accounts = array()) {
     // in the spool. When cron is used newsletters are send to addresses in the
     // spool during the next (and following) cron run.
     if (variable_get('simplenews_use_cron', TRUE) == FALSE) {
-      simplenews_mail_spool($spool_data['nid'], 999999);
+      simplenews_mail_spool(99999);
       drupal_set_message(t('Newsletter sent.'));
       simplenews_clear_spool();
       simplenews_send_status_update();
@@ -99,149 +99,109 @@ function simplenews_send_node($node, $accounts = array()) {
  * Send test version of newsletter.
  *
  * @param mixed $node
- *   The newsletter node to be sent. If an integer, the node nid; if an object,
- *   the node object.
+ *   The newsletter node to be sent.
  */
 function simplenews_send_test($node, $test_addresses) {
-  if (is_numeric($node)) {
-    $node = node_load($node);
+  // Prevent session information from being saved while sending.
+  if ($original_session = drupal_save_session()) {
+    drupal_save_session(FALSE);
   }
-  if (is_object($node)) {
-    // Prevent session information from being saved while sending.
-    if ($original_session = drupal_save_session()) {
-      drupal_save_session(FALSE);
-    }
 
-    // Force the current user to anonymous to ensure consistent permissions.
-    $original_user = $GLOBALS['user'];
-    $GLOBALS['user'] = drupal_anonymous_user();
+  // Force the current user to anonymous to ensure consistent permissions.
+  $original_user = $GLOBALS['user'];
+  $GLOBALS['user'] = drupal_anonymous_user();
 
-    // Send the test newsletter to the test address(es) specified in the node.
-    // Build array of test email addresses
+  // Send the test newsletter to the test address(es) specified in the node.
+  // Build array of test email addresses
 
-    // Send newsletter to test addresses.
-    // Emails are send direct, not using the spool.
-    $recipients = array('anonymous' => array(), 'user' => array());
-    foreach ($test_addresses as $mail) {
-      $mail = trim($mail);
-      if (!empty($mail)) {
-        $message = new stdClass();
-        $message->nid = $node->nid;
-        $message->tid = $node->simplenews->tid;
-        $message->data = simplenews_get_subscription((object)array('mail' => $mail));
-        $account = _simplenews_user_load($mail);
-        $subscription = simplenews_get_subscription($account);
-        if ($account->uid) {
-          $recipients['user'][] = $account->name . ' <'.$mail.'>';
-        }
-        else {
-          $recipients['anonymous'][] = $mail;
-        }
-        $tmpres = simplenews_mail_mail($message, 'test');
+  // Send newsletter to test addresses.
+  // Emails are send direct, not using the spool.
+  $recipients = array('anonymous' => array(), 'user' => array());
+  foreach ($test_addresses as $mail) {
+    $mail = trim($mail);
+    if (!empty($mail)) {
+      $message = new stdClass();
+      $message->nid = $node->nid;
+      $message->tid = $node->simplenews->tid;
+      $account = _simplenews_user_load($mail);
+      $message->data = simplenews_get_subscription($account);
+      if ($account->uid) {
+        $recipients['user'][] = $account->name . ' <'.$mail.'>';
       }
+      else {
+        $recipients['anonymous'][] = $mail;
+      }
+      $source = simplenews_get_source_from_spool($message);
+      simplenews_mail_mail($source, 'test');
     }
-    if (count($recipients['user'])) {
-      $recipients_txt = implode(', ', $recipients['user']);
-      drupal_set_message(t('Test newsletter sent to user %recipient.', array('%recipient' => $recipients_txt)));
-    }
-    if (count($recipients['anonymous'])) {
-      $recipients_txt = implode(', ', $recipients['anonymous']);
-      drupal_set_message(t('Test newsletter sent to anonymous %recipient.', array('%recipient' => $recipients_txt)));
-    }
+  }
+  if (count($recipients['user'])) {
+    $recipients_txt = implode(', ', $recipients['user']);
+    drupal_set_message(t('Test newsletter sent to user %recipient.', array('%recipient' => $recipients_txt)));
+  }
+  if (count($recipients['anonymous'])) {
+    $recipients_txt = implode(', ', $recipients['anonymous']);
+    drupal_set_message(t('Test newsletter sent to anonymous %recipient.', array('%recipient' => $recipients_txt)));
+  }
 
-    $GLOBALS['user'] = $original_user;
-    if ($original_session) {
-      drupal_save_session(TRUE);
-    }
+  $GLOBALS['user'] = $original_user;
+  if ($original_session) {
+    drupal_save_session(TRUE);
   }
 }
 
 /**
  * Send a node to an email address.
  *
- * @param object $msgbase
- *   The mail message object as returned by simplenews_load_spool(), containing
- *   the following properties:
- *   - nid
- *   - tid
- *   - data
+ * @param $source
+ *   The source object.
  * @param $key
  *   The email key, either 'node' or 'test'.
  *
  * @return boolean
  *   TRUE if the email was successfully delivered; otherwise FALSE.
  */
-function simplenews_mail_mail($msgbase, $key = 'node') {
+function simplenews_send_source(SimplenewsSourceInterface $source, $key) {
 
-  $nid = $msgbase->nid;
-  $tid = $msgbase->tid;
+  $params['context']['source'] = $source;
+  $params['from'] = _simplenews_set_from($source->getCategory());
 
-  $subscriber = $msgbase->data;
-  if (!$subscriber) {
-    $subscriber = simplenews_get_subscription((object)array('mail' => $msgbase->mail));
-    //$account = user_load($msgbase->uid));
-  }
-  $params['context']['account'] = $subscriber;
+  // Optional params for Mime Mail.
+  $params['plain'] = $source->getCategory()->format == 'plain' ? TRUE : NULL;
+  $params['attachments'] = $source->getAttachments();
 
-  // Get node data for the mail
-  $node = node_load($nid);
+  // Send mail.
+  $message = drupal_mail('simplenews', $key, $source->getSubscriber()->mail, $source->getSubscriber()->language, $params, $params['from']['formatted']);
 
-  if (is_object($node)) {
-    $params['context']['node'] = $node;
-    $params['context']['newsletter'] = simplenews_newsletter_load($tid);
-    $params['context']['category'] = simplenews_category_load($tid);
-    $params['from'] = _simplenews_set_from($params['context']['category']);
-
-    // Optional params for Mime Mail.
-    $params['plain'] = $params['context']['category']->format == 'plain' ? TRUE : NULL;
-    // @todo Create the plaintext portion of the message, we don't have $message['body'] here.
-    // $params['plaintext'] = $params['plain'] ? $message['body'] : simplenews_html_to_text($message['body'], TRUE);
-    // @todo Get the attachments. Upload module no longer exists for Drupal 7.
-    // $params['attachments'] = isset($params['context']['node']->files) ? $params['context']['node']->files : array();;
-
-    // Send mail
-    $message = drupal_mail('simplenews', $key, $subscriber->mail, $subscriber->language, $params, $params['from']['formatted']);
-
-    // Log sent result in watchdog.
-    if (variable_get('simplenews_debug', FALSE)) {
-      $via_mimemail = '';
-      if (module_exists('mimemail')) {
-        $via_mimemail = t('Sent via Mime Mail');
-      }
-      // @todo Add line break before %mimemail.
-      if ($message['result']) {
-        watchdog('simplenews', 'Outgoing email. Message type: %type<br />Subject: %subject<br />Recipient: %to %mimemail', array('%type' => $key, '%to' => $message['to'], '%subject' => $message['subject'], '%mimemail' => $via_mimemail), WATCHDOG_DEBUG);
-      }
-      else {
-        watchdog('simplenews', 'Outgoing email failed. Message type: %type<br />Subject: %subject<br />Recipient: %to %mimemail', array('%type' => $key, '%to' => $message['to'], '%subject' => $message['subject'], '%mimemail' => $via_mimemail), WATCHDOG_ERROR);
-      }
+  // Log sent result in watchdog.
+  if (variable_get('simplenews_debug', FALSE)) {
+    $via_mimemail = '';
+    if (module_exists('mimemail')) {
+      $via_mimemail = t('Sent via Mime Mail');
     }
-
-    // Build array of sent results for spool table and reporting.
+    // @todo Add line break before %mimemail.
     if ($message['result']) {
-      $message['result'] = array(
-        'status' => SIMPLENEWS_SPOOL_DONE,
-        'error' => FALSE,
-      );
+      watchdog('simplenews', 'Outgoing email. Message type: %type<br />Subject: %subject<br />Recipient: %to %mimemail', array('%type' => $key, '%to' => $message['to'], '%subject' => $message['subject'], '%mimemail' => $via_mimemail), WATCHDOG_DEBUG);
     }
     else {
-      // This error may be caused by faulty mailserver configuration or overload.
-      // Mark "pending" to keep trying.
-      $message['result'] = array(
-        'status' => SIMPLENEWS_SPOOL_PENDING,
-        'error' => TRUE,
-      );
+      watchdog('simplenews', 'Outgoing email failed. Message type: %type<br />Subject: %subject<br />Recipient: %to %mimemail', array('%type' => $key, '%to' => $message['to'], '%subject' => $message['subject'], '%mimemail' => $via_mimemail), WATCHDOG_ERROR);
     }
-
   }
-  else {
-    // Node could not be loaded. The node is probably deleted while pending to be sent.
-    // This error is not recoverable, mark "done".
+
+  // Build array of sent results for spool table and reporting.
+  if ($message['result']) {
     $message['result'] = array(
       'status' => SIMPLENEWS_SPOOL_DONE,
+      'error' => FALSE,
+    );
+  }
+  else {
+    // This error may be caused by faulty mailserver configuration or overload.
+    // Mark "pending" to keep trying.
+    $message['result'] = array(
+      'status' => SIMPLENEWS_SPOOL_PENDING,
       'error' => TRUE,
     );
-    watchdog('simplenews', 'Newsletter not send: newsletter issue does not exist (nid = @nid).', array('@nid' => $nid), WATCHDOG_ERROR);
   }
 
   return isset($message['result']) ? $message['result'] : FALSE;
@@ -254,11 +214,10 @@ function simplenews_mail_mail($msgbase, $key = 'node') {
  * Sending is triggered by cron or immediately when the node is saved.
  * Mail data is retrieved from the spool, rendered and send one by one
  * If sending is successful the message is marked as send in the spool.
- * @todo Replace time(): http://drupal.org/node/224333#time
  *
  * TODO: Redesign API to allow language counter in multilingual sends.
  */
-function simplenews_mail_spool($nid = NULL, $limit = NULL) {
+function simplenews_mail_spool($limit = NULL) {
   $check_counter = 0;
 
   // Send pending messages from database cache
@@ -279,7 +238,8 @@ function simplenews_mail_spool($nid = NULL, $limit = NULL) {
     _simplenews_measure_usec(TRUE);
 
     foreach ($spool_list as $msid => $spool_data) {
-      $result = simplenews_mail_mail($spool_data);
+      $source = simplenews_get_source_from_spool($spool_data);
+      simplenews_send_source($source);
 
       // Update spool status.
       // This is not optimal for performance but prevents duplicate emails
@@ -324,7 +284,23 @@ function simplenews_mail_spool($nid = NULL, $limit = NULL) {
       drupal_save_session(TRUE);
     }
   }
+}
 
+/**
+ * Returns the source object for the provided spool data.
+ *
+ * @param $spool_data
+ *   The mail message object as returned by simplenews_load_spool(), containing
+ *   the following properties:
+ *   - nid
+ *   - tid
+ *   - data
+ *
+ * @return SimplenewsSourceInterface
+ *   A impementation of the source interface.
+ */
+function simplenews_get_source_from_spool($spool_data) {
+  return new SimplenewsSourceNodeCached($spool_data);
 }
 
 /**
@@ -597,60 +573,6 @@ function simplenews_send_status_update() {
         ->execute();
     }
   }
-}
-
-/**
- * Build header array with priority and receipt confirmation settings.
- *
- * @param $node
- *   Newsletter category object.
- * @param $from
- *   Newsletter from email address
- *
- * @return Header array with priority and receipt confirmation info
- */
-function _simplenews_headers($category, $from) {
-  $headers = array();
-
-  // If receipt is requested, add headers.
-  if ($category->receipt) {
-    $headers['Disposition-Notification-To'] = $from;
-    $headers['X-Confirm-Reading-To'] = $from;
-  }
-
-  // Add priority if set.
-  switch ($category->priority) {
-    case SIMPLENEWS_PRIORITY_HIGHEST:
-      $headers['Priority'] = 'High';
-      $headers['X-Priority'] = '1';
-      $headers['X-MSMail-Priority'] = 'Highest';
-      break;
-    case SIMPLENEWS_PRIORITY_HIGH:
-      $headers['Priority'] = 'urgent';
-      $headers['X-Priority'] = '2';
-      $headers['X-MSMail-Priority'] = 'High';
-      break;
-    case SIMPLENEWS_PRIORITY_NORMAL:
-      $headers['Priority'] = 'normal';
-      $headers['X-Priority'] = '3';
-      $headers['X-MSMail-Priority'] = 'Normal';
-      break;
-    case SIMPLENEWS_PRIORITY_LOW:
-      $headers['Priority'] = 'non-urgent';
-      $headers['X-Priority'] = '4';
-      $headers['X-MSMail-Priority'] = 'Low';
-      break;
-    case SIMPLENEWS_PRIORITY_LOWEST:
-      $headers['Priority'] = 'non-urgent';
-      $headers['X-Priority'] = '5';
-      $headers['X-MSMail-Priority'] = 'Lowest';
-      break;
-  }
-
-  // Add general headers
-  $headers['Precedence'] = 'bulk';
-
-  return $headers;
 }
 
 /**
