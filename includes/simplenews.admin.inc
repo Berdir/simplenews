@@ -285,7 +285,7 @@ function simplenews_issue_send($nids) {
     }
 
     simplenews_update_sent_status($node);
-    simplenews_send_node($node);
+    simplenews_add_node_to_spool($node);
   }
 }
 
