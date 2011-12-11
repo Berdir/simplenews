@@ -24,7 +24,7 @@
  *   - name: Emtpy; added for compatibility with user account object.
  *   - language: The language object of the subscriber's preferred language.
  */
-function simplenews_send_node($node, $accounts = array()) {
+function simplenews_add_node_to_spool($node, $accounts = array()) {
   if (is_numeric($node)) {
     $node = node_load($node);
   }
@@ -132,7 +132,8 @@ function simplenews_send_test($node, $test_addresses) {
         $recipients['anonymous'][] = $mail;
       }
       $source = simplenews_get_source_from_spool($message);
-      simplenews_mail_mail($source, 'test');
+      $source->setKey('test');
+      simplenews_send_source($source);
     }
   }
   if (count($recipients['user'])) {
@@ -154,24 +155,20 @@ function simplenews_send_test($node, $test_addresses) {
  * Send a node to an email address.
  *
  * @param $source
- *   The source object.
- * @param $key
- *   The email key, either 'node' or 'test'.
+ *   The source object.s
  *
  * @return boolean
  *   TRUE if the email was successfully delivered; otherwise FALSE.
  */
-function simplenews_send_source(SimplenewsSourceInterface $source, $key) {
-
-  $params['context']['source'] = $source;
-  $params['from'] = _simplenews_set_from($source->getCategory());
+function simplenews_send_source(SimplenewsSourceInterface $source) {
+  $params['simplenews_source'] = $source;
 
   // Optional params for Mime Mail.
   $params['plain'] = $source->getCategory()->format == 'plain' ? TRUE : NULL;
   $params['attachments'] = $source->getAttachments();
 
   // Send mail.
-  $message = drupal_mail('simplenews', $key, $source->getSubscriber()->mail, $source->getSubscriber()->language, $params, $params['from']['formatted']);
+  $message = drupal_mail('simplenews', $key, $source->getSubscriber()->mail, $source->getSubscriber()->language, $params, $source->getFromFormatted());
 
   // Log sent result in watchdog.
   if (variable_get('simplenews_debug', FALSE)) {
@@ -239,6 +236,7 @@ function simplenews_mail_spool($limit = NULL) {
 
     foreach ($spool_list as $msid => $spool_data) {
       $source = simplenews_get_source_from_spool($spool_data);
+      $source->setKey('node');
       simplenews_send_source($source);
 
       // Update spool status.
@@ -578,27 +576,16 @@ function simplenews_send_status_update() {
 /**
  * Build formatted from-name and email for a mail object.
  *
- * Each newsletter category can have a different from address.
- *
- * @param $category
- *   Newsletter category object.
- *
  * @return Associative array with (un)formatted from address
  *  'address'   => From address
  *  'formatted' => Formatted, mime encoded, from name and address
  */
-function _simplenews_set_from($category = NULL) {
+function _simplenews_set_from() {
   $address_default = variable_get('site_mail', ini_get('sendmail_from'));
   $name_default = variable_get('site_name', 'Drupal');
 
-  if ($category) {
-    $address = $category->from_address;
-    $name = $category->from_name;
-  }
-  else {
-    $address = variable_get('simplenews_from_address', $address_default);
-    $name = variable_get('simplenews_from_name', $name_default);
-  }
+  $address = variable_get('simplenews_from_address', $address_default);
+  $name = variable_get('simplenews_from_name', $name_default);
 
   // Windows based PHP systems don't accept formatted emails.
   $formatted_address = substr(PHP_OS, 0, 3) == 'WIN' ? $address : '"' . mime_header_encode($name) . '" <' . $address . '>';

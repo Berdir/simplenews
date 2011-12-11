@@ -458,7 +458,7 @@ function simplenews_node_update($node) {
   if ($node->simplenews->status == SIMPLENEWS_STATUS_SEND_PUBLISH && $node->status == NODE_PUBLISHED) {
     module_load_include('inc', 'simplenews', 'includes/simplenews.mail');
     simplenews_update_sent_status($node);
-    simplenews_send_node($node);
+    simplenews_add_node_to_spool($node);
   }
   else {
     // simplenews_update_sent_status() already saves the node, only need to do
@@ -1842,7 +1842,7 @@ function simplenews_mail($key, &$message, $params) {
   switch ($key) {
     case 'node':
     case 'test':
-      simplenews_build_node_mail($message, $params);
+      simplenews_build_node_mail($message, $params['simplenews_source']);
       break;
     case 'subscribe':
       simplenews_build_subscribe_mail($message, $params);
@@ -1867,9 +1867,7 @@ function simplenews_mail($key, &$message, $params) {
  * @param array $params
  *   Parameter array as used by hook_mail().
  */
-function simplenews_build_node_mail(&$message, $params, SimplenewsSourceInterface $source) {
-  $key = $params['key'];
-
+function simplenews_build_node_mail(&$message, SimplenewsSourceInterface $source) {
   // Get message data from source.
   $message['headers'] = $source->getHeaders($message['headers']);
   $message['subject'] = $source->getSubject();
@@ -1882,15 +1880,15 @@ function simplenews_build_node_mail(&$message, $params, SimplenewsSourceInterfac
   // Convert to plain text if required.
   if ($source->getCategory()->format == 'plain') {
     module_load_include('inc', 'simplenews', 'includes/simplenews.mail');
-    $message['body']['body'] = simplenews_html_to_text($message['body']['body'], $category->hyperlinks);
+    $message['body']['body'] = simplenews_html_to_text($message['body']['body'], $source->getCategory()->hyperlinks);
   }
 
   // Build message footer, replace tokens.
-  $message['body']['footer'] = token_replace($footer, $context, array('sanitize' => FALSE));
+  $message['body']['footer'] = token_replace($footer, $source->getTokenContext(), array('sanitize' => FALSE));
 
   // Add user specific header data.
   $message['headers']['From'] = $params['from']['formatted'];
-  $message['headers']['List-Unsubscribe'] = '<' . token_replace('[simplenews-subscriber:unsubscribe-url]', $context, array('sanitize' => FALSE)) . '>';
+  $message['headers']['List-Unsubscribe'] = '<' . token_replace('[simplenews-subscriber:unsubscribe-url]', $source->getTokenContext(), array('sanitize' => FALSE)) . '>';
 }
 
 /**
@@ -3081,7 +3079,7 @@ function simplenews_node_tab_send_form_submit($form, &$form_state) {
   module_load_include('inc', 'simplenews', 'includes/simplenews.mail');
   if ($values['simplenews']['send'] == SIMPLENEWS_COMMAND_SEND_NOW) {
     simplenews_update_sent_status($node);
-    simplenews_send_node($node);
+    simplenews_add_node_to_spool($node);
   }
   elseif ($values['simplenews']['send'] == SIMPLENEWS_COMMAND_SEND_TEST) {
     simplenews_send_test($node, $form_state['test_addresses']);

@@ -6,7 +6,7 @@ interface SimplenewsSourceInterface {
 
   function getBody();
 
-  function getHeaders($headers);
+  function getHeaders(array $headers);
 
   function getCategory();
 
@@ -15,12 +15,25 @@ interface SimplenewsSourceInterface {
   function getAttachments();
 
   function getTokenContext();
+  
+  function setCategory($tid);
+  
+  function setSubscriber($subscriber, $mail = NULL);
+
+  function setKey($key);
+
+  function getKey();
+
+  function getFromFormatted();
+
+  function getFromAddress();
 }
 
 abstract class SimplenewsSource implements SimplenewsSourceInterface {
 
   protected $category;
   protected $subscriber;
+  protected $key;
 
   public function setCategory($tid) {
     $this->category = simplenews_category_load($tid);
@@ -87,10 +100,36 @@ abstract class SimplenewsSource implements SimplenewsSourceInterface {
   function getTokenContext() {
     return array(
       'category' => $this->getCategory(),
-      'subscriber' => $this->getSubscriber(),
+      'account' => $this->getSubscriber(),
     );
   }
 
+  function setKey($key) {
+    $this->key = $key;
+  }
+
+  function getKey() {
+    return $this->key;
+  }
+
+  function getFromFormatted() {
+    $name = $this->getCategory()->from_name;
+
+    // Windows based PHP systems don't accept formatted emails.
+    if (substr(PHP_OS, 0, 3) == 'WIN') {
+      return $this->getFromAddress();
+
+    }
+    else {
+      return '"' . mime_header_encode($name) . '" <' . $this->getFromAddress() . '>';
+    }
+
+    return $formatted_address;
+  }
+
+  function getFromAddress() {
+    return $this->getCategory()->from_name;
+  }
 }
 
 abstract class SimplenewsSourceNode extends SimplenewsSource {
@@ -98,6 +137,7 @@ abstract class SimplenewsSourceNode extends SimplenewsSource {
   protected $node;
   protected $spool;
   protected $newsletter;
+  protected $build;
 
   public function __construct($spool_data) {
     $node = node_load($spool_data->nid);
@@ -106,14 +146,15 @@ abstract class SimplenewsSourceNode extends SimplenewsSource {
       throw new SimplenewsSourceException('Newsletter not send: newsletter issue does not exist (nid = @nid).', array('@nid' => $nid));
     }
     $this->newsletter = simplenews_newsletter_load($node->nid);
-    $this->setCategory($newsletter->tid);
-    $this->setSubscriber($spool_data->data, $spool_data->mail);
+    $this->setCategory($this->newsletter->tid);
+    $this->setSubscriber($spool_data->data, isset($spool_data->mail) ? $spool_data->mail : NULL);
 
     $this->setSourceNode($node);
   }
 
   function setSourceNode($node) {
     $langcode = $this->getSubscriber()->language;
+    $nid = $node->nid;
     if (module_exists('translation')) {
       // If the node has translations and a translation is required
       // the equivalent of the node in the required language is used
@@ -162,14 +203,18 @@ abstract class SimplenewsSourceNode extends SimplenewsSource {
     return $subject;
   }
 
-  protected function getBody() {
+  protected function build() {
+    if (!empty($this->build)) {
+      return $this->build;
+    }
+
     // Set the active language to the node's language.
     // This needs to be done as otherwise the language used to send the mail
     // is the language of the user logged in.
     // @todo Rewrite this code for drupal 7.
-//    if (module_exists('i18n')) {
-//         i18n_selection_mode('node', $node->language);
-//    }
+  //    if (module_exists('i18n')) {
+  //         i18n_selection_mode('node', $node->language);
+  //    }
     // Build message body
     // @todo restore the format selection.
     //$build = node_view($node, 'email_' . $category->format);
@@ -181,9 +226,32 @@ abstract class SimplenewsSourceNode extends SimplenewsSource {
       $build[$child]['#theme'] = 'simplenews_field';
     }
 
-    $body = theme('simplenews_newsletter_body', array('build' => $build, 'category' => $category, 'language' => $message['language']));
+    $this->build = $build;
+    return $build;
+  }
 
+  public function getBody() {
+    $body = theme('simplenews_newsletter_body', array('build' => $this->build(), 'category' => $this->getCategory(), 'language' => $this->getSubscriber()->language));
     return $body;
+  }
+
+  function getFooter() {
+    if ($this->category->opt_inout != SIMPLENEWS_OPT_INOUT_HIDDEN) {
+      // Build and buffer message footer
+      $footer = theme('simplenews_newsletter_footer', array(
+        'build' => $this->build(),
+        'category' => $this->getCategory(),
+        'context' => $this->getTokenContext(),
+        'key' => $this->getKey(),
+        'language' => $this->getSubscriber()->language,
+        )
+      );
+      return $footer;
+    }
+  }
+
+  function getAttachments() {
+    return array();
   }
 
 }
@@ -191,20 +259,5 @@ abstract class SimplenewsSourceNode extends SimplenewsSource {
 class SimplenewsSourceNodeCached extends SimplenewsSourceNode {
 
   protected static $cache = array();
-
-  function getFooter() {
-    if ($category->opt_inout != SIMPLENEWS_OPT_INOUT_HIDDEN) {
-      // Build and buffer message footer
-      $footer = theme('simplenews_newsletter_footer', array(
-        'build' => $build,
-        'category' => $category,
-        'context' => $context,
-        'key' => $key,
-        'language' => $message['language'],
-        )
-      );
-      return $footer;
-    }
-  }
 
 }
