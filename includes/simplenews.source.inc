@@ -93,6 +93,12 @@ abstract class SimplenewsSource implements SimplenewsSourceInterface {
   protected $subscriber;
   protected $key;
 
+  public function __construct($spool_data) {
+    $this->newsletter = simplenews_newsletter_load($spool_data->nid);
+    $this->setCategory($this->newsletter->tid);
+    $this->setSubscriber($spool_data->data, isset($spool_data->mail) ? $spool_data->mail : NULL);
+  }
+
   public function setCategory($tid) {
     $this->category = simplenews_category_load($tid);
   }
@@ -216,14 +222,12 @@ abstract class SimplenewsSourceNode extends SimplenewsSource {
   protected $build;
 
   public function __construct($spool_data) {
+    parent::__construct($spool_data);
     $node = node_load($spool_data->nid);
 
     if (!$node) {
       throw new SimplenewsSourceException('Newsletter not send: newsletter issue does not exist (nid = @nid).', array('@nid' => $nid));
     }
-    $this->newsletter = simplenews_newsletter_load($node->nid);
-    $this->setCategory($this->newsletter->tid);
-    $this->setSubscriber($spool_data->data, isset($spool_data->mail) ? $spool_data->mail : NULL);
 
     $this->setSourceNode($node);
   }
@@ -323,23 +327,38 @@ abstract class SimplenewsSourceNode extends SimplenewsSource {
     return $build;
   }
 
+  protected function buildBody() {
+    return theme('simplenews_newsletter_body', array('build' => $this->build(), 'category' => $this->getCategory(), 'language' => $this->getLanguage()));
+  }
+
   public function getBody() {
-    $body = theme('simplenews_newsletter_body', array('build' => $this->build(), 'category' => $this->getCategory(), 'language' => $this->getLanguage()));
+    $body = $this->buildBody();
+
+    // Build message body, replace tokens.
+    $body = token_replace($body, $this->getTokenContext(), array('sanitize' => FALSE));
+
+    // Convert to plain text if required.
+    if ($this->getFormat() == 'plain') {
+      $body = simplenews_html_to_text($body, $this->getCategory()->hyperlinks);
+    }
     return $body;
+  }
+
+  protected function buildFooter() {
+    // Build and buffer message footer
+    return theme('simplenews_newsletter_footer', array(
+      'build' => $this->build(),
+      'category' => $this->getCategory(),
+      'context' => $this->getTokenContext(),
+      'key' => $this->getKey(),
+      'language' => $this->getLanguage(),
+      )
+    );
   }
 
   function getFooter() {
     if ($this->category->opt_inout != SIMPLENEWS_OPT_INOUT_HIDDEN) {
-      // Build and buffer message footer
-      $footer = theme('simplenews_newsletter_footer', array(
-        'build' => $this->build(),
-        'category' => $this->getCategory(),
-        'context' => $this->getTokenContext(),
-        'key' => $this->getKey(),
-        'language' => $this->getLanguage(),
-        )
-      );
-      return $footer;
+      return token_replace($this->buildFooter(), $this->getTokenContext(), array('sanitize' => FALSE));
     }
   }
 
@@ -367,9 +386,9 @@ class SimplenewsSourceNodeCached extends SimplenewsSourceNode {
   protected static $footer_cache = array();
   protected static $attachments_cache = array();
 
-  public function getBody() {
+  public function buildBody() {
     if (!isset(self::$body_cache[$this->node->nid][$this->getLanguage()])) {
-      self::$body_cache[$this->node->nid][$this->getLanguage()] = parent::getBody();
+      self::$body_cache[$this->node->nid][$this->getLanguage()] = parent::buildBody();
     }
     return self::$body_cache[$this->node->nid][$this->getLanguage()];
   }
@@ -381,9 +400,9 @@ class SimplenewsSourceNodeCached extends SimplenewsSourceNode {
     return self::$attachments_cache[$this->node->nid];
   }
 
-  public function getFooter() {
+  public function buildFooter() {
     if (!isset(self::$footer_cache[$this->node->nid][$this->getLanguage()])) {
-      self::$footer_cache[$this->node->nid][$this->getLanguage()] = parent::getFooter();
+      self::$footer_cache[$this->node->nid][$this->getLanguage()] = parent::buildFooter();
     }
     return self::$footer_cache[$this->node->nid][$this->getLanguage()];
   }
