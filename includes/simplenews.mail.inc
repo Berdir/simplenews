@@ -163,12 +163,8 @@ function simplenews_send_test($node, $test_addresses) {
 function simplenews_send_source(SimplenewsSourceInterface $source) {
   $params['simplenews_source'] = $source;
 
-  // Optional params for Mime Mail.
-  $params['plain'] = $source->getCategory()->format == 'plain' ? TRUE : NULL;
-  $params['attachments'] = $source->getAttachments();
-
   // Send mail.
-  $message = drupal_mail('simplenews', $key, $source->getSubscriber()->mail, $source->getSubscriber()->language, $params, $source->getFromFormatted());
+  $message = drupal_mail('simplenews', $source->getKey(), $source->getSubscriber()->mail, $source->getLanguage(), $params, $source->getFromFormatted());
 
   // Log sent result in watchdog.
   if (variable_get('simplenews_debug', FALSE)) {
@@ -237,7 +233,7 @@ function simplenews_mail_spool($limit = NULL) {
     foreach ($spool_list as $msid => $spool_data) {
       $source = simplenews_get_source_from_spool($spool_data);
       $source->setKey('node');
-      simplenews_send_source($source);
+      $result = simplenews_send_source($source);
 
       // Update spool status.
       // This is not optimal for performance but prevents duplicate emails
