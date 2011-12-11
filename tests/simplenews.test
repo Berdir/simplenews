@@ -880,7 +880,7 @@ class SimpleNewsI18nTestCase extends SimplenewsTestCase {
   }
 
   function setUp() {
-    parent::setUp(array('i18n_taxonomy'));
+    parent::setUp(array('locale', 'i18n_string', 'i18n_translation', 'translation', 'i18n_taxonomy'));
     $this->admin_user = $this->drupalCreateUser(array('bypass node access', 'administer nodes', 'administer languages', 'administer content types', 'administer blocks', 'access administration pages', 'administer filters', 'administer taxonomy', 'translate interface', 'subscribe to newsletters'));
     $this->drupalLogin($this->admin_user);
     $this->setUpLanguages();

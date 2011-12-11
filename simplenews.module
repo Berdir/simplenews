@@ -1842,7 +1842,7 @@ function simplenews_mail($key, &$message, $params) {
   switch ($key) {
     case 'node':
     case 'test':
-      simplenews_build_node_mail($message, $params['simplenews_source']);
+      simplenews_build_newsletter_mail($message, $params['simplenews_source']);
       break;
     case 'subscribe':
       simplenews_build_subscribe_mail($message, $params);
@@ -1864,21 +1864,25 @@ function simplenews_mail($key, &$message, $params) {
  *
  * @param array $message
  *   Message array as used by hook_mail().
- * @param array $params
- *   Parameter array as used by hook_mail().
+ * @param array $source
+ *   The SimplenewsSource instance.
  */
-function simplenews_build_node_mail(&$message, SimplenewsSourceInterface $source) {
+function simplenews_build_newsletter_mail(&$message, SimplenewsSourceInterface $source) {
   // Get message data from source.
   $message['headers'] = $source->getHeaders($message['headers']);
   $message['subject'] = $source->getSubject();
   $body               = $source->getBody();
   $footer             = $source->getFooter();
 
+  // Optional params for Mime Mail.
+  $message['params']['plain'] = $source->getFormat() == 'plain' ? TRUE : NULL;
+  $message['params']['attachments'] = $source->getAttachments();
+
   // Build message body, replace tokens.
   $message['body']['body'] = token_replace($body, $source->getTokenContext(), array('sanitize' => FALSE));
 
   // Convert to plain text if required.
-  if ($source->getCategory()->format == 'plain') {
+  if ($source->getFormat() == 'plain') {
     module_load_include('inc', 'simplenews', 'includes/simplenews.mail');
     $message['body']['body'] = simplenews_html_to_text($message['body']['body'], $source->getCategory()->hyperlinks);
   }
@@ -1887,7 +1891,7 @@ function simplenews_build_node_mail(&$message, SimplenewsSourceInterface $source
   $message['body']['footer'] = token_replace($footer, $source->getTokenContext(), array('sanitize' => FALSE));
 
   // Add user specific header data.
-  $message['headers']['From'] = $params['from']['formatted'];
+  $message['headers']['From'] = $source->getFromFormatted();
   $message['headers']['List-Unsubscribe'] = '<' . token_replace('[simplenews-subscriber:unsubscribe-url]', $source->getTokenContext(), array('sanitize' => FALSE)) . '>';
 }
 
