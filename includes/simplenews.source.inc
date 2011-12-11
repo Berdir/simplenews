@@ -113,18 +113,39 @@ abstract class SimplenewsSource implements SimplenewsSourceInterface {
     return $this->category;
   }
 
+  /**
+   * Set the active subscriber.
+   *
+   * If NULL, the subscriber object will be loaded or created based on the mail
+   * address.
+   *
+   * @todo: This behavior should probably be removed.
+   *
+   * @param $subscriber
+   *   The subscriber object.
+   * @param $mail
+   *   Optionally an email address that can be used to load the subscriber.
+   *
+   */
   public function setSubscriber($subscriber, $mail = NULl) {
     if ($subscriber) {
       $this->subscriber = $subscriber;
-    } else {
+    }
+    elseif (!empty($mail)) {
       $this->subscriber = simplenews_get_subscription(_simplenews_user_load($mail));
     }
   }
 
+  /**
+   * Return the subscriber object.
+   */
   public function getSubscriber() {
     return $this->subscriber;
   }
 
+  /**
+   * Implements SimplenewsSourceInterface::getHeaders().
+   */
   public function getHeaders(array $headers) {
 
     // If receipt is requested, add headers.
@@ -167,6 +188,9 @@ abstract class SimplenewsSource implements SimplenewsSourceInterface {
     return $headers;
   }
 
+  /**
+   * Implements SimplenewsSourceInterface::getTokenContext().
+   */
   function getTokenContext() {
     return array(
       'category' => $this->getCategory(),
@@ -174,14 +198,23 @@ abstract class SimplenewsSource implements SimplenewsSourceInterface {
     );
   }
 
+  /**
+   * Set the mail key.
+   */
   function setKey($key) {
     $this->key = $key;
   }
 
+  /**
+   * Implements SimplenewsSourceInterface::getKey().
+   */
   function getKey() {
     return $this->key;
   }
 
+  /**
+   * Implements SimplenewsSourceInterface::getFromFormatted().
+   */
   function getFromFormatted() {
     $name = $this->getCategory()->from_name;
 
@@ -197,42 +230,72 @@ abstract class SimplenewsSource implements SimplenewsSourceInterface {
     return $formatted_address;
   }
 
+  /**
+   * Implements SimplenewsSourceInterface::getFromAddress().
+   */
   function getFromAddress() {
     return $this->getCategory()->from_address;
   }
 
+  /**
+   * Implements SimplenewsSourceInterface::getRecipient().
+   */
   function getRecipient() {
     return $this->getSubscriber()->mail;
   }
 
+  /**
+   * Implements SimplenewsSourceInterface::getFormat().
+   */
   function getFormat() {
     return $this->getCategory()->format;
   }
 
+  /**
+   * Implements SimplenewsSourceInterface::getLanguage().
+   */
   function getLanguage() {
     return $this->getSubscriber()->language;
   }
 }
 
-abstract class SimplenewsSourceNode extends SimplenewsSource {
+/**
+ * Simplenews source implementation based on nodes.
+ */
+class SimplenewsSourceNode extends SimplenewsSource {
 
+  /**
+   * The node object.
+   */
   protected $node;
-  protected $spool;
-  protected $newsletter;
+
+  /**
+   * The cached build render array.
+   */
   protected $build;
 
+  /**
+   * Set the active node.
+   */
   public function __construct($spool_data) {
     parent::__construct($spool_data);
     $node = node_load($spool_data->nid);
-
     if (!$node) {
       throw new SimplenewsSourceException('Newsletter not send: newsletter issue does not exist (nid = @nid).', array('@nid' => $nid));
     }
-
     $this->setSourceNode($node);
   }
 
-  function setSourceNode($node) {
+  /**
+   * Set the source node.
+   *
+   * If translation module is enabled, get the translated node of the target
+   * language, if available.
+   *
+   * @param $node
+   *   The node object to be set as source.
+   */
+  protected function setSourceNode($node) {
     $langcode = $this->getLanguage();
     $nid = $node->nid;
     if (module_exists('translation')) {
@@ -268,12 +331,20 @@ abstract class SimplenewsSourceNode extends SimplenewsSource {
     }
   }
 
+  /**
+   * Overrides SimplenewsSource::getTokenContext().
+   *
+   * Add the node object to the context.
+   */
   function getTokenContext() {
     $context = parent::getTokenContext();
     $context['node'] = $this->node;
     return $context;
   }
 
+  /**
+   * Implements SimplenewsSourceInterface::getSubject().
+   */
   function getSubject() {
     // Build email subject and perform some sanitizing.
     $subject = token_replace($this->getCategory()->email_subject, $this->getTokenContext(), array('sanitize' => FALSE));
@@ -284,7 +355,10 @@ abstract class SimplenewsSourceNode extends SimplenewsSource {
     return $subject;
   }
 
-  protected function setLanguage($language) {
+  /**
+   * Overwrites the current content language for i18n_select.
+   */
+  protected function setContentLanguage($language) {
     if (module_exists('i18n_select')) {
       $this->original_language = $GLOBALS['language_content'];
       $languages = language_list();
@@ -292,12 +366,20 @@ abstract class SimplenewsSourceNode extends SimplenewsSource {
     }
   }
 
+  /**
+   * Reset the content language back to the previous value.
+   */
   protected function resetLanguage() {
     if (module_exists('i18n_select')) {
       $GLOBALS['language_content'] = $this->original_language;
     }
   }
 
+  /**
+   * Build the node object.
+   *
+   * The resulting build array is cached as it is used in multiple places.
+   */
   protected function build() {
     if (!empty($this->build)) {
       return $this->build;
@@ -307,12 +389,12 @@ abstract class SimplenewsSourceNode extends SimplenewsSource {
     // This needs to be done as otherwise the language used to send the mail
     // is the language of the user logged in.
     $this->setLanguage($this->node->language);
+
     // Build message body
     // @todo restore the format selection.
     //$build = node_view($node, 'email_' . $category->format);
     // Supported view modes: 'email_plain', 'email_html', 'email_textalt'
     $build = node_view($this->node, 'email_plain');
-    // @todo Use simplenews_newsletter_body as #theme?
     unset($build['#theme']);
 
     foreach (field_info_instances('node', $this->node->type) as $field_name => $field) {
@@ -327,10 +409,16 @@ abstract class SimplenewsSourceNode extends SimplenewsSource {
     return $build;
   }
 
+  /**
+   * Build the themed newsletter body.
+   */
   protected function buildBody() {
     return theme('simplenews_newsletter_body', array('build' => $this->build(), 'category' => $this->getCategory(), 'language' => $this->getLanguage()));
   }
 
+  /**
+   * Implements SimplenewsSourceInterface::getBody().
+   */
   public function getBody() {
     $body = $this->buildBody();
 
@@ -344,6 +432,9 @@ abstract class SimplenewsSourceNode extends SimplenewsSource {
     return $body;
   }
 
+  /**
+   * Builds the themed footer.
+   */
   protected function buildFooter() {
     // Build and buffer message footer
     return theme('simplenews_newsletter_footer', array(
@@ -356,12 +447,18 @@ abstract class SimplenewsSourceNode extends SimplenewsSource {
     );
   }
 
+  /**
+   * Implements SimplenewsSourceInterface::getFooter().
+   */
   function getFooter() {
     if ($this->category->opt_inout != SIMPLENEWS_OPT_INOUT_HIDDEN) {
       return token_replace($this->buildFooter(), $this->getTokenContext(), array('sanitize' => FALSE));
     }
   }
 
+  /**
+   * Implements SimplenewsSourceInterface::getAttachments().
+   */
   function getAttachments() {
     $attachments = array();
     $build = $this->build();
@@ -380,12 +477,24 @@ abstract class SimplenewsSourceNode extends SimplenewsSource {
   }
 }
 
+/**
+ * Implementation of the node source which caches the themed node.
+ */
 class SimplenewsSourceNodeCached extends SimplenewsSourceNode {
 
+  /**
+   * Static cache of the body.
+   */
   protected static $body_cache = array();
-  protected static $footer_cache = array();
-  protected static $attachments_cache = array();
 
+  /**
+   * Static cache of the footer.
+   */
+  protected static $footer_cache = array();
+
+  /**
+   * Overrides SimplenewsSourceNode::buildBody().
+   */
   public function buildBody() {
     if (!isset(self::$body_cache[$this->node->nid][$this->getLanguage()])) {
       self::$body_cache[$this->node->nid][$this->getLanguage()] = parent::buildBody();
@@ -393,13 +502,9 @@ class SimplenewsSourceNodeCached extends SimplenewsSourceNode {
     return self::$body_cache[$this->node->nid][$this->getLanguage()];
   }
 
-  public function getAttachments() {
-    if (!isset(self::$attachments_cache[$this->node->nid])) {
-      self::$attachments_cache[$this->node->nid] = parent::getAttachments();
-    }
-    return self::$attachments_cache[$this->node->nid];
-  }
-
+  /**
+   * Overrides SimplenewsSourceNode::buildFooter().
+   */
   public function buildFooter() {
     if (!isset(self::$footer_cache[$this->node->nid][$this->getLanguage()])) {
       self::$footer_cache[$this->node->nid][$this->getLanguage()] = parent::buildFooter();
