@@ -291,10 +291,17 @@ function simplenews_mail_spool($limit = NULL) {
  *   - data
  *
  * @return SimplenewsSourceInterface
- *   A impementation of the source interface.
+ *   An impementation of the source interface.
  */
 function simplenews_get_source_from_spool($spool_data) {
-  return new SimplenewsSourceNodeCached($spool_data);
+  $source_class = variable_get('simplenews_source', 'SimplenewsSourceNodeCached');
+
+  // Check if this is a valid source.
+  if (!class_exists($source_class) || !($source_class instanceof SimplenewsSourceInterface)) {
+    // Fall back to default.
+    $source_class = 'SimplenewsSourceNodeCached';
+  }
+  return new $source_class($spool_data);
 }
 
 /**
