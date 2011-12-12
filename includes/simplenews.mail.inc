@@ -164,7 +164,7 @@ function simplenews_send_source(SimplenewsSourceInterface $source) {
   $params['simplenews_source'] = $source;
 
   // Send mail.
-  $message = drupal_mail('simplenews', $source->getKey(), $source->getSubscriber()->mail, $source->getLanguage(), $params, $source->getFromFormatted());
+  $message = drupal_mail('simplenews', $source->getKey(), $source->getRecipient(), $source->getLanguage(), $params, $source->getFromFormatted());
 
   // Log sent result in watchdog.
   if (variable_get('simplenews_debug', FALSE)) {

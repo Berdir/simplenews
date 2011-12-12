@@ -32,6 +32,11 @@ interface SimplenewsSourceInterface {
   function getBody();
 
   /**
+   * Returns the mail footer.
+   */
+  function getFooter();
+
+  /**
    * Returns the mail format.
    *
    * @return
