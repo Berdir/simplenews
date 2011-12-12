@@ -92,16 +92,41 @@ interface SimplenewsSourceInterface {
   function getFromAddress();
 }
 
+interface SimplenewsSourceCacheInterface {
+
+  function __construct(SimplenewsSourceInterface $source);
+
+  function get($group, $key);
+
+  function set($group, $key, $data);
+}
+
+/**
+ * Abstract base class for simplenews sources.
+ */
 abstract class SimplenewsSource implements SimplenewsSourceInterface {
 
   protected $category;
   protected $subscriber;
   protected $key;
 
+  /**
+   * Cache implementation used for this source.
+   *
+   * @var SimplenewsSourceCacheInterface
+   */
+  protected $cache;
+
   public function __construct($spool_data) {
     $this->newsletter = simplenews_newsletter_load($spool_data->nid);
     $this->setCategory($this->newsletter->tid);
     $this->setSubscriber($spool_data->data, isset($spool_data->mail) ? $spool_data->mail : NULL);
+    $this->initCache($spool_data);
+  }
+
+  protected function initCache($spool_data) {
+    $class = variable_get('simplenews_source_cache', 'SimplenewsSourceCacheBuild');
+    $this->cache = new $class($this);
   }
 
   public function setCategory($tid) {
@@ -226,9 +251,7 @@ abstract class SimplenewsSource implements SimplenewsSourceInterface {
     // Windows based PHP systems don't accept formatted emails.
     if (substr(PHP_OS, 0, 3) == 'WIN') {
       return $this->getFromAddress();
-
-    }
-    else {
+    } else {
       return '"' . mime_header_encode($name) . '" <' . $this->getFromAddress() . '>';
     }
 
@@ -262,6 +285,7 @@ abstract class SimplenewsSource implements SimplenewsSourceInterface {
   function getLanguage() {
     return $this->getSubscriber()->language;
   }
+
 }
 
 /**
@@ -330,8 +354,7 @@ class SimplenewsSourceNode extends SimplenewsSource {
     // If a translation of the node is used, load this node.
     if ($nid != $node->nid) {
       $this->node = node_load($nid);
-    }
-    else {
+    } else {
       $this->node = $node;
     }
   }
@@ -374,7 +397,7 @@ class SimplenewsSourceNode extends SimplenewsSource {
   /**
    * Reset the content language back to the previous value.
    */
-  protected function resetLanguage() {
+  protected function resetContentLanguage() {
     if (module_exists('i18n_select')) {
       $GLOBALS['language_content'] = $this->original_language;
     }
@@ -393,7 +416,7 @@ class SimplenewsSourceNode extends SimplenewsSource {
     // Set the active language to the node's language.
     // This needs to be done as otherwise the language used to send the mail
     // is the language of the user logged in.
-    $this->setLanguage($this->node->language);
+    $this->setContentLanguage($this->node->language);
 
     // Build message body
     // @todo restore the format selection.
@@ -408,7 +431,7 @@ class SimplenewsSourceNode extends SimplenewsSource {
       }
     }
 
-    $this->resetLanguage();
+    $this->resetContentLanguage();
 
     $this->build = $build;
     return $build;
@@ -418,7 +441,12 @@ class SimplenewsSourceNode extends SimplenewsSource {
    * Build the themed newsletter body.
    */
   protected function buildBody() {
-    return theme('simplenews_newsletter_body', array('build' => $this->build(), 'category' => $this->getCategory(), 'language' => $this->getLanguage()));
+    if ($cache = $this->cache->get('build', 'body')) {
+      return $cache;
+    }
+    $body = theme('simplenews_newsletter_body', array('build' => $this->build(), 'category' => $this->getCategory(), 'language' => $this->getLanguage()));
+    $this->cache->set('build', 'body', $body);
+    return $body;
   }
 
   /**
@@ -441,79 +469,137 @@ class SimplenewsSourceNode extends SimplenewsSource {
    * Builds the themed footer.
    */
   protected function buildFooter() {
+    if ($cache = $this->cache->get('build', 'footer')) {
+      return $cache;
+    }
+
     // Build and buffer message footer
-    return theme('simplenews_newsletter_footer', array(
-      'build' => $this->build(),
-      'category' => $this->getCategory(),
-      'context' => $this->getTokenContext(),
-      'key' => $this->getKey(),
-      'language' => $this->getLanguage(),
-      )
+    $footer = theme('simplenews_newsletter_footer', array(
+        'build' => $this->build(),
+        'category' => $this->getCategory(),
+        'context' => $this->getTokenContext(),
+        'key' => $this->getKey(),
+        'language' => $this->getLanguage(),
+        )
     );
+    $this->cache->set('build', 'footer', $footer);
+    return $footer;
   }
 
   /**
    * Implements SimplenewsSourceInterface::getFooter().
    */
   function getFooter() {
-    if ($this->category->opt_inout != SIMPLENEWS_OPT_INOUT_HIDDEN) {
-      return token_replace($this->buildFooter(), $this->getTokenContext(), array('sanitize' => FALSE));
+    if ($cache = $this->cache->get('final', 'footer')) {
+      return $cache;
     }
+
+    if ($this->category->opt_inout != SIMPLENEWS_OPT_INOUT_HIDDEN) {
+      $final_footer = token_replace($this->buildFooter(), $this->getTokenContext(), array('sanitize' => FALSE));
+    }
+
+    $this->cache->set('build', 'footer', $final_footer);
+    return $final_footer;
   }
 
   /**
    * Implements SimplenewsSourceInterface::getAttachments().
    */
   function getAttachments() {
+    if ($cache = $this->cache->get('data', 'attachments')) {
+      return $cache;
+    }
+
     $attachments = array();
     $build = $this->build();
+    $fids = array();
     foreach (field_info_instances('node', $this->node->type) as $field_name => $field_instance) {
       // @todo: Find a better way to support more field types.
       // Only add fields of type file which are enabled for the current view
       // mode as attachments.
       $field = field_info_field($field_name);
       if ($field['type'] == 'file' && isset($build[$field_name])) {
+
         if ($items = field_get_items('node', $node, $field_name)) {
-          $attachments = array_merge($attachments, $items);
+          foreach ($items as $item) {
+            $fids[] = $item['fid'];
+          }
         }
       }
     }
+    if (!empty($fids)) {
+      $attachments = file_load_multiple($fids);
+    }
+
+    $this->cache->set('data', 'attachments', $attachments);
     return $attachments;
   }
+
 }
 
-/**
- * Implementation of the node source which caches the themed node.
- */
-class SimplenewsSourceNodeCached extends SimplenewsSourceNode {
+class SimplenewsSourceCacheNone implements SimplenewsSourceCacheInterface {
 
-  /**
-   * Static cache of the body.
-   */
-  protected static $body_cache = array();
-
-  /**
-   * Static cache of the footer.
-   */
-  protected static $footer_cache = array();
-
-  /**
-   * Overrides SimplenewsSourceNode::buildBody().
-   */
-  public function buildBody() {
-    if (!isset(self::$body_cache[$this->node->nid][$this->getLanguage()])) {
-      self::$body_cache[$this->node->nid][$this->getLanguage()] = parent::buildBody();
-    }
-    return self::$body_cache[$this->node->nid][$this->getLanguage()];
+  public function __construct(SimplenewsSourceInterface $source) {
+    // Do nothing.
   }
 
-  /**
-   * Overrides SimplenewsSourceNode::buildFooter().
-   */
-  public function buildFooter() {
-    if (!isset(self::$footer_cache[$this->node->nid][$this->getLanguage()])) {
-      self::$footer_cache[$this->node->nid][$this->getLanguage()] = parent::buildFooter();
-    }
-    return self::$footer_cache[$this->node->nid][$this->getLanguage()];
+  public function get($group, $key) {
+    return NULL;
   }
+
+  public function set($group, $key, $data) {
+    // Do nothing.
+  }
+
+}
+
+class SimplenewsSourceCacheBuild implements SimplenewsSourceCacheInterface {
+
+  /**
+   * The simplenews source for which this cache is used.
+   *
+   * @var SimplenewsSourceInterface
+   */
+  protected $source;
+
+  protected $cid;
+
+  protected static $cache = array();
+
+  public function __construct(SimplenewsSourceInterface $source) {
+    $this->source = $source;
+  }
+
+  protected function getCid() {
+    if (empty($this->cid)) {
+      $context = $this->source->getTokenContext();
+      $this->cid = '';
+      if (!empty($context['node'])) {
+        $this->cid .= $context['node']->nid . ':';
+      }
+      $this->cid .= $this->source->getLanguage() . ':';
+    }
+    return $this->cid;
+  }
+
+  public function get($group, $key) {
+    // Only cache data and build information.
+    if (!in_array($group, array('data', 'build'))) {
+      return;
+    }
+
+    if (isset(self::$cache[$this->getCid()][$group][$key])) {
+      return self::$cache[$this->getCid()][$group][$key];
+    }
+  }
+
+  public function set($group, $key, $data) {
+    // Only cache data and build information.
+    if (!in_array($group, array('data', 'build'))) {
+      return;
+    }
+
+    self::$cache[$this->getCid()][$group][$key] = $data;
+  }
+
 }

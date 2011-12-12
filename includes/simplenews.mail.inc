@@ -294,12 +294,12 @@ function simplenews_mail_spool($limit = NULL) {
  *   An impementation of the source interface.
  */
 function simplenews_get_source_from_spool($spool_data) {
-  $source_class = variable_get('simplenews_source', 'SimplenewsSourceNodeCached');
+  $source_class = variable_get('simplenews_source', 'SimplenewsSourceNode');
 
   // Check if this is a valid source.
   if (!class_exists($source_class) || !($source_class instanceof SimplenewsSourceInterface)) {
-    // Fall back to default.
-    $source_class = 'SimplenewsSourceNodeCached';
+    // If not, fall back to default.
+    $source_class = 'SimplenewsSourceNode';
   }
   return new $source_class($spool_data);
 }
