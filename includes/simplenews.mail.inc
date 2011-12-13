@@ -230,9 +230,10 @@ function simplenews_mail_spool($limit = NULL) {
 
     _simplenews_measure_usec(TRUE);
 
-    foreach ($spool_list as $msid => $spool_data) {
-      $source = simplenews_get_source_from_spool($spool_data);
-      $source->setKey('node');
+    $source = simplenews_get_source_from_spool($spool_list);
+    $source->setKey('node');
+
+    while ($source->prepareMail()) {
       $result = simplenews_send_source($source);
 
       // Update spool status.
@@ -293,7 +294,7 @@ function simplenews_mail_spool($limit = NULL) {
  * @return SimplenewsSourceInterface
  *   An impementation of the source interface.
  */
-function simplenews_get_source_from_spool($spool_data) {
+function simplenews_get_source_from_spool($spool_list) {
   $source_class = variable_get('simplenews_source', 'SimplenewsSourceNode');
 
   // Check if this is a valid source.
@@ -301,7 +302,7 @@ function simplenews_get_source_from_spool($spool_data) {
     // If not, fall back to default.
     $source_class = 'SimplenewsSourceNode';
   }
-  return new $source_class($spool_data);
+  return new $source_class($spool_list);
 }
 
 /**
