@@ -10,6 +10,8 @@
  */
 interface SimplenewsSourceInterface {
 
+  function prepareMail();
+
   /**
    * Returns the mail headers.
    *
@@ -117,20 +119,31 @@ abstract class SimplenewsSource implements SimplenewsSourceInterface {
    */
   protected $cache;
 
-  public function __construct($spool_data) {
-    $this->newsletter = simplenews_newsletter_load($spool_data->nid);
-    $this->setCategory($this->newsletter->tid);
-    $this->setSubscriber($spool_data->data, isset($spool_data->mail) ? $spool_data->mail : NULL);
-    $this->initCache($spool_data);
+  protected $spool_list;
+
+  protected $spool_data;
+
+  public function __construct($spool_list) {
+    $this->spool_list = $spool_list;
+  }
+
+  public function prepareMail() {
+    $this->spool_data = next($this->spool_list);
+
+    // If we're done, return false.
+    if (!$this->spool_data) {
+      return FALSE;
+    }
+
+    $this->newsletter = simplenews_newsletter_load($this->spool_data->nid);
+    $this->category = simplenews_category_load($this->newsletter->tid);
+    $this->setSubscriber($this->spool_data->data, isset($this->spool_data->mail) ? $this->spool_data->mail : NULL);
+    $this->initCache($this->spool_data);
   }
 
   protected function initCache($spool_data) {
     $class = variable_get('simplenews_source_cache', 'SimplenewsSourceCacheBuild');
     $this->cache = new $class($this);
-  }
-
-  public function setCategory($tid) {
-    $this->category = simplenews_category_load($tid);
   }
 
   /**
@@ -306,11 +319,15 @@ class SimplenewsSourceNode extends SimplenewsSource {
   /**
    * Set the active node.
    */
-  public function __construct($spool_data) {
-    parent::__construct($spool_data);
+  public function prepareMail() {
+    parent::prepareMail();
+
+    // Reset data from previous mail.
+    $this->build = NULL;
+
     $node = node_load($spool_data->nid);
     if (!$node) {
-      throw new SimplenewsSourceException('Newsletter not send: newsletter issue does not exist (nid = @nid).', array('@nid' => $nid));
+      throw new SimplenewsSourceNodeDoesNotExistException('Newsletter not sent: newsletter issue does not exist (nid = @nid).', array('@nid' => $nid));
     }
     $this->setSourceNode($node);
   }
@@ -602,4 +619,10 @@ class SimplenewsSourceCacheBuild implements SimplenewsSourceCacheInterface {
     self::$cache[$this->getCid()][$group][$key] = $data;
   }
 
+}
+
+class SimplenewsSourceNodeDoesNotExistException extends Exception {
+  public function __construct() {
+
+  }
 }
