@@ -35,6 +35,7 @@ function simplenews_add_node_to_spool($node, $accounts = array()) {
 
     // Get accounts subscribed to this newsletter.
     // Using hook_simplenews_recipients modules can add recipients.
+    // @todo: This the result of this hook is ignored, remove this.
     $recipients = simplenews_get_subscriptions_by_list($node->simplenews->tid);
     foreach (module_implements('simplenews_recipients_alter') as $module) {
       $function = $module . '_simplenews_recipients_alter';
@@ -120,20 +121,17 @@ function simplenews_send_test($node, $test_addresses) {
   foreach ($test_addresses as $mail) {
     $mail = trim($mail);
     if (!empty($mail)) {
-      $message = new stdClass();
-      $message->nid = $node->nid;
-      $message->tid = $node->simplenews->tid;
       $account = _simplenews_user_load($mail);
-      $message->data = simplenews_get_subscription($account);
+      $subscriber = simplenews_get_subscription($account);
       if ($account->uid) {
-        $recipients['user'][] = $account->name . ' <'.$mail.'>';
+        $recipients['user'][] = $account->name . ' <' . $mail . '>';
       }
       else {
         $recipients['anonymous'][] = $mail;
       }
-      $source = simplenews_get_source_from_spool($message);
+      $source = new SimplenewsSourceNode($node, $subscriber);
       $source->setKey('test');
-      simplenews_send_source($source);
+      $result = simplenews_send_source($source);
     }
   }
   if (count($recipients['user'])) {
@@ -174,34 +172,29 @@ function simplenews_send_source(SimplenewsSourceInterface $source) {
     }
     // @todo Add line break before %mimemail.
     if ($message['result']) {
-      watchdog('simplenews', 'Outgoing email. Message type: %type<br />Subject: %subject<br />Recipient: %to %mimemail', array('%type' => $key, '%to' => $message['to'], '%subject' => $message['subject'], '%mimemail' => $via_mimemail), WATCHDOG_DEBUG);
+      watchdog('simplenews', 'Outgoing email. Message type: %type<br />Subject: %subject<br />Recipient: %to %mimemail', array('%type' => $source->getKey(), '%to' => $message['to'], '%subject' => $message['subject'], '%mimemail' => $via_mimemail), WATCHDOG_DEBUG);
     }
     else {
-      watchdog('simplenews', 'Outgoing email failed. Message type: %type<br />Subject: %subject<br />Recipient: %to %mimemail', array('%type' => $key, '%to' => $message['to'], '%subject' => $message['subject'], '%mimemail' => $via_mimemail), WATCHDOG_ERROR);
+      watchdog('simplenews', 'Outgoing email failed. Message type: %type<br />Subject: %subject<br />Recipient: %to %mimemail', array('%type' => $source->getKey(), '%to' => $message['to'], '%subject' => $message['subject'], '%mimemail' => $via_mimemail), WATCHDOG_ERROR);
     }
   }
 
-  if ($source instanceof SimplenewsSourceSpoolInterface) {
-    $processed = $source->getProcessed();
-
-    // Build array of sent results for spool table and reporting.
-    if ($message['result']) {
-      $message['result'] = array(
-        'status' => SIMPLENEWS_SPOOL_DONE,
-        'error' => FALSE,
-      );
-    }
-    else {
-      // This error may be caused by faulty mailserver configuration or overload.
-      // Mark "pending" to keep trying.
-      $message['result'] = array(
-        'status' => SIMPLENEWS_SPOOL_PENDING,
-        'error' => TRUE,
-      );
-    }
+  // Build array of sent results for spool table and reporting.
+  if ($message['result']) {
+    $result = array(
+      'status' => SIMPLENEWS_SPOOL_DONE,
+      'error' => FALSE,
+    );
   }
-
-  return isset($message['result']) ? $message['result'] : FALSE;
+  else {
+    // This error may be caused by faulty mailserver configuration or overload.
+    // Mark "pending" to keep trying.
+    $result = array(
+      'status' => SIMPLENEWS_SPOOL_PENDING,
+      'error' => TRUE,
+    );
+  }
+  return $result;
 }
 
 /**
@@ -234,21 +227,23 @@ function simplenews_mail_spool($limit = NULL) {
 
     _simplenews_measure_usec(TRUE);
 
-    $source = simplenews_get_source_from_spool($spool_list);
-    $source->setKey('node');
-
-    while ($source->prepareMail()) {
+    $spool = new SimplenewsSpool($spool_list);
+    while ($source = $spool->nextSource()) {
+      $source->setKey('node');
       $result = simplenews_send_source($source);
 
       // Update spool status.
       // This is not optimal for performance but prevents duplicate emails
       // in case of PHP execution time overrun.
-      simplenews_update_spool(array($msid), $result);
-      if ($result['status'] == SIMPLENEWS_SPOOL_DONE) {
-        $count_success++;
-      }
-      if ($result['error']) {
-        $count_fail++;
+      foreach ($spool->getProcessed() as $msid => $row) {
+        $row_result = isset($row->result) ? $row->result : $result;
+        simplenews_update_spool(array($msid), $row_result);
+        if ($row_result['status'] == SIMPLENEWS_SPOOL_DONE) {
+          $count_success++;
+        }
+        if ($row_result['error']) {
+          $count_fail++;
+        }
       }
 
       // Check every n emails if we exceed the limit.
@@ -261,6 +256,19 @@ function simplenews_mail_spool($limit = NULL) {
         if ($elapsed > SIMPLENEWS_SEND_TIME_LIMIT * ini_get('max_execution_time')) {
           watchdog('simplenews', 'Sending interrupted: PHP maximum execution time almost exceeded. Remaining newsletters will be sent during the next cron run. If this warning occurs regularly you should reduce the !cron_throttle_setting.', array('!cron_throttle_setting' => l(t('Cron throttle setting'), 'admin/config/simplenews/mail')), WATCHDOG_WARNING);
           break;
+        }
+      }
+
+      // It is possible that all or at the end some results failed to get
+      // prepared, report them separately.
+      foreach ($spool->getProcessed() as $msid => $row) {
+        $row_result = isset($row->result) ? $row->result : $result;
+        simplenews_update_spool(array($msid), $row_result);
+        if ($row_result['status'] == SIMPLENEWS_SPOOL_DONE) {
+          $count_success++;
+        }
+        if ($row_result['error']) {
+          $count_fail++;
         }
       }
     }
@@ -302,11 +310,11 @@ function simplenews_get_source_from_spool($spool_list) {
   $source_class = variable_get('simplenews_source', 'SimplenewsSourceNode');
 
   // Check if this is a valid source.
-  if (!class_exists($source_class) || !($source_class instanceof SimplenewsSourceInterface)) {
+  if (!class_exists($source_class) || !($source_class instanceof SimplenewsSpoolSourceInterface)) {
     // If not, fall back to default.
     $source_class = 'SimplenewsSourceNode';
   }
-  return new $source_class($spool_list);
+  return $source_class;
 }
 
 /**
@@ -740,8 +748,6 @@ function simplenews_build_newsletter_mail(&$message, SimplenewsSourceInterface $
   // Optional params for Mime Mail.
   $message['params']['plain'] = $source->getFormat() == 'plain' ? TRUE : NULL;
   $message['params']['attachments'] = $source->getAttachments();
-
-
   // Add user specific header data.
   $message['headers']['From'] = $source->getFromFormatted();
   $message['headers']['List-Unsubscribe'] = '<' . token_replace('[simplenews-subscriber:unsubscribe-url]', $source->getTokenContext(), array('sanitize' => FALSE)) . '>';

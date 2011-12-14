@@ -10,8 +10,6 @@
  */
 interface SimplenewsSourceInterface {
 
-  function prepareMail();
-
   /**
    * Returns the mail headers.
    *
@@ -94,19 +92,112 @@ interface SimplenewsSourceInterface {
   function getFromAddress();
 }
 
+/**
+ * Source interface based on a node.
+ *
+ * This is the interface that needs to be implemented to be compatible with
+ * the default simplenews spool implementation and therefore exposed in
+ * hook_simplenews_source_cache_info().
+ */
+interface SimplenewsSourceNodeInterface extends SimplenewsSourceInterface {
+
+  /**
+   * Create a source based on a node and subscriber.
+   */
+  function __construct($node, $subscriber);
+
+  /**
+   * Returns the actually used node of this source.
+   */
+  function getNode();
+}
+
+/**
+ * Interface for a simplenews source cache implementation.
+ *
+ * This is only compatible with the SimplenewsSpoolSourceInterface interface.
+ */
 interface SimplenewsSourceCacheInterface {
 
-  function __construct(SimplenewsSourceSpoolInterface $source);
+  /**
+   * Create a new instance, allows to initialize based on the used
+   * source.
+   */
+  function __construct(SimplenewsSourceNodeInterface $source);
 
+  /**
+   * Return a cached element, if existing.
+   *
+   * Although group and key can be used to identify the requested cache, the
+   * implementations are responsible to create a unique cache key themself using
+   * the $source. For example based on the node id and the language.
+   *
+   * @param $group
+   *   Group of the cache key, which allows cache implementations to decide what
+   *   they want to cache. Currently used groups:
+   *     - data: Raw data, e.g. attachments.
+   *     - build: Built and themed content, before personalizations like tokens.
+   *     - final: The final returned data. Caching this means that newsletter
+   *       can not be personalized anymore.
+   * @param $key
+   *   Identifies the requested element, e.g. body, footer or attachments.
+   */
   function get($group, $key);
 
+  /**
+   * Write an element to the cache.
+   *
+   * Although group and key can be used to identify the requested cache, the
+   * implementations are responsible to create a unique cache key themself using
+   * the $source. For example based on the node id and the language.
+   *
+   * @param $group
+   *   Group of the cache key, which allows cache implementations to decide what
+   *   they want to cache. Currently used groups:
+   *     - data: Raw data, e.g. attachments.
+   *     - build: Built and themed content, before personalizations like tokens.
+   *     - final: The final returned data. Caching this means that newsletter
+   *       can not be personalized anymore.
+   * @param $key
+   *   Identifies the requested element, e.g. body, footer or attachments.
+   * @param $data
+   *   The data to be saved in the cache.
+   */
   function set($group, $key, $data);
 }
 
-interface SimplenewsSourceSpoolInterface {
+/**
+ * A Simplenews spool implementation is a factory for Simplenews sources.
+ *
+ * Their main functionility is to return a number of sources based on the passed
+ * in array of mail spool rows. Additionally, it needs to return the processed
+ * mail rows after a source was sent.
+ *
+ * @todo: Move spool functions into this interface.
+ */
+interface SimplenewsSpoolInterface {
+
+  /**
+   * Initalizes the spool implementation.
+   *
+   * @param $spool_list
+   *   An array of rows from the {simplenews_mail_spool} table.
+   */
+  function __construct($pool_list);
+
+  /**
+   * Returns a Simplenews source to be sent.
+   *
+   * A single source may represent any number of mail spool rows, e.g. by
+   * addressing them as BCC.
+   */
+  function nextSource();
 
   /**
    * Returns the processed mail spool rows, keyed by the msid.
+   *
+   * Only rows that were processed while preparing the previously returned
+   * source must be returned.
    *
    * @return
    *   An array of mail spool rows, keyed by the msid. Can optionally have set
@@ -118,21 +209,123 @@ interface SimplenewsSourceSpoolInterface {
    *     - status: A simplenews spool status to indicate the status.
    */
   function getProcessed();
-
-  /**
-   * Returns the corresponding node object.
-   */
-  function getNode();
 }
 
 /**
  * Abstract base class for simplenews sources.
  */
-abstract class SimplenewsSourceSpool implements SimplenewsSourceSpoolInterface {
+class SimplenewsSpool implements SimplenewsSpoolInterface {
 
+  /**
+   * Array with mail spool rows being processed.
+   *
+   * @var array
+   */
+  protected $spool_list;
+
+  /**
+   * Array of the processed mail spool rows.
+   */
+  protected $processed = array();
+
+  /**
+   * Implements SimplenewsSpoolInterface::_construct($spool_list);
+   */
+  public function __construct($spool_list) {
+    $this->spool_list = $spool_list;
+  }
+
+  /**
+   * Implements SimplenewsSpoolInterface::nextSource();
+   */
+  public function nextSource() {
+    $spool_data = next($this->spool_list);
+    // If we're done, return false.
+    if (!$spool_data) {
+      return FALSE;
+    }
+
+    // Store this spool row as processed.
+    $this->processed[$spool_data->msid] = $spool_data;
+
+    $node = node_load($spool_data->nid);
+    if (!$node) {
+      // If node the load failed, set the processed status done and proceed with
+      // the next mail.
+      $this->processed[$spool_data->msid]->result = array(
+        'status' => SIMPLENEWS_SPOOL_DONE,
+        'error' => TRUE
+      );
+      return $this->prepareMail();
+    }
+
+    if ($spool_data->data) {
+      $subscriber = $spool_data->data;
+    }
+    else {
+      $subscriber = simplenews_get_subscription(_simplenews_user_load($spool_data->mail));
+    }
+
+    $source_class = $this->getSourceImplementation($spool_data);
+    $source = new $source_class($node, $subscriber);
+
+    // Set which node is actually used. In case of a translation set, this might
+    // not be the same node.
+    $this->processed[$spool_data->msid]->actual_nid = $source->getNode()->nid;
+    return $source;
+  }
+
+  /**
+   * Implements SimplenewsSpoolInterface::getProcessed();
+   */
+  function getProcessed() {
+    $processed = $this->processed;
+    unset($this->processed);
+    return $processed;
+  }
+
+  /**
+   * Return the Simplenews source implementation for the given mail spool row.
+   */
+  protected function getSourceImplementation($spool_data) {
+    return variable_get('simplenews_source', 'SimplenewsSourceNode');
+  }
+}
+
+/**
+ * Simplenews source implementation based on nodes for a single subscriber.
+ */
+class SimplenewsSourceNode implements SimplenewsSourceNodeInterface {
+
+  /**
+   * The node object.
+   */
+  protected $node;
+
+  /**
+   * The cached build render array.
+   */
+  protected $build;
+
+  /**
+   * The newsletter category.
+   */
   protected $category;
+
+  /**
+   * The subscriber and therefore recipient of this mail.
+   */
   protected $subscriber;
-  protected $key;
+
+  /**
+   * The mail key used for drupal_mail().
+   */
+  protected $key = 'test';
+
+  /**
+   * The simplenews newsletter.
+   */
+  protected $newsletter;
 
   /**
    * Cache implementation used for this source.
@@ -141,51 +334,70 @@ abstract class SimplenewsSourceSpool implements SimplenewsSourceSpoolInterface {
    */
   protected $cache;
 
-  protected $spool_list;
-
-  protected $spool_data;
-
-  protected $processed = array();
-
-  public function __construct($spool_list) {
-    $this->spool_list = $spool_list;
-  }
-
-  public function prepareMail() {
-    $this->spool_data = next($this->spool_list);
-
-    // If we're done, return false.
-    if (!$this->spool_data) {
-      return FALSE;
-    }
-
-    $this->newsletter = simplenews_newsletter_load($this->spool_data->nid);
+  /**
+   * Implements SimplenewsSourceInterface::_construct();
+   */
+  public function __construct($node, $subscriber) {
+    $this->setSubscriber($subscriber);
+    $this->setNode($node);
+    $this->newsletter = simplenews_newsletter_load($node->nid);
     $this->category = simplenews_category_load($this->newsletter->tid);
-    $this->setSubscriber($this->spool_data->data, isset($this->spool_data->mail) ? $this->spool_data->mail : NULL);
-    $this->initCache($this->spool_data);
-
-    // Store this spool row as processed.
-    $this->processed[$this->spool_data->msid] = $this->spool_data;
-
-    return TRUE;
+    $this->initCache();
   }
 
-  function getProcessed() {
-    $processed = $this->processed;
-    unset($this->processed);
-    return $processed;
+  /**
+   * Set the node of this source.
+   *
+   * If the node is part of a translation set, switch to the node for the
+   * requested language, if existent.
+   */
+  public function setNode($node) {
+    $langcode = $this->getLanguage();
+    $nid = $node->nid;
+    if (module_exists('translation')) {
+      // If the node has translations and a translation is required
+      // the equivalent of the node in the required language is used
+      // or the base node (nid == tnid) is used.
+      if ($tnid = $node->tnid) {
+        if ($langcode != $node->language) {
+          $translations = translation_node_get_translations($tnid);
+          // A translation is available in the preferred language.
+          if ($translation = $translations[$langcode]) {
+            $nid = $translation->nid;
+            $langcode = $translation->language;
+          }
+          else {
+            // No translation found which matches the preferred language.
+            foreach ($translations as $translation) {
+              if ($translation->nid == $tnid) {
+                $nid = $tnid;
+                $langcode = $translation->language;
+                break;
+              }
+            }
+          }
+        }
+      }
+    }
+    // If a translation of the node is used, load this node.
+    if ($nid != $node->nid) {
+      $this->node = node_load($nid);
+    }
+    else {
+      $this->node = $node;
+    }
   }
 
-  protected function initCache($spool_data) {
+  /**
+   * Initialize the cache implementation.
+   */
+  protected function initCache() {
     $class = variable_get('simplenews_source_cache', 'SimplenewsSourceCacheBuild');
     $this->cache = new $class($this);
   }
 
   /**
    * Returns the corresponding category.
-   *
-   * @return
-   *   The simplenews category object.
    */
   public function getCategory() {
     return $this->category;
@@ -193,25 +405,9 @@ abstract class SimplenewsSourceSpool implements SimplenewsSourceSpoolInterface {
 
   /**
    * Set the active subscriber.
-   *
-   * If NULL, the subscriber object will be loaded or created based on the mail
-   * address.
-   *
-   * @todo: This behavior should probably be removed.
-   *
-   * @param $subscriber
-   *   The subscriber object.
-   * @param $mail
-   *   Optionally an email address that can be used to load the subscriber.
-   *
    */
-  public function setSubscriber($subscriber, $mail = NULl) {
-    if ($subscriber) {
-      $this->subscriber = $subscriber;
-    }
-    elseif (!empty($mail)) {
-      $this->subscriber = simplenews_get_subscription(_simplenews_user_load($mail));
-    }
+  public function setSubscriber($subscriber) {
+    $this->subscriber = $subscriber;
   }
 
   /**
@@ -273,6 +469,7 @@ abstract class SimplenewsSourceSpool implements SimplenewsSourceSpoolInterface {
     return array(
       'category' => $this->getCategory(),
       'account' => $this->getSubscriber(),
+      'node' => $this->getNode(),
     );
   }
 
@@ -297,9 +494,10 @@ abstract class SimplenewsSourceSpool implements SimplenewsSourceSpoolInterface {
     $name = $this->getCategory()->from_name;
 
     // Windows based PHP systems don't accept formatted emails.
-    if (substr(PHP_OS, 0, 3) == 'WIN') {
+    if (drupal_substr(PHP_OS, 0, 3) == 'WIN') {
       return $this->getFromAddress();
-    } else {
+    }
+    else {
       return '"' . mime_header_encode($name) . '" <' . $this->getFromAddress() . '>';
     }
 
@@ -334,110 +532,11 @@ abstract class SimplenewsSourceSpool implements SimplenewsSourceSpoolInterface {
     return $this->getSubscriber()->language;
   }
 
-}
-
-/**
- * Simplenews source implementation based on nodes.
- */
-class SimplenewsSourceNode extends SimplenewsSourceSpool {
-
-  /**
-   * The node object.
-   */
-  protected $node;
-
-  /**
-   * The cached build render array.
-   */
-  protected $build;
-
-  /**
-   * Set the active node.
-   */
-  public function prepareMail() {
-    if (!parent::prepareMail()) {
-      return FALSE;
-    }
-
-    // Reset data from previous mail.
-    $this->build = NULL;
-
-    $node = node_load($spool_data->nid);
-    if (!$node) {
-      // If the load failed, set the processed status done and proceed with the
-      // next mail.
-      $this->processed[$this->spool_data->msid]->status = SIMPLENEWS_SPOOL_DONE;
-      $this->processed[$this->spool_data->msid]->error = TRUE;
-      if (!$this->prepareMail()) {
-        return FALSE;
-      }
-    }
-    $this->setSourceNode($node);
-  }
-
   /**
    * Implements SimplenewsSourceSpoolInterface::getNode().
    */
   function getNode() {
     return $this->node;
-  }
-
-  /**
-   * Set the source node.
-   *
-   * If translation module is enabled, get the translated node of the target
-   * language, if available.
-   *
-   * @param $node
-   *   The node object to be set as source.
-   */
-  protected function setSourceNode($node) {
-    $langcode = $this->getLanguage();
-    $nid = $node->nid;
-    if (module_exists('translation')) {
-      // If the node has translations and a translation is required
-      // the equivalent of the node in the required language is used
-      // or the base node (nid == tnid) is used.
-      if ($tnid = $node->tnid) {
-        if ($langcode != $node->language) {
-          $translations = translation_node_get_translations($tnid);
-          // A translation is available in the preferred language.
-          if ($translation = $translations[$langcode]) {
-            $nid = $translation->nid;
-            $langcode = $translation->language;
-          } else {
-            // No translation found which matches the preferred language.
-            foreach ($translations as $translation) {
-              if ($translation->nid == $tnid) {
-                $nid = $tnid;
-                $langcode = $translation->language;
-                break;
-              }
-            }
-          }
-        }
-      }
-    }
-    // If a translation of the node is used, load this node.
-    if ($nid != $node->nid) {
-      $this->node = node_load($nid);
-    } else {
-      $this->node = $node;
-    }
-
-    // Set which node is actually used.
-    $this->processed[$this->spool_data->msid]->actual_nid = $nid;
-  }
-
-  /**
-   * Overrides SimplenewsSource::getTokenContext().
-   *
-   * Add the node object to the context.
-   */
-  function getTokenContext() {
-    $context = parent::getTokenContext();
-    $context['node'] = $this->node;
-    return $context;
   }
 
   /**
@@ -545,12 +644,12 @@ class SimplenewsSourceNode extends SimplenewsSourceSpool {
 
     // Build and buffer message footer
     $footer = theme('simplenews_newsletter_footer', array(
-        'build' => $this->build(),
-        'category' => $this->getCategory(),
-        'context' => $this->getTokenContext(),
-        'key' => $this->getKey(),
-        'language' => $this->getLanguage(),
-        )
+      'build' => $this->build(),
+      'category' => $this->getCategory(),
+      'context' => $this->getTokenContext(),
+      'key' => $this->getKey(),
+      'language' => $this->getLanguage(),
+      )
     );
     $this->cache->set('build', 'footer', $footer);
     return $footer;
@@ -604,57 +703,55 @@ class SimplenewsSourceNode extends SimplenewsSourceSpool {
     $this->cache->set('data', 'attachments', $attachments);
     return $attachments;
   }
-
 }
 
-class SimplenewsSourceCacheNone implements SimplenewsSourceCacheInterface {
-
-  public function __construct(SimplenewsSourceInterface $source) {
-    // Do nothing.
-  }
-
-  public function get($group, $key) {
-    return NULL;
-  }
-
-  public function set($group, $key, $data) {
-    // Do nothing.
-  }
-
-}
-
-class SimplenewsSourceCacheBuild implements SimplenewsSourceCacheInterface {
+/**
+ * Abstract implementation of the source caching that does static caching.
+ *
+ * Subclasses need to implement the abstract function isCacheable() to decide
+ * what should be cached.
+ */
+abstract class SimplenewsSourceCacheStatic implements SimplenewsSourceCacheInterface {
 
   /**
    * The simplenews source for which this cache is used.
    *
-   * @var SimplenewsSourceInterface
+   * @var SimplenewsSourceNodeInterface
    */
   protected $source;
 
+  /**
+   * The cache identifier for the given source.
+   */
   protected $cid;
 
+  /**
+   * The static cache.
+   */
   protected static $cache = array();
 
-  public function __construct(SimplenewsSourceInterface $source) {
+  /**
+   * Implements SimplenewsSourceNodeInterface::__construct().
+   */
+  public function __construct(SimplenewsSourceNodeInterface $source) {
     $this->source = $source;
   }
 
+  /**
+   * Returns the cache identifier for the current source.
+   */
   protected function getCid() {
     if (empty($this->cid)) {
-      $context = $this->source->getTokenContext();
-      $this->cid = '';
-      if (!empty($context['node'])) {
-        $this->cid .= $context['node']->nid . ':';
-      }
-      $this->cid .= $this->source->getLanguage() . ':';
+      $this->cid = $this->source->getNode()->nid . ':' . $this->source->getLanguage();
     }
     return $this->cid;
   }
 
+  /**
+   * Implements SimplenewsSourceNodeInterface::get().
+   */
   public function get($group, $key) {
-    // Only cache data and build information.
-    if (!in_array($group, array('data', 'build'))) {
+    if (!$this->isCacheable($group, $key)) {
       return;
     }
 
@@ -663,19 +760,51 @@ class SimplenewsSourceCacheBuild implements SimplenewsSourceCacheInterface {
     }
   }
 
+  /**
+   * Implements SimplenewsSourceNodeInterface::set().
+   */
   public function set($group, $key, $data) {
-    // Only cache data and build information.
-    if (!in_array($group, array('data', 'build'))) {
+    if (!$this->isCacheable($group, $key)) {
       return;
     }
 
     self::$cache[$this->getCid()][$group][$key] = $data;
   }
 
+  /**
+   * Return if the requested element should be cached.
+   *
+   * @return
+   *   TRUE if it should be cached, FALSE otherwise.
+   */
+  abstract function isCacheable($group, $key);
 }
 
-class SimplenewsSourceNodeDoesNotExistException extends Exception {
-  public function __construct() {
+/**
+ * Cache implementation that does not cache anything at all.
+ */
+class SimplenewsSourceCacheNone extends SimplenewsSourceCacheStatic {
 
+  /**
+   * Implements SimplenewsSourceCacheStatic::set().
+   */
+  public function isCacheable($group, $key) {
+    return FALSE;
   }
+
+}
+
+/**
+ * Source cache implementation that caches build and data element.
+ */
+class SimplenewsSourceCacheBuild extends SimplenewsSourceCacheStatic {
+
+  /**
+   * Implements SimplenewsSourceCacheStatic::set().
+   */
+  function isCacheable($group, $key) {
+     // Only cache data and build information.
+    return in_array($group, array('data', 'build'));
+  }
+
 }
