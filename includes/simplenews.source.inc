@@ -239,11 +239,14 @@ class SimplenewsSpool implements SimplenewsSpoolInterface {
    * Implements SimplenewsSpoolInterface::nextSource();
    */
   public function nextSource() {
-    $spool_data = next($this->spool_list);
+    // Get the current mail spool row and update the internal pointer to the
+    // next row.
+    $return = each($this->spool_list);
     // If we're done, return false.
-    if (!$spool_data) {
+    if (!$return) {
       return FALSE;
     }
+    $spool_data = $return['value'];
 
     // Store this spool row as processed.
     $this->processed[$spool_data->msid] = $spool_data;
@@ -280,7 +283,7 @@ class SimplenewsSpool implements SimplenewsSpoolInterface {
    */
   function getProcessed() {
     $processed = $this->processed;
-    unset($this->processed);
+    $this->processed = array();
     return $processed;
   }
 
