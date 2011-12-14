@@ -181,20 +181,24 @@ function simplenews_send_source(SimplenewsSourceInterface $source) {
     }
   }
 
-  // Build array of sent results for spool table and reporting.
-  if ($message['result']) {
-    $message['result'] = array(
-      'status' => SIMPLENEWS_SPOOL_DONE,
-      'error' => FALSE,
-    );
-  }
-  else {
-    // This error may be caused by faulty mailserver configuration or overload.
-    // Mark "pending" to keep trying.
-    $message['result'] = array(
-      'status' => SIMPLENEWS_SPOOL_PENDING,
-      'error' => TRUE,
-    );
+  if ($source instanceof SimplenewsSourceSpoolInterface) {
+    $processed = $source->getProcessed();
+
+    // Build array of sent results for spool table and reporting.
+    if ($message['result']) {
+      $message['result'] = array(
+        'status' => SIMPLENEWS_SPOOL_DONE,
+        'error' => FALSE,
+      );
+    }
+    else {
+      // This error may be caused by faulty mailserver configuration or overload.
+      // Mark "pending" to keep trying.
+      $message['result'] = array(
+        'status' => SIMPLENEWS_SPOOL_PENDING,
+        'error' => TRUE,
+      );
+    }
   }
 
   return isset($message['result']) ? $message['result'] : FALSE;

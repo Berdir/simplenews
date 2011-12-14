@@ -96,17 +96,39 @@ interface SimplenewsSourceInterface {
 
 interface SimplenewsSourceCacheInterface {
 
-  function __construct(SimplenewsSourceInterface $source);
+  function __construct(SimplenewsSourceSpoolInterface $source);
 
   function get($group, $key);
 
   function set($group, $key, $data);
 }
 
+interface SimplenewsSourceSpoolInterface {
+
+  /**
+   * Returns the processed mail spool rows, keyed by the msid.
+   *
+   * @return
+   *   An array of mail spool rows, keyed by the msid. Can optionally have set
+   *   the following additional properties.
+   *     - actual_nid: In case of content translation, the source node that was
+   *       used for this mail.
+   *     - error: FALSE if the prepration for this row failed. For example set
+   *       when the corresponding node failed to load.
+   *     - status: A simplenews spool status to indicate the status.
+   */
+  function getProcessed();
+
+  /**
+   * Returns the corresponding node object.
+   */
+  function getNode();
+}
+
 /**
  * Abstract base class for simplenews sources.
  */
-abstract class SimplenewsSource implements SimplenewsSourceInterface {
+abstract class SimplenewsSourceSpool implements SimplenewsSourceSpoolInterface {
 
   protected $category;
   protected $subscriber;
@@ -122,6 +144,8 @@ abstract class SimplenewsSource implements SimplenewsSourceInterface {
   protected $spool_list;
 
   protected $spool_data;
+
+  protected $processed = array();
 
   public function __construct($spool_list) {
     $this->spool_list = $spool_list;
@@ -139,6 +163,17 @@ abstract class SimplenewsSource implements SimplenewsSourceInterface {
     $this->category = simplenews_category_load($this->newsletter->tid);
     $this->setSubscriber($this->spool_data->data, isset($this->spool_data->mail) ? $this->spool_data->mail : NULL);
     $this->initCache($this->spool_data);
+
+    // Store this spool row as processed.
+    $this->processed[$this->spool_data->msid] = $this->spool_data;
+
+    return TRUE;
+  }
+
+  function getProcessed() {
+    $processed = $this->processed;
+    unset($this->processed);
+    return $processed;
   }
 
   protected function initCache($spool_data) {
@@ -304,7 +339,7 @@ abstract class SimplenewsSource implements SimplenewsSourceInterface {
 /**
  * Simplenews source implementation based on nodes.
  */
-class SimplenewsSourceNode extends SimplenewsSource {
+class SimplenewsSourceNode extends SimplenewsSourceSpool {
 
   /**
    * The node object.
@@ -320,16 +355,31 @@ class SimplenewsSourceNode extends SimplenewsSource {
    * Set the active node.
    */
   public function prepareMail() {
-    parent::prepareMail();
+    if (!parent::prepareMail()) {
+      return FALSE;
+    }
 
     // Reset data from previous mail.
     $this->build = NULL;
 
     $node = node_load($spool_data->nid);
     if (!$node) {
-      throw new SimplenewsSourceNodeDoesNotExistException('Newsletter not sent: newsletter issue does not exist (nid = @nid).', array('@nid' => $nid));
+      // If the load failed, set the processed status done and proceed with the
+      // next mail.
+      $this->processed[$this->spool_data->msid]->status = SIMPLENEWS_SPOOL_DONE;
+      $this->processed[$this->spool_data->msid]->error = TRUE;
+      if (!$this->prepareMail()) {
+        return FALSE;
+      }
     }
     $this->setSourceNode($node);
+  }
+
+  /**
+   * Implements SimplenewsSourceSpoolInterface::getNode().
+   */
+  function getNode() {
+    return $this->node;
   }
 
   /**
@@ -374,6 +424,9 @@ class SimplenewsSourceNode extends SimplenewsSource {
     } else {
       $this->node = $node;
     }
+
+    // Set which node is actually used.
+    $this->processed[$this->spool_data->msid]->actual_nid = $nid;
   }
 
   /**
