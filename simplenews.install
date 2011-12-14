@@ -341,16 +341,6 @@ function simplenews_install() {
   _simplenews_install_nodetype();
 }
 
-/*
- * Enable plaintext widget module if there are any
- * HTML mail transmission modules available.
- */
-function simplenews_enable() {
-  if (simplenews_html_transmitter_modules()) {
-    module_enable(array('simplenews_plaintext'));
-  }
-}
-
 /**
  * Implement hook_uninstall().
  */

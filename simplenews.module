@@ -665,20 +665,11 @@ function simplenews_get_category_field($bundle_name) {
  * Implements hook_form_FORM_ID_alter().
  *
  * Add checkbox to the content type form to use the content type as newsletter.
- * Add Selectbox for plaintext field selection.
  */
 function simplenews_form_node_type_form_alter(&$form, $form_state) {
 
-  $form['simplenews'] = array(
-    '#type' => 'fieldset',
-    '#title' => 'Newsletter',
-    '#collapsible' => TRUE,
-    '#collapsed' => FALSE,
-    '#group' => 'additional_settings',
-  );
-  
-  // Add option to use content type as simplenews newsletter.  
-  $form['simplenews']['simplenews_content_type'] = array(
+  // Add option to use content type as simplenews newsletter.
+  $form['workflow']['simplenews_content_type'] = array(
     '#type' => 'checkbox',
     '#title' => t('Use as simplenews newsletter'),
     '#default_value' => variable_get('simplenews_content_type_' . $form['#node_type']->type, 0),
