@@ -32,6 +32,11 @@ interface SimplenewsSourceInterface {
   function getBody();
 
   /**
+   * Returns the plaintext body.
+   */
+  function getPlainBody();
+
+  /**
    * Returns the mail footer.
    */
   function getFooter();
@@ -460,6 +465,10 @@ class SimplenewsSourceNode implements SimplenewsSourceNodeInterface {
         break;
     }
 
+    // Add user specific header data.
+    $message['headers']['From'] = $this->getFromFormatted();
+    $message['headers']['List-Unsubscribe'] = '<' . token_replace('[simplenews-subscriber:unsubscribe-url]', $this->getTokenContext(), array('sanitize' => FALSE)) . '>';
+
     // Add general headers
     $headers['Precedence'] = 'bulk';
     return $headers;
@@ -579,10 +588,15 @@ class SimplenewsSourceNode implements SimplenewsSourceNodeInterface {
    * Build the node object.
    *
    * The resulting build array is cached as it is used in multiple places.
+   * @param $format
+   *   (Optional) Override the default format. Defaults to getFormat().
    */
-  protected function build() {
-    if (!empty($this->build)) {
-      return $this->build;
+  protected function build($format = NULL) {
+    if (empty($format)) {
+      $format = $this->getFormat();
+    }
+    if (!empty($this->build[$format])) {
+      return $this->build[$format];
     }
 
     // Set the active language to the node's language.
@@ -591,10 +605,8 @@ class SimplenewsSourceNode implements SimplenewsSourceNodeInterface {
     $this->setContentLanguage($this->node->language);
 
     // Build message body
-    // @todo restore the format selection.
-    //$build = node_view($node, 'email_' . $category->format);
     // Supported view modes: 'email_plain', 'email_html', 'email_textalt'
-    $build = node_view($this->node, 'email_plain');
+    $build = node_view($this->node, 'email_' . $format);
     unset($build['#theme']);
 
     foreach (field_info_instances('node', $this->node->type) as $field_name => $field) {
@@ -611,12 +623,18 @@ class SimplenewsSourceNode implements SimplenewsSourceNodeInterface {
 
   /**
    * Build the themed newsletter body.
+   *
+   * @param $format
+   *   (Optional) Override the default format. Defaults to getFormat().
    */
-  protected function buildBody() {
-    if ($cache = $this->cache->get('build', 'body')) {
+  protected function buildBody($format = NULL) {
+    if (empty($format)) {
+      $format = $this->getFormat();
+    }
+    if ($cache = $this->cache->get('build', 'body:' . $format)) {
       return $cache;
     }
-    $body = theme('simplenews_newsletter_body', array('build' => $this->build(), 'category' => $this->getCategory(), 'language' => $this->getLanguage()));
+    $body = theme('simplenews_newsletter_body', array('build' => $this->build($format), 'category' => $this->getCategory(), 'language' => $this->getLanguage()));
     $this->cache->set('build', 'body', $body);
     return $body;
   }
@@ -629,11 +647,18 @@ class SimplenewsSourceNode implements SimplenewsSourceNodeInterface {
 
     // Build message body, replace tokens.
     $body = token_replace($body, $this->getTokenContext(), array('sanitize' => FALSE));
+    return $body;
+  }
 
-    // Convert to plain text if required.
-    if ($this->getFormat() == 'plain') {
-      $body = simplenews_html_to_text($body, $this->getCategory()->hyperlinks);
-    }
+  /**
+   * Implements SimplenewsSourceInterface::getBody().
+   */
+  public function getPlainBody() {
+    $body = $this->buildBody('plain');
+
+    // Build message body, replace tokens.
+    $body = token_replace($body, $this->getTokenContext(), array('sanitize' => FALSE));
+    $body = simplenews_html_to_text($body, $this->getCategory()->hyperlinks);
     return $body;
   }
 

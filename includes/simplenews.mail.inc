@@ -742,15 +742,18 @@ function simplenews_build_newsletter_mail(&$message, SimplenewsSourceInterface $
   // Get message data from source.
   $message['headers'] = $source->getHeaders($message['headers']);
   $message['subject'] = $source->getSubject();
-  $message['body']['body'] = $source->getBody();
+  $message['body']['body'] = $source->getFormat() == 'html' ? $source->getBody() : $source->getPlainBody();
   $message['body']['footer'] = $source->getFooter();
 
-  // Optional params for Mime Mail.
-  $message['params']['plain'] = $source->getFormat() == 'plain' ? TRUE : NULL;
-  $message['params']['attachments'] = $source->getAttachments();
-  // Add user specific header data.
-  $message['headers']['From'] = $source->getFromFormatted();
-  $message['headers']['List-Unsubscribe'] = '<' . token_replace('[simplenews-subscriber:unsubscribe-url]', $source->getTokenContext(), array('sanitize' => FALSE)) . '>';
+  // Optional params for HTML mails.
+  if ($source->getFormat() == 'html') {
+    $message['params']['plain'] = NULL;
+    $message['params']['plaintext'] = $source->getPlainBody();
+    $message['params']['attachments'] = $source->getAttachments();
+  }
+  else {
+    $message['params']['plain'] = TRUE;
+  }
 }
 
 /**
