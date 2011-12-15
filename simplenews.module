@@ -2559,6 +2559,15 @@ function template_preprocess_simplenews_newsletter_footer(&$variables) {
 }
 
 /**
+* Theme the newsletter message subject and alternative plaintext body.
+*/
+function theme_simplenews_newsletter_plaintext_body($variables) {
+  $text = $variables['node']->title . "\n\n";
+  $text = simplenews_html_to_text(field_view_field('node', $variables['node'], $variables['plain_field']));
+  return $text;
+}
+
+/**
  * Access callback; Acces to Newsletter tab page.
  */
 function simplenews_node_tab_access($node) {
