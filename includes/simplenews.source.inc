@@ -643,10 +643,26 @@ class SimplenewsSourceNode implements SimplenewsSourceNodeInterface {
    * Implements SimplenewsSourceInterface::getBody().
    */
   public function getBody() {
+
+    // Impersonate the subscriber if he is a user.
+    if ($uid = $this->getSubscriber()->uid) {
+      simplenews_impersonate_user($uid);
+    }
+
+    if ($cache = $this->cache->get('final', 'body')) {
+      return $cache;
+    }
+
     $body = $this->buildBody();
 
     // Build message body, replace tokens.
     $body = token_replace($body, $this->getTokenContext(), array('sanitize' => FALSE));
+    $this->cache->set('final', 'body', $body);
+
+    // Switch back to the previous user.
+    if ($uid) {
+      simplenews_revert_user();
+    }
     return $body;
   }
 
@@ -654,11 +670,26 @@ class SimplenewsSourceNode implements SimplenewsSourceNodeInterface {
    * Implements SimplenewsSourceInterface::getBody().
    */
   public function getPlainBody() {
+
+    // Impersonate the subscriber if he is a user.
+    if ($uid = $this->getSubscriber()->uid) {
+      simplenews_impersonate_user($uid);
+    }
+
+    if ($cache = $this->cache->get('final', 'body:plain')) {
+      return $cache;
+    }
     $body = $this->buildBody('plain');
 
     // Build message body, replace tokens.
     $body = token_replace($body, $this->getTokenContext(), array('sanitize' => FALSE));
     $body = simplenews_html_to_text($body, $this->getCategory()->hyperlinks);
+    $this->cache->set('final', 'body:plain', $body);
+
+    // Switch back to the previous user.
+    if ($uid) {
+      simplenews_revert_user();
+    }
     return $body;
   }
 
@@ -831,6 +862,12 @@ class SimplenewsSourceCacheBuild extends SimplenewsSourceCacheStatic {
    * Implements SimplenewsSourceCacheStatic::set().
    */
   function isCacheable($group, $key) {
+
+    // Only cache for anon users.
+    if (user_is_logged_in()) {
+      return FALSE;
+    }
+
      // Only cache data and build information.
     return in_array($group, array('data', 'build'));
   }

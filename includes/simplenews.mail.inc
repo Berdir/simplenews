@@ -181,14 +181,9 @@ function simplenews_mail_spool($limit = SIMPLENEWS_UNLIMITED) {
 
   // Send pending messages from database cache
   if ($spool_list = simplenews_get_spool(array(SIMPLENEWS_SPOOL_PENDING, SIMPLENEWS_SPOOL_IN_PROGRESS), $limit)) {
-    // Prevent session information from being saved while sending.
-    if ($original_session = drupal_save_session()) {
-      drupal_save_session(FALSE);
-    }
 
-    // Force the current user to anonymous to ensure consistent permissions.
-    $original_user = $GLOBALS['user'];
-    $GLOBALS['user'] = drupal_anonymous_user();
+    // Switch to the anonymous user.
+    simplenews_impersonate_user(drupal_anonymous_user());
 
     $count_fail = $count_success = 0;
 
@@ -252,11 +247,7 @@ function simplenews_mail_spool($limit = SIMPLENEWS_UNLIMITED) {
     variable_set('simplenews_last_cron', REQUEST_TIME);
     variable_set('simplenews_last_sent', $count_success);
 
-    // Restore the user.
-    $GLOBALS['user'] = $original_user;
-    if ($original_session) {
-      drupal_save_session(TRUE);
-    }
+    simplenews_revert_user();
   }
 }
 
