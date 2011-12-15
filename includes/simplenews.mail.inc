@@ -30,49 +30,18 @@ function simplenews_add_node_to_spool($node, $accounts = array()) {
   }
 
   if (is_object($node)) {
-    $spool_data['nid'] = $node->nid;
-    $spool_data['tid'] = $node->simplenews->tid;
-
-    // Get accounts subscribed to this newsletter.
-    // Using hook_simplenews_recipients modules can add recipients.
-    // @todo: This the result of this hook is ignored, remove this.
-    $recipients = simplenews_get_subscriptions_by_list($node->simplenews->tid);
-    foreach (module_implements('simplenews_recipients_alter') as $module) {
-      $function = $module . '_simplenews_recipients_alter';
-      $function($recipients, $node->simplenews->tid);
-    }
-
-    // Build data array of specified accounts.
-    // First we use the recipient data collected by hook_simplenews_recipients().
-    // If this fails we get the data from $accounts
-    if ($accounts) {
-      $temp_recipients = array();
-      foreach ($accounts as $account) {
-        if (isset($recipients[$account->mail])) {
-          $temp_recipients[$account->mail] = $recipients[$account->mail];
-        }
-        else {
-          // Set these accounts to 'subscribed'.
-          $account->status = 1;
-          $temp_recipients[$account->mail] = $account;
-        }
-      }
-      $recipients = $temp_recipients;
-    }
-
     // To send the newsletter, the node id and target email addresses
     // are stored in the spool.
     // Only subscribed recipients are stored in the spool (status = 1).
-
     $select = db_select('simplenews_subscriber', 's');
     $select->innerJoin('simplenews_subscription', 't', 's.snid = t.snid');
     $select->addField('s', 'mail');
     $select->addField('s', 'snid');
     $select->addField('t', 'tid');
-    $select->addExpression($spool_data['nid'], 'nid');
+    $select->addExpression($node->nid, 'nid');
     $select->addExpression(SIMPLENEWS_SUBSCRIPTION_STATUS_SUBSCRIBED, 'status');
     $select->addExpression(REQUEST_TIME, 'timestamp');
-    $select->condition('t.tid', $spool_data['tid']);
+    $select->condition('t.tid', $node->simplenews->tid);
     $select->condition('t.status', SIMPLENEWS_SUBSCRIPTION_STATUS_SUBSCRIBED);
     $select->condition('s.activated', SIMPLENEWS_SUBSCRIPTION_ACTIVE);
 
@@ -84,7 +53,7 @@ function simplenews_add_node_to_spool($node, $accounts = array()) {
     // in the spool. When cron is used newsletters are send to addresses in the
     // spool during the next (and following) cron run.
     if (variable_get('simplenews_use_cron', TRUE) == FALSE) {
-      simplenews_mail_spool(99999);
+      simplenews_mail_spool();
       drupal_set_message(t('Newsletter sent.'));
       simplenews_clear_spool();
       simplenews_send_status_update();
@@ -207,12 +176,10 @@ function simplenews_send_source(SimplenewsSourceInterface $source) {
  *
  * TODO: Redesign API to allow language counter in multilingual sends.
  */
-function simplenews_mail_spool($limit = NULL) {
+function simplenews_mail_spool($limit = SIMPLENEWS_UNLIMITED) {
   $check_counter = 0;
 
   // Send pending messages from database cache
-  // A limited number of mails is retrieved from the spool
-  $limit = isset($limit) ? $limit : variable_get('simplenews_throttle', 20);
   if ($spool_list = simplenews_get_spool(array(SIMPLENEWS_SPOOL_PENDING, SIMPLENEWS_SPOOL_IN_PROGRESS), $limit)) {
     // Prevent session information from being saved while sending.
     if ($original_session = drupal_save_session()) {
@@ -379,7 +346,7 @@ function simplenews_get_expiration_time() {
  * @return array
  *   An array of message ids to be sent in the current run.
  */
-function simplenews_get_spool($status, $limit = NULL) {
+function simplenews_get_spool($status, $limit = SIMPLENEWS_UNLIMITED) {
   $messages = array();
   $clauses = array();
   $params = array();
@@ -414,7 +381,7 @@ function simplenews_get_spool($status, $limit = NULL) {
   if (lock_acquire('simplenews_acquire_mail')) {
     // Get message id's
     // Allocate messages
-    if (is_numeric($limit)) {
+    if ($limit > 0) {
       $query->range(0, $limit);
     }
     foreach ($query->execute() as $message) {

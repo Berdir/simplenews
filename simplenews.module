@@ -82,6 +82,11 @@ define('SIMPLENEWS_OPT_INOUT_SINGLE', 'single');
 define('SIMPLENEWS_OPT_INOUT_DOUBLE', 'double');
 
 /**
+ * Used when sending an unlimited amount of mails from the spool.
+ */
+define('SIMPLENEWS_UNLIMITED', -1);
+
+/**
  * Implementation of hook_permission().
  *
  * @todo Change sort order where required: http://drupal.org/node/224333#sorting_permissions
@@ -792,7 +797,7 @@ function simplenews_field_ui_view_modes_tabs() {
  */
 function simplenews_cron() {
   module_load_include('inc', 'simplenews', 'includes/simplenews.mail');
-  simplenews_mail_spool();
+  simplenews_mail_spool(variable_get('simplenews_throttle', 20));
   simplenews_clear_spool();
   // Update sent status for newsletter admin panel.
   simplenews_send_status_update();
