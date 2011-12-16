@@ -747,7 +747,7 @@ function _simplenews_node_form(&$form, $form_state) {
 
     $form['simplenews_token_help']['browser'] = array(
       '#theme' => 'token_tree',
-      '#token_types' => array('simplenews-newsletter', 'simplenews-category'),
+      '#token_types' => array('simplenews-newsletter', 'simplenews-category', 'simplenews-subscriber'),
     );
   }
 }
@@ -2336,14 +2336,17 @@ function simplenews_token_info() {
   // @todo Add desription to the types and extend available tokens.
   $types['simplenews-subscriber'] = array(
     'name' => t('Simplenews subscriber'),
+    'description' => t('Tokens related to the newsletter recipient'),
     'needs-data' => 'account',
   );
   $types['simplenews-newsletter'] = array(
     'name' => t('Simplenews newsletter'),
+    'description' => t('Token related to this newsletter issue'),
     'needs-data' => 'node',
   );
   $types['simplenews-category'] = array(
     'name' => t('Simplenews newsletter category'),
+    'description' => t('Tokens related to the newsletter category'),
     'needs-data' => 'category',
   );
 
@@ -2361,10 +2364,21 @@ function simplenews_token_info() {
     'description' => t('The email address of the newsletter receiver.'),
   );
 
+  $subscriber['user'] = array(
+    'name' => t('Corresponding user'),
+    'description' => t('The user object that corresponds to this subscriber. This is not set for anonymous subscribers.'),
+    'type' => 'user',
+  );
+
   // Tokens for simplenews newsletter.
   $newsletter['url'] = array(
     'name' => t('Newsletter URL'),
-    'description' => t('The URL of this newsletter.'),
+    'description' => t('The URL of this newsletter issue.'),
+  );
+  $newsletter['node'] = array(
+    'name' => t('Newsletter Node'),
+    'description' => t('The Node of this newsletter issue.'),
+    'type' => 'node',
   );
 
   // Tokens for simplenews newsletter category.
@@ -2375,6 +2389,11 @@ function simplenews_token_info() {
   $category['url'] = array(
     'name' => t('Newsletter category URL'),
     'description' => t('The URL of the page listing the issues of this newsletter category.'),
+  );
+  $category['term'] = array(
+    'name' => t('Corresponding term'),
+    'description' => t('The taxonomy term of this newsletter category'),
+    'type' => 'taxonomy_term',
   );
 
   return array(
@@ -2425,6 +2444,11 @@ function simplenews_tokens($type, $tokens, $data = array(), $options = array()) 
             break;
         }
       }
+
+      if ($user_tokens = token_find_with_prefix($tokens, 'user') && !empty($account->uid)) {
+        $replacements += token_generate('user', $user_tokens, array('user' => user_load($account->uid)), $options);
+      }
+
       break;
 
     case 'simplenews-newsletter':
@@ -2436,6 +2460,9 @@ function simplenews_tokens($type, $tokens, $data = array(), $options = array()) 
             $replacements[$original] = url('node/' . $node->nid, array('absolute' => TRUE, 'language' => $language));
             break;
         }
+      }
+      if ($node_tokens = token_find_with_prefix($tokens, 'node')) {
+        $replacements += token_generate('node', $node_tokens, array('node' => $node), $options);
       }
       break;
 
@@ -2454,10 +2481,14 @@ function simplenews_tokens($type, $tokens, $data = array(), $options = array()) 
             break;
 
           case 'url':
-            // @todo replace path
-            $replacements[$original] = url('taxonomy/term/' . $category->tid);
+            $uri = entity_uri('taxonomy_term', $category);
+            $replacements[$original] = url($uri['path'], $uri['options']);
             break;
         }
+      }
+
+      if ($term_tokens = token_find_with_prefix($tokens, 'term')) {
+        $replacements += token_generate('taxonomy_term', $term_tokens, array('taxonomy_term' => $category), $options);
       }
       break;
   }
