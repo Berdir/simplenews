@@ -351,17 +351,18 @@ function simplenews_node_view($node, $view_mode) {
   if (!simplenews_check_node_types($node->type)) {
     return;
   }
-  // Replace the tokens when view mode is 'email_*'.
-  if (strpos($view_mode, 'email_') === 0) {
 
-    if (isset($build['body'])) {
-      // @todo Where to perform the token replacement?
-      //$build['body'] = token_replace($build['body'], array('node' => $node));
-    }
-    if (isset($build['teaser'])) {
-      // @todo Where to perform the token replacement?
-      //$build['teaser'] = token_replace($build['teaser'], array('node' => $node));
-    }
+  $context = array(
+    'account' => $GLOBALS['user'],
+    'node' => $node,
+    'category' => simplenews_category_load(simplenews_newsletter_load($node->nid)->tid),
+  );
+
+  $node->title = token_replace($node->title, $context, array());
+
+  dpm($node);
+  foreach ($node->content as &$element) {
+    //if ()
   }
 }
 
@@ -2445,7 +2446,7 @@ function simplenews_tokens($type, $tokens, $data = array(), $options = array()) 
         }
       }
 
-      if ($user_tokens = token_find_with_prefix($tokens, 'user') && !empty($account->uid)) {
+      if (($user_tokens = token_find_with_prefix($tokens, 'user')) && !empty($account->uid)) {
         $replacements += token_generate('user', $user_tokens, array('user' => user_load($account->uid)), $options);
       }
 
