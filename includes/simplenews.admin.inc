@@ -1319,7 +1319,7 @@ function simplenews_build_subscription_filter_query() {
   }
 
   // All conditions are combined with AND
-  $where = empty($where) ? '' : ' AND '. implode(' AND ', $where);
+  $where = empty($where) ? '' : ' WHERE '. implode(' AND ', $where);
 
   return array('where' => $where, 'join' => $join, 'args' => $args);
 }
