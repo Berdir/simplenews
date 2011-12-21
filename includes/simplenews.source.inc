@@ -635,7 +635,7 @@ class SimplenewsSourceNode implements SimplenewsSourceNodeInterface {
       return $cache;
     }
     $body = theme('simplenews_newsletter_body', array('build' => $this->build($format), 'category' => $this->getCategory(), 'language' => $this->getLanguage()));
-    $this->cache->set('build', 'body', $body);
+    $this->cache->set('build', 'body:' . $format, $body);
     return $body;
   }
 

@@ -13,18 +13,8 @@
  * @param mixed $node
  *   The newsletter node to be sent.  If an integer, the node nid; if an object,
  *   the node object.
- * @param array $accounts
- *   An array of recipient accounts for this newsletter.  Each account may
- *   have the following properties, but either snid, mail, or uid must be
- *   defined:
- *   - snid: The subscription id, or 0 if no subscription record exists.
- *   - tid: The newsletter category id.
- *   - uid: The subscriber's uid, or 0 if the subscriber has no user account.
- *   - mail: The subscriber's email address.
- *   - name: Emtpy; added for compatibility with user account object.
- *   - language: The language object of the subscriber's preferred language.
  */
-function simplenews_add_node_to_spool($node, $accounts = array()) {
+function simplenews_add_node_to_spool($node) {
   if (is_numeric($node)) {
     $node = node_load($node);
   }
