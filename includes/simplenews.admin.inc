@@ -1429,6 +1429,26 @@ function simplenews_admin_settings_mail($form, &$form_state) {
     '#description' => t('When checked cron will be used to send newsletters (recommended). Test newsletters and confirmation emails will be sent immediately. Leave unchecked for testing purposes.'),
   );
 
+  // Generate a list of options which theme to use to render the emails.
+  $theme_options = array('current' => t('Current'), 'default' => t('Default'));
+  if (module_exists('domain_theme')) {
+    $theme_options['domain'] = t('Domain');
+  }
+  // Get a list of all themes.
+  $themes = list_themes();
+  foreach ($themes as $name => $theme) {
+    if ($theme->status == 1) {
+      $theme_options[$name] = $theme->info['name'];
+    }
+  }
+  $form['simplenews_mail_backend']['simplenews_theme'] = array(
+    '#type' => 'select',
+    '#title' => t('Theme to render the e-mails'),
+    '#description' => t('Select the theme that will be used to render the e-mails. This can be either the current theme, the default theme, the domain theme or any active theme.'),
+    '#options' => $theme_options,
+    '#default_value' => variable_get('simplenews_theme', 'current'),
+  );
+
   $sources = simplenews_get_source_caches();
   $sources_labels = array();
   $sources_descriptions = '';
@@ -1478,7 +1498,20 @@ function simplenews_admin_settings_mail($form, &$form_state) {
     '#default_value' => variable_get('simplenews_debug', FALSE),
     '#description' => t('When checked all outgoing simplenews emails are logged in the system log. A logged email does not guarantee that it is send or will be delivered. It only indicates that a message is sent to the PHP mail() function. No status information is available of delivery by the PHP mail() function.'),
   );
+  $form['#submit'][] = 'simplenews_admin_settings_mail_submit';
   return system_settings_form($form);
+}
+
+/**
+ * Submit handler for the mail settings form.
+ *
+ * Rebuilds theme registry to make changes needed by theme rendering.
+ */
+function simplenews_admin_settings_mail_submit($form, &$form_state) {
+  //dpm($form_state['values']);
+  //if ($form_state['values']['simplenews_theme'] != variable_get('simplenews_theme', 'current')) {
+    drupal_theme_rebuild();
+  //}
 }
 
 /**
