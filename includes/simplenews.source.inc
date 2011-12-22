@@ -626,8 +626,8 @@ class SimplenewsSourceNode implements SimplenewsSourceNodeInterface {
 
     $this->resetContentLanguage();
 
-    $this->build = $build;
-    return $build;
+    $this->build[$format] = $build;
+    return $this->build[$format];
   }
 
   /**
@@ -652,13 +652,32 @@ class SimplenewsSourceNode implements SimplenewsSourceNodeInterface {
    * Implements SimplenewsSourceInterface::getBody().
    */
   public function getBody() {
+    return $this->getBodyWithFormat($this->getFormat());
+  }
 
+  /**
+   * Implements SimplenewsSourceInterface::getBody().
+   */
+  public function getPlainBody() {
+    return $this->getBodyWithFormat('plain');
+  }
+
+   /**
+   * Get the body with the requested format.
+   *
+   * @param $format
+   *   Either html or plain.
+   *
+   * @return
+   *   The rendered mail body as a string.
+   */
+  protected function getBodyWithFormat($format) {
     // Impersonate the subscriber if he is a user.
     if ($uid = $this->getSubscriber()->uid) {
       simplenews_impersonate_user($uid);
     }
 
-    if ($cache = $this->cache->get('final', 'body')) {
+    if ($cache = $this->cache->get('final', 'body:' . $format)) {
       return $cache;
     }
 
@@ -666,34 +685,11 @@ class SimplenewsSourceNode implements SimplenewsSourceNodeInterface {
 
     // Build message body, replace tokens.
     $body = token_replace($body, $this->getTokenContext(), array('sanitize' => FALSE));
-    $this->cache->set('final', 'body', $body);
-
-    // Switch back to the previous user.
-    if ($uid) {
-      simplenews_revert_user();
+    if ($format == 'plain') {
+      // Convert HTML to text if requested to do so.
+      $body = simplenews_html_to_text($body, $this->getCategory()->hyperlinks);
     }
-    return $body;
-  }
-
-  /**
-   * Implements SimplenewsSourceInterface::getBody().
-   */
-  public function getPlainBody() {
-
-    // Impersonate the subscriber if he is a user.
-    if ($uid = $this->getSubscriber()->uid) {
-      simplenews_impersonate_user($uid);
-    }
-
-    if ($cache = $this->cache->get('final', 'body:plain')) {
-      return $cache;
-    }
-    $body = $this->buildBody('plain');
-
-    // Build message body, replace tokens.
-    $body = token_replace($body, $this->getTokenContext(), array('sanitize' => FALSE));
-    $body = simplenews_html_to_text($body, $this->getCategory()->hyperlinks);
-    $this->cache->set('final', 'body:plain', $body);
+    $this->cache->set('final', 'body:' . $format, $body);
 
     // Switch back to the previous user.
     if ($uid) {

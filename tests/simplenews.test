@@ -1672,8 +1672,9 @@ class SimplenewsSourceTestCase extends SimplenewsTestCase {
     // Test that tokens are correctly replaced.
     foreach (array_slice($this->drupalGetMails(), 0, 3) as $mail) {
       // Make sure that the same mail was used in the body token as it has been
-      // sent to.
+      // sent to. Also verify that the mail is plaintext.
       $this->assertTrue(strpos($mail['body'], $mail['to']) !== FALSE);
+      $this->assertFalse(strpos($mail['body'], '<strong>'));
     }
 
     // Report time. @todo: Find a way to actually do some assertions here.
@@ -1693,7 +1694,7 @@ class SimplenewsSourceTestCase extends SimplenewsTestCase {
 
     $edit = array(
       'title' => $this->randomName(),
-      'body[und][0][value]' => "Mail token: [simplenews-subscriber:mail]",
+      'body[und][0][value]' => "Mail token: <strong>[simplenews-subscriber:mail]</strong>",
     );
     $this->drupalPost('node/add/simplenews', $edit, ('Save'));
     $this->assertTrue(preg_match('|node/(\d+)$|', $this->getUrl(), $matches), 'Node created');
@@ -1712,8 +1713,9 @@ class SimplenewsSourceTestCase extends SimplenewsTestCase {
     // Test that tokens are correctly replaced.
     foreach (array_slice($this->drupalGetMails(), 0, 3) as $mail) {
       // Make sure that the same mail was used in the body token as it has been
-      // sent to.
+      // sent to. Also verify that the mail is plaintext.
       $this->assertTrue(strpos($mail['body'], $mail['to']) !== FALSE);
+      $this->assertFalse(strpos($mail['body'], '<strong>'));
     }
 
     // Report time. @todo: Find a way to actually do some assertions here.

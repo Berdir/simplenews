@@ -237,30 +237,6 @@ function simplenews_mail_spool($limit = SIMPLENEWS_UNLIMITED) {
 }
 
 /**
- * Returns the source object for the provided spool data.
- *
- * @param $spool_data
- *   The mail message object as returned by simplenews_load_spool(), containing
- *   the following properties:
- *   - nid
- *   - tid
- *   - data
- *
- * @return SimplenewsSourceInterface
- *   An impementation of the source interface.
- */
-function simplenews_get_source_from_spool($spool_list) {
-  $source_class = variable_get('simplenews_source', 'SimplenewsSourceNode');
-
-  // Check if this is a valid source.
-  if (!class_exists($source_class) || !($source_class instanceof SimplenewsSpoolSourceInterface)) {
-    // If not, fall back to default.
-    $source_class = 'SimplenewsSourceNode';
-  }
-  return $source_class;
-}
-
-/**
  * Save mail message in mail cache table.
  *
  * @param array $spool
