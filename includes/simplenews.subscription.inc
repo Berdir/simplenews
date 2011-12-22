@@ -220,7 +220,6 @@ function simplenews_subscriptions_page_form($form, &$form_state) {
 
   $form['subscriptions'] = array(
     '#type' => 'fieldset',
-    '#description' => t('Select the newsletter(s) to which you want to subscribe or unsubscribe.'),
   );
   $form['subscriptions']['newsletters'] = array(
     '#type' => 'checkboxes',
@@ -232,6 +231,7 @@ function simplenews_subscriptions_page_form($form, &$form_state) {
   // Anonymous users see an email box and will receive confirmations
   if ($subscription->mail) {
     $form['subscriptions']['#title'] = t('Subscriptions for %mail', array('%mail' => $subscription->mail));
+    $form['subscriptions']['#description'] = t('Check the newsletters you want to subscribe to. Uncheck the ones you want to unsubscribe from.');
     $form['subscriptions']['mail'] = array('#type' => 'value', '#value' => $subscription->mail);
     $form['update'] = array(
       '#type' => 'submit',
@@ -242,6 +242,7 @@ function simplenews_subscriptions_page_form($form, &$form_state) {
   }
   else {
     $form['subscriptions']['#title'] = t('Manage your newsletter subscriptions');
+    $form['subscriptions']['#description'] = t('Select the newsletter(s) to which you want to subscribe or unsubscribe.');
     $form['subscriptions']['mail'] = array(
       '#type' => 'textfield',
       '#title' => t('email'),
@@ -278,11 +279,9 @@ function simplenews_subscriptions_page_form_validate($form, &$form_state) {
   if (!$valid_email) {
     form_set_error('mail', t('The email address you supplied is not valid.'));
   }
-  $account = (object) array('mail' => $form_state['values']['mail']);
-  $subscription = simplenews_get_subscription($account);
 
   $checked_newsletters = array_filter($form_state['values']['newsletters']);
-  if (!count($checked_newsletters) && !$subscription) {
+  if (!count($checked_newsletters) && ($form['subscriptions']['mail']['#type'] != 'value')) {
     form_set_error('newsletters', t('You must select at least one newsletter.'));
   }
 }
@@ -329,7 +328,7 @@ function simplenews_subscriptions_page_form_submit($form, &$form_state) {
         drupal_set_message(t('You will receive a confirmation email shortly containing further instructions on how to complete your subscription.'));
       }
       else {
-        drupal_set_message(t('You were added to the chosen mailing list.'));
+        drupal_set_message(t('The newsletter subscriptions for %mail have been updated.', array('%mail' => $form_state['values']['mail'])));
       }
       break;
     case t('Unsubscribe'):
@@ -345,7 +344,7 @@ function simplenews_subscriptions_page_form_submit($form, &$form_state) {
         drupal_set_message(t('You will receive a confirmation email shortly containing further instructions on how to cancel your subscription.'));
       }
       else {
-        drupal_set_message(t('You were added to the chosen mailing list.'));
+        drupal_set_message(t('The newsletter subscriptions for %mail have been updated.', array('%mail' => $form_state['values']['mail'])));
       }
       break;
   }
