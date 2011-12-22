@@ -28,6 +28,8 @@ interface SimplenewsSourceInterface {
 
   /**
    * Returns the mail body.
+   *
+   * The body should either be plaintext or html, depending on the format.
    */
   function getBody();
 
@@ -38,8 +40,15 @@ interface SimplenewsSourceInterface {
 
   /**
    * Returns the mail footer.
+   *
+   * The footer should either be plaintext or html, depending on the format.
    */
   function getFooter();
+
+  /**
+   * Returns the plain footer.
+   */
+  function getPlainFooter();
 
   /**
    * Returns the mail format.
@@ -695,29 +704,37 @@ class SimplenewsSourceNode implements SimplenewsSourceNodeInterface {
 
   /**
    * Builds the themed footer.
+   *
+   * @param $format
+   *   (Optional) Set the format of this footer build, overrides the default
+   *   format.
    */
-  protected function buildFooter() {
-    if ($cache = $this->cache->get('build', 'footer')) {
+  protected function buildFooter($format = NULL) {
+    if (empty($format)) {
+      $format = $this->getFormat();
+    }
+
+    if ($cache = $this->cache->get('build', 'footer:' . $format)) {
       return $cache;
     }
 
     // Build and buffer message footer
     $footer = theme('simplenews_newsletter_footer', array(
-      'build' => $this->build(),
+      'build' => $this->build($format),
       'category' => $this->getCategory(),
       'context' => $this->getTokenContext(),
       'key' => $this->getKey(),
       'language' => $this->getLanguage(),
       )
     );
-    $this->cache->set('build', 'footer', $footer);
+    $this->cache->set('build', 'footer:' . $format, $footer);
     return $footer;
   }
 
   /**
    * Implements SimplenewsSourceInterface::getFooter().
    */
-  function getFooter() {
+  public function getFooter() {
     if ($cache = $this->cache->get('final', 'footer')) {
       return $cache;
     }
@@ -727,6 +744,22 @@ class SimplenewsSourceNode implements SimplenewsSourceNodeInterface {
     }
 
     $this->cache->set('build', 'footer', $final_footer);
+    return $final_footer;
+  }
+
+  /**
+   * Implements SimplenewsSourceInterface::getPlainFooter().
+   */
+  public function getPlainFooter() {
+    if ($cache = $this->cache->get('final', 'footer:plain')) {
+      return $cache;
+    }
+
+    if ($this->category->opt_inout != SIMPLENEWS_OPT_INOUT_HIDDEN) {
+      $final_footer = token_replace($this->buildFooter('plain'), $this->getTokenContext(), array('sanitize' => FALSE));
+    }
+
+    $this->cache->set('build', 'footer:plain', $final_footer);
     return $final_footer;
   }
 

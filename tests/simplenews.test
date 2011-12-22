@@ -1589,6 +1589,57 @@ class SimplenewsSourceTestCase extends SimplenewsTestCase {
   }
 
   /**
+   * Tests that sending a minimal implementation of the source interface works.
+   */
+  function testSendMinimalSourceImplementation() {
+    // Create a basic plaintext test source and send it.
+    $plain_source = new SimplenewsSourceTest('plain');
+    simplenews_send_source($plain_source);
+    $mails = $this->drupalGetMails();
+    $mail = $mails[0];
+
+    // Assert resulting mail.
+    $this->assertEqual('simplenews_node', $mail['id']);
+    $this->assertEqual('simplenews', $mail['module']);
+    $this->assertEqual('node', $mail['key']);
+    $this->assertEqual($plain_source->getRecipient(), $mail['to']);
+    $this->assertEqual($plain_source->getFromFormatted(), $mail['from']);
+    $this->assertEqual($plain_source->getLanguage(), $mail['language']);
+    $this->assertTrue($mail['params']['plain']);
+
+    $this->assertFalse(isset($mail['params']['plaintext']));
+    $this->assertFalse(isset($mail['params']['attachments']));
+
+    $this->assertEqual($plain_source->getSubject(), $mail['subject']);
+    $this->assertTrue(strpos($mail['body'], 'the plain body') !== FALSE);
+    $this->assertTrue(strpos($mail['body'], 'the plain footer') !== FALSE);
+
+    $html_source = new SimplenewsSourceTest('html');
+    simplenews_send_source($html_source);
+    $mails = $this->drupalGetMails();
+    $mail = $mails[1];
+
+    // Assert resulting mail.
+    $this->assertEqual('simplenews_node', $mail['id']);
+    $this->assertEqual('simplenews', $mail['module']);
+    $this->assertEqual('node', $mail['key']);
+    $this->assertEqual($plain_source->getRecipient(), $mail['to']);
+    $this->assertEqual($plain_source->getFromFormatted(), $mail['from']);
+    $this->assertEqual($plain_source->getLanguage(), $mail['language']);
+    $this->assertEqual(NULL, $mail['params']['plain']);
+
+    $this->assertTrue(isset($mail['params']['plaintext']));
+    $this->assertTrue(strpos($mail['params']['plaintext'], 'the plain body') !== FALSE);
+    $this->assertTrue(strpos($mail['params']['plaintext'], 'the plain footer') !== FALSE);
+    $this->assertTrue(isset($mail['params']['attachments']));
+    $this->assertEqual('example://test.png', $mail['params']['attachments'][0]['uri']);
+
+    $this->assertEqual($plain_source->getSubject(), $mail['subject']);
+    $this->assertTrue(strpos($mail['body'], 'the body') !== FALSE);
+    $this->assertTrue(strpos($mail['body'], 'the footer') !== FALSE);
+  }
+
+  /**
    * Test sending a newsletter to 100 recipients with caching enabled.
    */
   function testSendCaching() {
@@ -1689,15 +1740,19 @@ class SimplenewsSourceTest implements SimplenewsSourceInterface {
   }
 
   public function getBody() {
-    return 'the body';
+    return $this->getFormat() == 'plain' ? $this->getPlainBody() : 'the body';
   }
 
   public function getFooter() {
-    return 'the footer';
+    return $this->getFormat() == 'plain' ? $this->getPlainFooter() : 'the footer';
+  }
+
+  public function getPlainFooter() {
+    return 'the plain footer';
   }
 
   public function getFormat() {
-    return 'plain';
+    return $this->format;
   }
 
   public function getFromAddress() {
@@ -1709,7 +1764,8 @@ class SimplenewsSourceTest implements SimplenewsSourceInterface {
   }
 
   public function getHeaders(array $headers) {
-    return $headers['X-Simplenews-Test'] = 'OK';
+    $headers['X-Simplenews-Test'] = 'OK';
+    return $headers;
   }
 
   public function getKey() {

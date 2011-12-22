@@ -685,13 +685,13 @@ function simplenews_build_newsletter_mail(&$message, SimplenewsSourceInterface $
   // Get message data from source.
   $message['headers'] = $source->getHeaders($message['headers']);
   $message['subject'] = $source->getSubject();
-  $message['body']['body'] = $source->getFormat() == 'html' ? $source->getBody() : $source->getPlainBody();
+  $message['body']['body'] = $source->getBody();
   $message['body']['footer'] = $source->getFooter();
 
   // Optional params for HTML mails.
   if ($source->getFormat() == 'html') {
     $message['params']['plain'] = NULL;
-    $message['params']['plaintext'] = $source->getPlainBody();
+    $message['params']['plaintext'] = $source->getPlainBody() . "\n" . $source->getPlainFooter();
     $message['params']['attachments'] = $source->getAttachments();
   }
   else {
