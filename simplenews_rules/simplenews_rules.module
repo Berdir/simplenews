@@ -1,0 +1,22 @@
+<?php
+
+/**
+ * @file
+ * Module file for Simpelnews rules integration.
+ */
+
+define('SIMPLENEWS_RULES_CONFIRMATION_DEFAULT', 0);
+define('SIMPLENEWS_RULES_CONFIRMATION_YES', 1);
+define('SIMPLENEWS_RULES_CONFIRMATION_NO', 2);
+
+
+/**
+ * Returns the options for the confirmation paramter.
+ */
+function simplenews_rules_confirmation_list() {
+  return array(
+    SIMPLENEWS_RULES_CONFIRMATION_DEFAULT => t('Default'),
+    SIMPLENEWS_RULES_CONFIRMATION_YES => t('Yes'),
+    SIMPLENEWS_RULES_CONFIRMATION_NO => t('No'),
+  );
+}
