@@ -1371,8 +1371,9 @@ function simplenews_subscribe_user($mail, $tid, $confirm = TRUE, $source = 'unkn
     $subscription->source = $source;
     simplenews_subscription_save($subscription);
     $subscriber->tids[$tid] = $tid;
+
+    module_invoke_all('simplenews_subscribe_user', $subscriber, $subscription);
   }
-  module_invoke_all('simplenews_subscribe_user', $subscriber);
   return TRUE;
 }
 
@@ -1430,8 +1431,9 @@ function simplenews_unsubscribe_user($mail, $tid, $confirm = TRUE, $source = 'un
     $subscription->source = $source;
     simplenews_subscription_save($subscription);
     $subscriber->tids[$tid] = $tid;
+
+    module_invoke_all('simplenews_unsubscribe_user', $subscriber, $subscription);
   }
-  module_invoke_all('simplenews_unsubscribe_user', $subscriber);
   return TRUE;
 }
 
