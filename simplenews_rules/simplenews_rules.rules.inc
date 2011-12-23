@@ -13,6 +13,17 @@
  */
 function simplenews_rules_rules_action_info() {
   return array(
+    'simplenews_rules_action_send' => array(
+      'label' => t('Send newsletter'),
+      'group' => t('Simplenews'),
+      'parameter' => array(
+        'node' => array(
+          'type' => 'node',
+          'label' => t('The newsletter node to be sent.'),
+          'description' => t('The newsletter node that should be sent.'),
+        )
+      )
+    ),
     'simplenews_rules_action_subscribe' => array(
       'label' => t('Subscribe an e-mail adress to a newsletter'),
       'group' => t('Simplenews'),
@@ -144,6 +155,16 @@ function simplenews_rules_rules_event_info() {
 }
 
 /**
+ * Action implementation, send a newsletter node.
+ */
+function simplenews_rules_action_send($node) {
+  $newsletter = simplenews_newsletter_load($node->nid);
+  if ($newsletter && ($newsletter->status != SIMPLENEWS_STATUS_SEND_PENDING || $newsletter->status != SIMPLENEWS_STATUS_SEND_PENDING)) {
+    simplenews_add_node_to_spool($node);
+  }
+}
+
+/**
  * Action Implementation: Subscribe an e-mail adress to a Simplenews newsletter.
  */
 function simplenews_rules_action_subscribe($args, $settings) {
@@ -156,6 +177,21 @@ function simplenews_rules_action_subscribe($args, $settings) {
   // Pass the call forward.
   simplenews_subscribe_user($args['mail'], $args['tid'], $confirmation, $args['source'], $args['language']);
 }
+
+/**
+ * Action Implementation: Unsubscribe an e-mail adress to a Simplenews newsletter.
+ */
+function simplenews_rules_action_unsubscribe($args, $settings) {
+  if ($args['language'] == LANGUAGE_NONE) {
+    $args['language'] = NULL;
+  }
+
+  $confirmation = simplenews_rules_map_confirmation($args);
+
+  // Pass the call forward.
+  simplenews_unsubscribe_user($args['mail'], $args['tid'], $confirmation, $args['source'], $args['language']);
+}
+
 
 /**
  * Map args to the confrmation argument for subscribing/unsubscribing.
@@ -174,20 +210,6 @@ function simplenews_rules_map_confirmation($args) {
       break;
   }
   return $confirmation;
-}
-
-/**
- * Action Implementation: Unsubscribe an e-mail adress to a Simplenews newsletter.
- */
-function simplenews_rules_action_unsubscribe($args, $settings) {
-  if ($args['language'] == LANGUAGE_NONE) {
-    $args['language'] = NULL;
-  }
-
-  $confirmation = simplenews_rules_map_confirmation($args);
-
-  // Pass the call forward.
-  simplenews_unsubscribe_user($args['mail'], $args['tid'], $confirmation, $args['source'], $args['language']);
 }
 
 /**
