@@ -140,6 +140,226 @@ class SimplenewsTestCase extends DrupalWebTestCase {
   }
 }
 
+
+/**
+ * Unit tests for simplenews_html_to_text().
+ */
+class SimplenewsHtmlToTextTestCase extends DrupalUnitTestCase {
+
+  function setUp() {
+    parent::setUp('simplenews');
+    module_load_include('inc', 'simplenews', 'html_to_text');
+  }
+
+  public static function getInfo() {
+    return array(
+      'name'  => 'Simplenews HTML to text conversion',
+      'description' => 'Tests simplenews_html_to_text().',
+      'group' => 'Simplenews',
+    );
+  }
+
+  function _string_to_html($text) {
+    return '"' .
+      str_replace(
+        array("\n", ' '),
+        array('\n', '&nbsp;'),
+        check_plain($text)
+      ) . '"';
+  }
+
+  /**
+   * Test all supported tags of simplenews_html_to_text().
+   */
+  function testTags() {
+    $tests = array(
+      '<a href = "http://drupal.org">Drupal.org</a>' => "Drupal.org [1]\n[1] http://drupal.org",
+      '<address>Drupal</address>' => "Drupal",
+      '<address>Drupal</address><address>Drupal</address>' => "Drupal\n\nDrupal",
+      '<b>Drupal</b>' => "*Drupal*",
+      '<blockquote>Drupal</blockquote>' => " > Drupal",
+      '<blockquote>Drupal</blockquote><blockquote>Drupal</blockquote>' => " > Drupal\n\n > Drupal",
+      '<br />Drupal<br />Drupal<br /><br />Drupal' => "Drupal\nDrupal\n\nDrupal",
+      '<br/>Drupal<br/>Drupal<br/><br/>Drupal' => "Drupal\nDrupal\n\nDrupal",
+      '<br/>Drupal<br/>Drupal<br/><br/>Drupal<p>Drupal</p>' => "Drupal\nDrupal\n\nDrupal\nDrupal",
+      '<del>Drupal</del>' => "Drupal",
+      '<del>Drupal</del><p>Drupal</p>' => "Drupal\n\nDrupal",
+      '<del>Drupal</del><del>Drupal</del>' => "Drupal\n\nDrupal",
+      '<div>Drupal</div>' => "Drupal",
+      '<div>Drupal</div><div>Drupal</div>' => "Drupal\n\nDrupal",
+      '<em>Drupal</em>' => "/Drupal/",
+      '<h1>Drupal</h1>' => "======== DRUPAL " . str_repeat('=', 61),
+      '<h1>Drupal</h1><p>Drupal</p>' => "======== DRUPAL " . str_repeat('=', 61) . "\n\nDrupal",
+      '<h2>Drupal</h2>' => "------ DRUPAL " . str_repeat('-', 63),
+      '<h2>Drupal</h2><p>Drupal</p>' => "------ DRUPAL " . str_repeat('-', 63) . "\n\nDrupal",
+      '<h3>Drupal</h3>' => ".... Drupal",
+      '<h3>Drupal</h3><p>Drupal</p>' => ".... Drupal\n\nDrupal",
+      '<h4>Drupal</h4>' => "... Drupal",
+      '<h4>Drupal</h4><p>Drupal</p>' => "... Drupal\n\nDrupal",
+      '<h5>Drupal</h5>' => ".. Drupal",
+      '<h5>Drupal</h5><p>Drupal</p>' => ".. Drupal\n\nDrupal",
+      '<h6>Drupal</h6>' => ". Drupal",
+      '<h6>Drupal</h6><p>Drupal</p>' => ". Drupal\n\nDrupal",
+      '<hr />Drupal<hr />' => str_repeat('-', 78) . "\nDrupal\n" . str_repeat('-', 78),
+      '<hr/>Drupal<hr/>' => str_repeat('-', 78) . "\nDrupal\n" . str_repeat('-', 78),
+      '<hr/>Drupal<hr/><p>Drupal</p>' => str_repeat('-', 78) . "\nDrupal\n" . str_repeat('-', 78) . "\n\nDrupal",
+      '<ins>Drupal</ins>' => "Drupal",
+      '<i>Drupal</i>' => "/Drupal/",
+      '<p>Drupal</p>' => "Drupal",
+      '<p>Drupal</p><p>Drupal</p>' => "Drupal\n\nDrupal",
+      '<pre>Drupal</pre>' => "Drupal",
+      '<pre>Drupal</pre>Drupal' => "Drupal\nDrupal",
+      '<pre>Drupal</pre><p>Drupal</p>' => "Drupal\n\nDrupal",
+      '<strong>Drupal</strong>' => "*Drupal*",
+      '<table><tr><td>Drupal</td><td>Drupal</td></tr><tr><td>Drupal</td><td>Drupal</td></tr></table>' => "Drupal Drupal\nDrupal Drupal",
+      '<table><tr><td>Drupal</td></tr></table><p>Drupal</p>' => "Drupal\n\nDrupal",
+      '<ul><li>Drupal</li></ul>' => " * Drupal",
+      '<ul><li>Drupal <em>Drupal</em> Drupal</li></ul>' => " * Drupal /Drupal/ Drupal",
+      '<ul><li>Drupal</li><li><ol><li>Drupal</li><li>Drupal</li></ol></li></ul>' => " * Drupal\n *  1) Drupal\n    2) Drupal",
+      '<ul><li>Drupal</li><li><ol><li>Drupal</li></ol></li><li>Drupal</li></ul>' => " * Drupal\n *  1) Drupal\n * Drupal",
+      '<ul><li>Drupal</li><li>Drupal</li></ul>' => " * Drupal\n * Drupal",
+      '<ul><li>Drupal</li></ul><p>Drupal</p>' => " * Drupal\n\nDrupal",
+      '<ol><li>Drupal</li></ol>' => " 1) Drupal",
+      '<ol><li>Drupal</li><li><ul><li>Drupal</li><li>Drupal</li></ul></li></ol>' => " 1) Drupal\n 2)  * Drupal\n     * Drupal",
+      '<ol><li>Drupal</li><li>Drupal</li></ol>' => " 1) Drupal\n 2) Drupal",
+      '<ol>Drupal</ol>' => "Drupal",
+      '<ol><li>Drupal</li></ol><p>Drupal</p>' => " 1) Drupal\n\nDrupal",
+      '<dl><dt>Drupal</dt></dl>' => "Drupal",
+      '<dl><dt>Drupal</dt><dd>Drupal</dd></dl>' => "Drupal\n    Drupal",
+      '<dl><dt>Drupal</dt><dd>Drupal</dd><dt>Drupal</dt><dd>Drupal</dd></dl>' => "Drupal\n    Drupal\nDrupal\n    Drupal",
+      '<dl><dt>Drupal</dt><dd>Drupal</dd></dl><p>Drupal</p>' => "Drupal\n    Drupal\n\nDrupal",
+      '<dl><dt>Drupal<dd>Drupal</dl>' => "Drupal\n    Drupal",
+      '<dl><dt>Drupal</dt></dl><p>Drupal</p>' => "Drupal\n\nDrupal",
+      '<ul><li>Drupal</li><li><dl><dt>Drupal</dt><dd>Drupal</dd><dt>Drupal</dt><dd>Drupal</dd></dl></li><li>Drupal</li></ul>' => " * Drupal\n * Drupal\n       Drupal\n   Drupal\n       Drupal\n * Drupal",
+      // Tests malformed HTML tags.
+      '<br>Drupal<br>Drupal' => "Drupal\nDrupal",
+      '<hr>Drupal<hr>Drupal' => str_repeat('-', 78) . "\nDrupal\n" . str_repeat('-', 78) . "\nDrupal",
+      '<ol><li>Drupal<li>Drupal</ol>' => " 1) Drupal\n 2) Drupal",
+      '<ul><li>Drupal <em>Drupal</em> Drupal</ul></ul>' => " * Drupal /Drupal/ Drupal",
+      '<ul><li>Drupal<li>Drupal</ol>' => " * Drupal\n * Drupal",
+      '<ul><li>Drupal<li>Drupal</ul>' => " * Drupal\n * Drupal",
+      '<ul>Drupal</ul>' => "Drupal",
+      'Drupal</ul></ol></dl><li>Drupal' => "Drupal * Drupal",
+      '<dl>Drupal</dl>' => "Drupal",
+      '<dl>Drupal</dl><p>Drupal</p>' => "Drupal\n\nDrupal",
+      '<dt>Drupal</dt>' => "Drupal",
+      // Tests some unsupported HTML tags.
+      '<html>Drupal</html>' => "Drupal",
+      '<script type="text/javascript">Drupal</script>' => "",
+    );
+
+    foreach ($tests as $html => $text) {
+      $result = simplenews_html_to_text($html);
+      $this->assertEqual($result, $text,
+        'html = ' . $this->_string_to_html($html)
+        . '<br />'
+        . 'result = ' . $this->_string_to_html($result)
+        . '<br />'
+        . 'expected = ' . $this->_string_to_html($text)
+      );
+    }
+  }
+
+  /**
+   * Test $allowed_tags argument of simplenews_html_to_text().
+   */
+  function testSimplenewsHtmlToTextArgs() {
+    // The second parameter of simplenews_html_to_text() overrules the allowed tags.
+    $result = simplenews_html_to_text('Drupal <b>Drupal</b> Drupal', array('b'));
+    $this->assertEqual($result, 'Drupal *Drupal* Drupal', 'Allowed &lt;b&gt; tag found.');
+
+    $result = simplenews_html_to_text('Drupal <h1>Drupal</h1> Drupal', array('b'));
+    $this->assertEqual($result, 'Drupal Drupal Drupal', 'Disallowed &lt;h1&gt; tag not found.');
+
+    $result = simplenews_html_to_text('Drupal <p><em><b>Drupal</b></em><p> Drupal', array('a', 'br', 'h1'));
+    $this->assertEqual($result, 'Drupal Drupal Drupal', 'Disallowed &lt;p&gt;, &lt;em&gt;, and &lt;b&gt; tags not found.');
+
+    $result = simplenews_html_to_text('<html><body>Drupal</body></html>', array('html', 'body'));
+    $this->assertEqual($result, 'Drupal', 'Unsupported &lt;html&gt; and &lt;body&gt; tags not found.');
+  }
+
+  /**
+   * Test that whitespace is collapsed, except within <pre> tags.
+   */
+  function testSimplenewsHtmltoTextCollapsesWhitespace() {
+    $input = "<pre>Drupal  Drupal\n\nDrupal<pre>Drupal  Drupal\n\nDrupal</pre>Drupal  Drupal\n\nDrupal</pre>";
+    $collapsed = "Drupal Drupal DrupalDrupal Drupal DrupalDrupal Drupal Drupal";
+    $preserved = "Drupal  Drupal\n\nDrupal\nDrupal  Drupal\n\nDrupal\nDrupal  Drupal\n\nDrupal";
+    $result = simplenews_html_to_text($input, array('p'));
+    $this->assertEqual($result, $collapsed,
+      'Whitespace inside disallowed &lt;pre&gt; tags is collapsed:<br />'
+      . 'html = ' . $this->_string_to_html($input)
+      . '<br />'
+      . 'result = ' . $this->_string_to_html($result)
+      . '<br />'
+      . 'expected = ' . $this->_string_to_html($collapsed)
+    );
+    $result = simplenews_html_to_text($input);
+    $this->assertEqual($result, $preserved,
+      'Whitespace inside allowed &lt;pre&gt; tags is preserved:<br />'
+      . 'html = ' . $this->_string_to_html($input)
+      . '<br />'
+      . 'result = ' . $this->_string_to_html($result)
+      . '<br />'
+      . 'expected = ' . $this->_string_to_html($preserved)
+    );
+  }
+
+  /**
+   * Test that text separated by block-level tags in HTML get separated by
+   * (at least) a newline in the plaintext version.
+   */
+  function testDrupalHtmlToTextBlockTagToNewline() {
+    $input = '[text]'
+      . '<address>[address]</address>'
+      . '<blockquote>[blockquote]</blockquote>'
+      . '<br />[br]'
+      . '<del>[del]</del>'
+      . '<div>[div]</div>'
+      . '<dl><dt>[dl-dt]</dt>'
+      . '<dt>[dt]</dt>'
+      . '<dd>[dd]</dd>'
+      . '<dd>[dd-dl]</dd></dl>'
+      . '<h1>[h1]</h1>'
+      . '<h2>[h2]</h2>'
+      . '<h3>[h3]</h3>'
+      . '<h4>[h4]</h4>'
+      . '<h5>[h5]</h5>'
+      . '<h6>[h6]</h6>'
+      . '<hr />[hr]'
+      . '<ins>[ins]</ins>'
+      . '<ol><li>[ol-li]</li>'
+      . '<li>[li]</li>'
+      . '<li>[li-ol]</li></ol>'
+      . '<p>[p]</p>'
+      . '<pre>[pre]</pre>'
+      . '<table><thead><tr><td>[table-thead--tr-td]</td></tr></thead>'
+      . '<tbody><tr><td>[tbody-tr-td]</td></tr>'
+      . '<tr><td>[tr-td]</td></tr></tbody></table>'
+      . '<ul><li>[ul-li]</li>'
+      . '<li>[li-ul]</li></ul>'
+      . '[text]';
+    $output = simplenews_html_to_text($input);
+    $this->assertFalse(
+      preg_match('/\][^\n]*\[/s', $output),
+      'Block-level HTML tags should force newlines: '
+      . nl2br(check_plain($output))
+    );
+    $output_upper = drupal_strtoupper($output);
+    $upper_input = drupal_strtoupper($input);
+    $upper_output = simplenews_html_to_text($upper_input);
+    $this->assertEqual(
+      $upper_output,
+      $output_upper,
+      'Tag recognition should be case-insensitive:<br />'
+      . $upper_output
+      . '<br />should  be equal to <br />'
+      . $output_upper
+    );
+  }
+}
+
+
 class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
   /**
    * Implementation of getInfo().

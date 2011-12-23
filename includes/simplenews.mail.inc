@@ -544,7 +544,7 @@ function _simplenews_set_from() {
  * @return string
  *   The target text with HTML and special characters replaced.
  */
-function simplenews_html_to_text($text, $inline_hyperlinks = TRUE) {
+function simplenews_text($text, $inline_hyperlinks = TRUE) {
   // By replacing <a> tag by only its URL the URLs will be placed inline
   // in the email body and are not converted to a numbered reference list
   // by drupal_html_to_text().
@@ -558,8 +558,12 @@ function simplenews_html_to_text($text, $inline_hyperlinks = TRUE) {
   $preg = _simplenews_html_replace();
   $text = preg_replace(array_keys($preg), array_values($preg), $text);
 
-  // Perform standard drupal html to text conversion.
-  return drupal_html_to_text($text);
+  // @todo When #299138 is resolved, delete this workaround.
+  module_load_include('inc', 'simplenews', 'includes/simplenews.html_to_text');
+  // Convert to text using an improved algorithm.
+  $text = simplenews_html_to_text($text);
+  //@todo End workaround.
+  return $text;
 }
 
 /**

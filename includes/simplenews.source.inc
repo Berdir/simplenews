@@ -687,7 +687,7 @@ class SimplenewsSourceNode implements SimplenewsSourceNodeInterface {
     $body = token_replace($body, $this->getTokenContext(), array('sanitize' => FALSE));
     if ($format == 'plain') {
       // Convert HTML to text if requested to do so.
-      $body = simplenews_html_to_text($body, $this->getCategory()->hyperlinks);
+      $body = simplenews_text($body, $this->getCategory()->hyperlinks);
     }
     $this->cache->set('final', 'body:' . $format, $body);
 
