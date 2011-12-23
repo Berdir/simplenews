@@ -2563,6 +2563,7 @@ function simplenews_theme() {
         'language' => NULL,
       ),
       'path' => $path . '/theme',
+      'mail theme' => TRUE,
     ),
     'simplenews_newsletter_footer' => array(
       'variables' => array(
@@ -2573,6 +2574,7 @@ function simplenews_theme() {
         'language' => NULL,
       ),
       'path' => $path . '/theme',
+      'mail theme' => TRUE,
     ),
     'simplenews_filter_form' => array(
       'render element' => 'form',
@@ -2738,6 +2740,9 @@ function template_preprocess_simplenews_newsletter_body(&$variables) {
   unset($variables['build']['links']);
   unset($variables['build']['comments']);
 
+  $theme = function_exists('mailsystem_get_mail_theme') ? mailsystem_get_mail_theme() : path_to_theme();
+  $variables['simplenews_theme'] = drupal_get_path('theme', $theme);
+
   $variables['title'] = check_plain($variables['build']['#node']->title);
 
   // Add specific suggestions that can override the default implementation.
@@ -2772,6 +2777,9 @@ function template_preprocess_simplenews_newsletter_footer(&$variables) {
   // We don't want to include links and comments in the email.
   unset($variables['build']['links']);
   unset($variables['build']['comments']);
+
+  $theme = function_exists('mailsystem_get_mail_theme') ? mailsystem_get_mail_theme() : path_to_theme();
+  $variables['simplenews_theme'] = drupal_get_path('theme', $theme);
 
   // @todo Replace 'format' by 'view_mode ?
   $variables['format'] = $variables['category']->format;
