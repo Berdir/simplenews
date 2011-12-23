@@ -127,16 +127,18 @@ INSTALLATION
 
     The template files are self documented listing all available variables.
 
+    Depending on how the mails are sent (e.g. how cron is triggered), either the
+    default or the admin theme might be used, if one has been configured.
+    To prevent this, Simplenews supports the mail theme setting from the
+    mailsystem module (http://drupal.org/project/mailsystem). Install it, choose
+    the mail theme and the newsletter templates from that theme will be used no
+    matter which other themes are enabled.
+
     Using the fields Display settings each field of a simplenews newsletter can
     be displayed or hidden in 'plain text', 'HTML' and 'HTML text alternative'
     format. You find these settings at:
       Structure > Content types > Manage display.
     Enable the view modes you want to configure and configure their display.
-
-    Simplenews supports the mail theme setting from the
-    mailsystem module (http://drupal.org/project/mailsystem). Install it, choose
-    the mail theme and the newsletter templates from that theme will be used no
-    matter which other themes are enabled.
 
 10. SEND MAILING LISTS
 
