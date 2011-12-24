@@ -78,7 +78,7 @@ function simplenews_send_test($node, $test_addresses) {
   foreach ($test_addresses as $mail) {
     $mail = trim($mail);
     if (!empty($mail)) {
-      $account = _simplenews_user_load($mail);
+      $account = simplenews_load_user_by_mail($mail);
       $subscriber = simplenews_get_subscription($account);
       if ($account->uid) {
         $recipients['user'][] = $account->name . ' <' . $mail . '>';
@@ -339,8 +339,7 @@ function simplenews_get_spool($status, $limit = SIMPLENEWS_UNLIMITED) {
         $message->data = unserialize($message->data);
       }
       else {
-        $mail = (object)array('mail' => $message->mail);
-        $message->data = simplenews_get_subscription($mail);
+        $message->data = simplenews_get_subscription(simplenews_load_user_by_mail($message->mail));
       }
       $messages[$message->msid] = $message;
     }

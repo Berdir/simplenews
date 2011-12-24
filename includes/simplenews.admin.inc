@@ -825,8 +825,7 @@ function simplenews_subscription_list_add($form, &$form_state) {
 function simplenews_subscription_list_add_submit($form, &$form_state) {
   $added = array();
   $invalid = array();
-  // @todo redo filter
-  $checked_lists = array_keys(array_filter($form_state['values'],'_simplenews_checked'));
+  $checked_lists = array_keys(array_filter($form_state['values']));
   $langcode = $form_state['values']['language'];
 
   $emails = preg_split("/[\s,]+/", $form_state['values']['emails']);
@@ -1040,8 +1039,7 @@ function simplenews_subscription_list_remove($form, &$form_state) {
 function simplenews_subscription_list_remove_submit($form, &$form_state) {
   $removed = array();
   $invalid = array();
-  // @todo redo filter
-  $checked_lists = array_keys(array_filter($form_state['values'],'_simplenews_checked'));
+  $checked_lists = array_keys(array_filter($form_state['values']));
 
   $emails = preg_split("/[\s,]+/", $form_state['values']['emails']);
   foreach ($emails as $email) {
@@ -1820,4 +1818,196 @@ function simplenews_get_priority() {
     SIMPLENEWS_PRIORITY_LOW => t('low'),
     SIMPLENEWS_PRIORITY_LOWEST => t('lowest'),
   );
+}
+
+
+/**
+ * Menu callback; Newsletter tab page.
+ */
+function simplenews_node_tab_page($node){
+  drupal_set_title(t('<em>Newsletter</em> @title', array('@title' => $node->title)), PASS_THROUGH);
+  return drupal_get_form('simplenews_node_tab_send_form', $node);
+}
+
+/**
+ * Access callback; Acces to Newsletter tab page.
+ */
+function simplenews_node_tab_access($node) {
+  return simplenews_check_node_types($node->type) && user_access('send newsletter');
+}
+
+/**
+ * @todo
+ */
+function simplenews_node_tab_send_form($form, &$form_state, $node){
+  // First check if there already is a loaded simplenews object.
+  if (!empty($node->simplenews)) {
+    $simplenews_values = $node->simplenews;
+  }
+  // If not, try to load it based on the node id.
+  else if ($loaded = simplenews_newsletter_load($node->nid)) {
+    $simplenews_values = $loaded;
+  }
+  // If that fails too, fall back to the defaults.
+  else {
+    $simplenews_values = (object)_simplenews_get_node_form_defaults($node);
+  }
+
+  $form = array();
+  // We will need the node
+  $form['nid'] = array(
+    '#type' => 'value',
+    '#value' => $node->nid,
+  );
+
+  // @todo delete this fieldset?
+  $form['simplenews'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Send newsletter'),
+    '#collapsible' => FALSE,
+    '#collapsed' => FALSE,
+    '#tree' => TRUE,
+  );
+
+  // Translations of newsletters don't have the 'send' option. Only the
+  // translation source (and non translated) newsletters will get these options.
+  if (module_exists('translation') && translation_supported_type($node->type)
+    && (isset($node->translate) && ($node->tnid > 0) && ($node->tnid != $node->nid))) {
+    $form['simplenews']['#description'] = t('This newsletter issue is part of a translation set. Sending this set is controlled from the <a href="@link">translation source newsletter</a>.', array('@link' => url('node/' . $node->tnid)));
+    // @todo Translated nodes must also have the same Category!
+    //      Move the category in here and give the user feedback.
+  }
+  else {
+    // Show newsletter sending options if newsletter has not been send yet.
+    // If send a notification is shown.
+    if ($simplenews_values->status == SIMPLENEWS_STATUS_SEND_NOT || $simplenews_values->status == SIMPLENEWS_STATUS_SEND_PUBLISH) {
+
+      $options = array(
+        SIMPLENEWS_COMMAND_SEND_TEST => t('Send one test newsletter to the test address'),
+      );
+
+      // Add option to send on publish when the node is unpublished.
+      if ($node->status == NODE_NOT_PUBLISHED) {
+        $options[SIMPLENEWS_COMMAND_SEND_PUBLISH] = t('Send newsletter when published');
+      }
+      else {
+        $options[SIMPLENEWS_COMMAND_SEND_NOW] = t('Send newsletter');
+      }
+
+      if ($simplenews_values->status == SIMPLENEWS_STATUS_SEND_PUBLISH) {
+        $send_default = SIMPLENEWS_STATUS_SEND_PUBLISH;
+      }
+      else {
+        $send_default = variable_get('simplenews_send', SIMPLENEWS_COMMAND_SEND_TEST);
+      }
+      $form['simplenews']['send'] = array(
+        '#type' => 'radios',
+        '#title' => t('Send newsletter'),
+        '#default_value' => isset($simplenews_values->send) ? $simplenews_values->send : $send_default,
+        '#options' => $options,
+        '#attributes' => array(
+          'class' => array('simplenews-command-send'),
+        ),
+      );
+
+      $address_default = variable_get('site_mail', ini_get('sendmail_from'));
+      if (variable_get('simplenews_test_address_override', 0)) {
+        $form['simplenews']['test_address'] = array(
+          '#type' => 'textfield',
+          '#title' => t('Test email addresses'),
+          '#description' => t('A comma-separated list of email addresses to be used as test addresses.'),
+          '#default_value' => variable_get('simplenews_test_address', $address_default),
+          '#size' => 60,
+          '#maxlength' => 128,
+        );
+      }
+      else {
+        $form['simplenews']['test_address'] = array(
+          '#type' => 'value',
+          '#value' => variable_get('simplenews_test_address', $address_default),
+        );
+      }
+    }
+    else {
+      $form['simplenews']['none'] = array(
+        '#type' => 'checkbox',
+        '#return_value' => 0,
+        '#attributes' => array(
+          'checked' => 'checked',
+          'disabled' => 'disabled',
+        ),
+      );
+      $form['simplenews']['none']['#title'] = ($simplenews_values->status == SIMPLENEWS_STATUS_SEND_READY) ? t('This newsletter has been sent') : t('This newsletter is pending');
+      return $form;
+    }
+    $form['submit'] = array(
+      '#type' => 'submit',
+      '#value' => t('Submit'),
+    );
+  }
+  return $form;
+}
+
+/**
+ * @todo
+ */
+function simplenews_node_tab_send_form_validate($form, &$form_state) {
+  $values = $form_state['values'];
+  $node = node_load($values['nid']);
+
+  $default_address = variable_get('simplenews_test_address', variable_get('site_mail', ini_get('sendmail_from')));
+  $mails = array($default_address);
+  if (isset($values['simplenews']['send']) && $values['simplenews']['send'] == SIMPLENEWS_COMMAND_SEND_TEST && variable_get('simplenews_test_address_override', 0)) {
+   // @todo Can we simplify and use only two kind of messages?
+    if (!empty($values['simplenews']['test_address'])) {
+      $mails = explode(',', $values['simplenews']['test_address']);
+      foreach ($mails as $mail) {
+        $mail = trim($mail);
+        if ($mail == '') {
+          form_set_error('simplenews][test_address', t('Test email address is empty.'));
+        }
+        elseif (!valid_email_address($mail)) {
+          form_set_error('simplenews][test_address', t('Invalid email address "%mail".', array('%mail' => $mail)));
+        }
+      }
+    }
+    else {
+      form_set_error('simplenews][test_address', t('Missing test email address.'));
+    }
+  }
+  $form_state['test_addresses'] = $mails;
+}
+
+/**
+ * @todo
+ */
+function simplenews_node_tab_send_form_submit($form, &$form_state) {
+  $values = $form_state['values'];
+  $node = node_load($values['nid']);
+
+  // Send newsletter to all subscribers or send test newsletter
+  module_load_include('inc', 'simplenews', 'includes/simplenews.mail');
+  if ($values['simplenews']['send'] == SIMPLENEWS_COMMAND_SEND_NOW) {
+    $status = simplenews_add_node_to_spool($node);
+    if ($status == SIMPLENEWS_STATUS_SEND_READY) {
+      drupal_set_message(t('Newsletter %title sent.', array('%title' => $node->title)));
+    }
+    else {
+      drupal_set_message(t('Newsletter %title pending.', array('%title' => $node->title)));
+    }
+  }
+  elseif ($values['simplenews']['send'] == SIMPLENEWS_COMMAND_SEND_TEST) {
+    simplenews_send_test($node, $form_state['test_addresses']);
+  }
+
+  // If the selected command is send on publish, just set the newsletter status.
+  if ($values['simplenews']['send'] == SIMPLENEWS_COMMAND_SEND_PUBLISH) {
+    $newsletter = simplenews_newsletter_load($node->nid);
+    if (!$newsletter) {
+      $newsletter = simplenews_newsletter_defaults($node);
+    }
+    $newsletter->status = SIMPLENEWS_STATUS_SEND_PUBLISH;
+    simplenews_newsletter_save($newsletter);
+    drupal_set_message(t('The newsletter will be sent when the content is published.'));
+  }
 }
