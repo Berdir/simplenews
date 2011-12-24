@@ -24,29 +24,51 @@ class SimplenewsTestCase extends DrupalWebTestCase {
    * Set anonymous user permission to subscribe.
    *
    * @param boolean $enabled
-   *   Allow anonymous subscribing.
+   *   Allow anonymous commenting.
    */
   function setAnonymousUserSubscription($enabled) {
 
     if ($enabled) {
-      db_insert('role_permission')
-        ->fields(array('rid', 'permission'), array(DRUPAL_ANONYMOUS_RID, 'subscribe to newsletters'))
-        ->execute();
+      db_query("
+        UPDATE {permission}
+        SET perm = '%s'
+        WHERE rid = %d",
+        'access content, subscribe to newsletters',
+        DRUPAL_ANONYMOUS_RID);
+    }
+    else {
+      db_query("
+        UPDATE {permission}
+        SET perm = '%s'
+        WHERE rid = %d",
+        'access content',
+        DRUPAL_ANONYMOUS_RID);
     }
   }
 
   /**
-   * Set authenticated user permission to subscribe.
+   * Set anonymous user permission to subscribe.
    *
    * @param boolean $enabled
-   *   Allow authenticated subscribing.
+   *   Allow anonymous commenting.
    */
   function setAuthenticatedUserSubscription($enabled) {
 
     if ($enabled) {
-      db_insert('role_permission')
-        ->fields(array('rid', 'permission'), array(DRUPAL_AUTHENTICATED_RID, 'subscribe to newsletters'))
-        ->execute();
+      db_query("
+        UPDATE {permission}
+        SET perm = '%s'
+        WHERE rid = %d",
+        'access content, subscribe to newsletters',
+        DRUPAL_AUTHENTICATED_RID);
+    }
+    else {
+      db_query("
+        UPDATE {permission}
+        SET perm = '%s'
+        WHERE rid = %d",
+        'access content',
+        DRUPAL_AUTHENTICATED_RID);
     }
   }
 
@@ -93,11 +115,12 @@ class SimplenewsTestCase extends DrupalWebTestCase {
    *  ['rss feed'] = {1, 0} Display RSS-feed icon
    */
   function setupSubscriptionBlock($tid, $settings = array()) {
-    $bid = db_select('block')
-      ->fields('block', array('bid'))
-      ->condition('module', 'simplenews')
-      ->condition('delta', $tid)
-      ->execute();
+    $bid = db_result(db_query("
+      SELECT bid
+      FROM {blocks}
+      WHERE module = 'simplenews'
+        AND delta = '%s'",
+      array($tid)));
 
     // Check to see if the box was created by checking that it's in the database..
     $this->assertNotNull($bid, t('Block found in database'));
@@ -355,8 +378,8 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
       'rss feed' => TRUE,
     );
 
-    $this->drupalGet('admin/config/services/simplenews');
-    $this->clickLink(t('Add newsletter category'));
+    $this->drupalGet('admin/content/simplenews/types');
+    $this->clickLink(t('Add newsletter'));
     $edit = array(
       'name' => $this->randomName(),
       'description' => $this->randomString(20),
@@ -582,7 +605,7 @@ class SimpleNewsAdministrationTestCase extends SimplenewsTestCase {
     $admin_user = $this->drupalCreateUser(array('administer blocks', 'administer content types', 'administer nodes', 'access administration pages', 'administer permissions', 'administer newsletters', 'administer simplenews subscriptions'));
     $this->drupalLogin($admin_user);
 
-    $this->drupalGet('admin/config/services/simplenews');
+    $this->drupalGet('admin/content/simplenews/types');
 
     // Create a category for all possible setting combinations.
     $new_account = array('none', 'off', 'on', 'silent');
@@ -592,7 +615,7 @@ class SimpleNewsAdministrationTestCase extends SimplenewsTestCase {
     foreach ($new_account as $new_account_setting) {
       foreach ($opt_inout as $opt_inout_setting) {
         foreach ($block as $name => $value) {
-          $this->clickLink(t('Add newsletter category'));
+          $this->clickLink(t('Add newsletter'));
           $edit = array(
             'name' => implode('-', array($new_account_setting, $opt_inout_setting, $name)),
             'description' => $this->randomString(20),
@@ -609,8 +632,7 @@ class SimpleNewsAdministrationTestCase extends SimplenewsTestCase {
       }
     }
 
-    drupal_static_reset('simplenews_categories_load_multiple');
-    $categories = simplenews_categories_load_multiple();
+    $categories =simplenews_get_newsletters(variable_get('simplenews_vid', ''), TRUE, TRUE);
 
     // Check block settings.
     $this->drupalGet('admin/structure/block');
@@ -683,7 +705,7 @@ class SimpleNewsAdministrationTestCase extends SimplenewsTestCase {
     $this->drupalLogout();
 
     // Get the user id and do a login through the drupalLogin() function.
-    $uid = db_query('SELECT uid FROM {users} WHERE name = :name', array(':name' => $edit['name']))->fetchField();
+    $uid = db_result(db_query("SELECT uid FROM {users} WHERE name = '%s'", $edit['name']));
 
     $user = user_load($uid);
     // Set the password so that the login works.
@@ -729,14 +751,15 @@ class SimpleNewsAdministrationTestCase extends SimplenewsTestCase {
 
     $this->drupalLogin($admin_user);
 
-    $this->drupalGet('admin/config/services/simplenews/categories/' . $edit_category->tid . '/edit');
+    $this->drupalGet('admin/content/simplenews/types/categories/' . $edit_category->tid . '/edit');
     $this->assertFieldByName('name', $edit_category->name, t('Category name is displayed when editing'));
     $this->assertFieldByName('description', $edit_category->description, t('Category description is displayed when editing'));
 
     $edit = array('block' => FALSE);
     $this->drupalPost(NULL, $edit, t('Save'));
 
-    $updated_category = simplenews_category_load($edit_category->tid);
+    $categories =simplenews_get_newsletters(variable_get('simplenews_vid', ''), TRUE, TRUE);
+    $updated_category = $categories[$updated_category->tid];
     $this->assertEqual(0, $updated_category->block, t('Block for category disabled'));
 
     $this->drupalGet('admin/structure/block');
@@ -757,13 +780,12 @@ class SimpleNewsAdministrationTestCase extends SimplenewsTestCase {
     $edit = array(
       'name' => $name = $this->randomName(),
     );
-    $this->drupalPost('admin/config/services/simplenews/add', $edit, t('Save'));
+    $this->drupalPost('admin/content/simplenews/types/add', $edit, t('Save'));
 
     // Add a number of users to each category separately and then add another
     // bunch to both.
     $subscribers = array();
-    drupal_static_reset('simplenews_categories_load_multiple');
-    $categories = simplenews_categories_load_multiple();
+    $categories =simplenews_get_newsletters(variable_get('simplenews_vid', ''), TRUE, TRUE);
 
     $groups = array();
     foreach (array_keys($categories) as $tid) {
@@ -915,7 +937,7 @@ class SimpleNewsAdministrationTestCase extends SimplenewsTestCase {
 
     // Make sure the user is subscribed to the first tid.
     simplenews_subscribe_user($user_mail, $first, FALSE);
-    $before_count = simplenews_count_subscriptions($first);
+   // $before_count = simplenews_count_subscriptions($first);
 
     // Block the user.
     user_save(clone $user, array('status' => 0));
@@ -923,8 +945,7 @@ class SimpleNewsAdministrationTestCase extends SimplenewsTestCase {
     $this->drupalGet('admin/people/simplenews');
 
     // Verify updated subscriptions count.
-    drupal_static_reset('simplenews_count_subscriptions');
-    $after_count = simplenews_count_subscriptions($first);
+    //$after_count = simplenews_count_subscriptions($first);
     $this->assertEqual($before_count - 1, $after_count, t('Blocked users are not counted in subscription count.'));
 
     // Delete newsletter category.
@@ -935,9 +956,10 @@ class SimpleNewsAdministrationTestCase extends SimplenewsTestCase {
     $this->assertText(t('All subscriptions to newsletter @newsletter have been deleted.', array('@newsletter' => $categories[$first]->name)));
 
     // Verify that all related data has been deleted.
-    $this->assertFalse(simplenews_category_load($first));
-    $this->assertFalse(db_query('SELECT tid FROM {simplenews_category} WHERE tid = :tid', array(':tid' => $first))->fetchField());
-    $this->assertFalse(db_query('SELECT * FROM {block} WHERE module = :module AND delta = :tid', array(':module' => 'simplenews', ':tid' => $first))->fetchField());
+    $categories =simplenews_get_newsletters(variable_get('simplenews_vid', ''), TRUE, TRUE);
+    $this->assertFalse(isset($categories[$first]));
+    $this->assertFalse(db_result(db_query('SELECT tid FROM {simplenews_category} WHERE tid = %d', $first)));
+    $this->assertFalse(db_result(db_query("SELECT * FROM {block} WHERE module = '%s' AND delta = %d", 'simplenews', $first)));
 
 
     // Verify that all subscriptions of that category have been removed.
@@ -1004,235 +1026,6 @@ class SimpleNewsAdministrationTestCase extends SimplenewsTestCase {
     $this->drupalPost('admin/structure/types/manage/' . $type . '/delete', array(), t('Delete'));
   }
 }
-
-/**
- * Tests for I18N integration.
- */
-class SimpleNewsI18nTestCase extends SimplenewsTestCase {
-
-  /**
-   * Implementation of getInfo().
-   */
-  function getInfo() {
-    return array(
-      'name' => t('Simplenews I18n'),
-      'description' => t('Translation of newsletter categories'),
-      'group' => t('Simplenews'),
-      'dependencies' => array('i18n_taxonomy', 'variable'),
-    );
-  }
-
-  function setUp() {
-    parent::setUp(array('locale', 'i18n', 'variable', 'i18n_string', 'i18n_translation', 'i18n_taxonomy'));
-    $this->admin_user = $this->drupalCreateUser(array('bypass node access', 'administer nodes', 'administer languages', 'administer content types', 'administer blocks', 'access administration pages', 'administer filters', 'administer taxonomy', 'translate interface', 'subscribe to newsletters'));
-    $this->drupalLogin($this->admin_user);
-    $this->setUpLanguages();
-  }
-
-  /**
-   * Install a the specified language if it has not been already. Otherwise make sure that
-   * the language is enabled.
-   *
-   * Copied from Drupali18nTestCase::addLanguage().
-   *
-   * @param $language_code
-   *   The language code the check.
-   */
-  function addLanguage($language_code) {
-    // Check to make sure that language has not already been installed.
-    $this->drupalGet('admin/config/regional/language');
-
-    if (strpos($this->drupalGetContent(), 'enabled[' . $language_code . ']') === FALSE) {
-      // Doesn't have language installed so add it.
-      $edit = array();
-      $edit['langcode'] = $language_code;
-      $this->drupalPost('admin/config/regional/language/add', $edit, t('Add language'));
-
-      // Make sure we are not using a stale list.
-      drupal_static_reset('language_list');
-      $languages = language_list('language');
-      $this->assertTrue(array_key_exists($language_code, $languages), t('Language was installed successfully.'));
-
-      if (array_key_exists($language_code, $languages)) {
-        $this->assertRaw(t('The language %language has been created and can now be used. More information is available on the <a href="@locale-help">help screen</a>.', array('%language' => $languages[$language_code]->name, '@locale-help' => url('admin/help/locale'))), t('Language has been created.'));
-      }
-    }
-    elseif ($this->xpath('//input[@type="checkbox" and @name=:name and @checked="checked"]', array(':name' => 'enabled[' . $language_code . ']'))) {
-      // It's installed and enabled. No need to do anything.
-      $this->assertTrue(true, 'Language [' . $language_code . '] already installed and enabled.');
-    }
-    else {
-      // It's installed but not enabled. Enable it.
-      $this->assertTrue(true, 'Language [' . $language_code . '] already installed.');
-      $this->drupalPost(NULL, array('enabled[' . $language_code . ']' => TRUE), t('Save configuration'));
-      $this->assertRaw(t('Configuration saved.'), t('Language successfully enabled.'));
-    }
-  }
-
-  function testCategoryTranslation() {
-    $this->drupalLogin($this->admin_user);
-    // Make Input Format "Filtered Text" translatable
-    $edit = array(
-      'i18n_string_allowed_formats[filtered_html]' => 'filtered_html',
-      'i18n_string_allowed_formats[plain_text]' => 'plain_text',
-    );
-    $this->drupalPost('admin/config/regional/i18n/strings', $edit, t('Save configuration'));
-
-    $vocabulary = taxonomy_vocabulary_load(variable_get('simplenews_vid', 0));
-    $vocabulary->i18n_mode = I18N_MODE_LOCALIZE;
-    taxonomy_vocabulary_save($vocabulary);
-    drupal_static_reset('i18n_taxonomy_vocabulary_mode');
-
-    // Refresh strings.
-    module_invoke_all('i18n_string_refresh', 'taxonomy');
-
-    $tid = array_shift(simplenews_categories_load_multiple())->tid;
-    // Translate term to spanish.
-    list($textgroup, $context) = i18n_string_context(array('taxonomy', 'term', $tid, 'name'));
-    i18n_string_textgroup($textgroup)->update_translation($context, 'es', $es_name = $this->randomName());
-    list($textgroup, $context) = i18n_string_context(array('taxonomy', 'term', $tid, 'description'));
-    i18n_string_textgroup($textgroup)->update_translation($context, 'es', $es_description = $this->randomName());
-
-    // Visit newsletter selection page in english.
-    $this->drupalGet('user/' . $this->admin_user->uid . '/edit/simplenews');
-    $this->assertText(t('Drupal newsletter'));
-    $this->assertText(t('Drupal newsletter categories.'));
-
-    // And now in spanish.
-    $this->drupalGet('es/user/' . $this->admin_user->uid . '/edit/simplenews');
-    $this->assertText($es_name, t('Category name is translated.'));
-    $this->assertText($es_description, t('Category description is translated'));
-  }
-
-  /**
-   * Set up configuration for multiple languages.
-   *
-   * Copied from Drupali18nTestCase::setUpLanguages().
-   */
-  function setUpLanguages($admin_permissions = array()) {
-
-    // Add languages.
-    $this->default_language = 'en';
-    $this->secondary_language = 'es';
-    $this->addLanguage($this->default_language);
-    $this->addLanguage($this->secondary_language);
-
-    // Enable URL language detection and selection to make the language switcher
-    // block appear.
-    $edit = array('language[enabled][locale-url]' => TRUE);
-    $this->drupalPost('admin/config/regional/language/configure', $edit, t('Save settings'));
-    $this->assertRaw(t('Language negotiation configuration saved.'), t('URL language detection enabled.'));
-    $this->drupalGet('admin/config/regional/language/configure');
-
-    drupal_static_reset('locale_url_outbound_alter');
-    drupal_static_reset('language_list');
-  }
-}
-
-/**
- * Upgrade test from 6.x-1.x
- */
-class SimpleNewsUpgradePath61TestCase extends UpgradePathTestCase {
-  public static function getInfo() {
-    return array(
-      'name'  => 'Simplenews 6.x-1.x upgrade path',
-      'description'  => 'Simplenews 6.x-1.x upgrade path tests.',
-      'group' => 'Simplenews',
-    );
-  }
-
-  public function setUp() {
-    // Path to the database dump files.
-    $this->databaseDumpFiles = array(
-      drupal_get_path('module', 'simplenews') . '/tests/d6_simplenews_61.php',
-    );
-    parent::setUp();
-  }
-
-  /**
-   * Test a successful upgrade.
-   */
-  public function testSimplenewsUpgrade() {
-    // Delete everything except taxnomy and simplenews from system to
-    // prevent their update functions to be run.
-    $this->uninstallModulesExcept(array('taxonomy', 'simplenews'));
-
-    // Disable simplenews, the update hooks will be executed anyway.
-    db_update('system')
-      ->fields(array(
-        'status' => 0,
-      ))
-      ->condition('name', 'simplenews')
-      ->execute();
-
-    $this->assertTrue($this->performUpgrade(), t('Upgraded successfully.'));
-
-    // Enable simplenews.
-    $edit = array(
-      'modules[Mail][simplenews][enable]' => 1,
-    );
-    $this->drupalPost('admin/modules', $edit, t('Save configuration'));
-
-
-    $this->drupalGet('admin/config/services/simplenews');
-    $this->assertText('Drupal 6 newsletter');
-    $this->assertText('Test');
-
-  }
-}
-
-/**
- * Upgrade test from 6.x-2.x
- */
-class SimpleNewsUpgradePath62TestCase extends UpgradePathTestCase {
-  public static function getInfo() {
-    return array(
-      'name'  => 'Simplenews 6.x-2.x upgrade path',
-      'description'  => 'Simplenews 6.x-2.x upgrade path tests.',
-      'group' => 'Simplenews',
-    );
-  }
-
-  public function setUp() {
-    // Path to the database dump files.
-    $this->databaseDumpFiles = array(
-      drupal_get_path('module', 'simplenews') . '/tests/d6_simplenews_62.php',
-    );
-    parent::setUp();
-  }
-
-  /**
-   * Test a successful upgrade.
-   */
-  public function testSimplenewsUpgrade() {
-    // Delete everything except taxnomy and simplenews from system to
-    // prevent their update functions to be run.
-    $this->uninstallModulesExcept(array('taxonomy', 'simplenews'));
-
-    // Disable simplenews, the update hooks will be executed anyway.
-    db_update('system')
-      ->fields(array(
-        'status' => 0,
-      ))
-      ->condition('name', 'simplenews')
-      ->execute();
-
-    $this->assertTrue($this->performUpgrade(), t('Upgraded successfully.'));
-
-    // Enable simplenews.
-    $edit = array(
-      'modules[Mail][simplenews][enable]' => 1,
-    );
-    $this->drupalPost('admin/modules', $edit, t('Save configuration'));
-
-
-    $this->drupalGet('admin/config/services/simplenews');
-    $this->assertText('Drupal 6 newsletter');
-    $this->assertText('Test');
-
-  }
-}
-
 
 /**
  * Test cases for creating and sending newsletters.
@@ -1418,7 +1211,7 @@ class SimplenewsSendTestCase extends SimplenewsTestCase {
     $mails = $this->drupalGetMails();
     $this->assertEqual(0, count($mails), t('No mails were sent yet.'));
 
-    $spooled = db_query('SELECT COUNT(*) FROM {simplenews_mail_spool} WHERE nid = :nid', array(':nid' => $node->nid))->fetchField();
+    $spooled = db_result(db_query('SELECT COUNT(*) FROM {simplenews_mail_spool} WHERE nid = %d', $node->nid));
     $this->assertEqual(5, $spooled, t('5 mails have been added to the mail spool'));
 
     // Run cron for the first time.
@@ -1429,7 +1222,7 @@ class SimplenewsSendTestCase extends SimplenewsTestCase {
 
     $this->assertEqual(SIMPLENEWS_STATUS_SEND_PENDING, $newsletter->status, t('Newsletter sending pending.'));
 
-    $spooled = db_query('SELECT COUNT(*) FROM {simplenews_mail_spool} WHERE nid = :nid', array(':nid' => $node->nid))->fetchField();
+    $spooled = db_result(db_query('SELECT COUNT(*) FROM {simplenews_mail_spool} WHERE nid = %d', $node->nid));
     $this->assertEqual(2, $spooled, t('2 mails remaining in spool.'));
 
     // Run cron for the second time.
@@ -1440,7 +1233,7 @@ class SimplenewsSendTestCase extends SimplenewsTestCase {
 
     $this->assertEqual(SIMPLENEWS_STATUS_SEND_READY, $newsletter->status, t('Newsletter sending finished.'));
 
-    $spooled = db_query('SELECT COUNT(*) FROM {simplenews_mail_spool} WHERE nid = :nid', array(':nid' => $node->nid))->fetchField();
+    $spooled = db_result(db_query('SELECT COUNT(*) FROM {simplenews_mail_spool} WHERE nid = %d', $node->nid));
     $this->assertEqual(0, $spooled, t('No mails remaining in spool.'));
 
     // Verify mails.
@@ -1490,7 +1283,7 @@ class SimplenewsSendTestCase extends SimplenewsTestCase {
     $mails = $this->drupalGetMails();
     $this->assertEqual(0, count($mails), t('No mails were sent yet.'));
 
-    $spooled = db_query('SELECT COUNT(*) FROM {simplenews_mail_spool} WHERE nid = :nid', array(':nid' => $node->nid))->fetchField();
+    $spooled = db_result(db_query('SELECT COUNT(*) FROM {simplenews_mail_spool} WHERE nid = %d', $node->nid));
     $this->assertEqual(5, $spooled, t('5 mails have been added to the mail spool'));
 
     // Check warning message on node edit form.
@@ -1505,7 +1298,7 @@ class SimplenewsSendTestCase extends SimplenewsTestCase {
 
     $this->assertEqual(SIMPLENEWS_STATUS_SEND_READY, $newsletter->status, t('Newsletter sending finished.'));
 
-    $spooled = db_query('SELECT COUNT(*) FROM {simplenews_mail_spool} WHERE nid = :nid', array(':nid' => $node->nid))->fetchField();
+    $spooled = db_result(db_query('SELECT COUNT(*) FROM {simplenews_mail_spool} WHERE nid = %d', $node->nid));
     $this->assertEqual(0, $spooled, t('No mails remaining in spool.'));
 
     // Verify mails.
@@ -1577,8 +1370,8 @@ class SimplenewsSendTestCase extends SimplenewsTestCase {
 
   function testUpdateNewsletter() {
     // Create a second category.
-    $this->drupalGet('admin/config/services/simplenews');
-    $this->clickLink(t('Add newsletter category'));
+    $this->drupalGet('admin/content/simplenews/types');
+    $this->clickLink(t('Add newsletter'));
     $edit = array(
       'name' => $this->randomName(),
       'description' => $this->randomString(20),
@@ -1649,7 +1442,7 @@ class SimplenewsSendTestCase extends SimplenewsTestCase {
     $newsletter = simplenews_newsletter_load($node->nid);
     $this->assertEqual(SIMPLENEWS_STATUS_SEND_PENDING, $newsletter->status, t('Newsletter sending pending.'));
 
-    $spooled = db_query('SELECT COUNT(*) FROM {simplenews_mail_spool} WHERE nid = :nid', array(':nid' => $node->nid))->fetchField();
+    $spooled = db_result(db_query('SELECT COUNT(*) FROM {simplenews_mail_spool} WHERE nid = %d', $node->nid));
     $this->assertEqual(5, $spooled, t('5 mails remaining in spool.'));
 
     // Verify that deleting isn't possible right now.
@@ -1664,7 +1457,7 @@ class SimplenewsSendTestCase extends SimplenewsTestCase {
     $newsletter = simplenews_newsletter_load($node->nid);
     $this->assertEqual(SIMPLENEWS_STATUS_SEND_READY, $newsletter->status, t('Newsletter sending finished'));
 
-    $spooled = db_query('SELECT COUNT(*) FROM {simplenews_mail_spool} WHERE nid = :nid', array(':nid' => $node->nid))->fetchField();
+    $spooled = db_result(db_query('SELECT COUNT(*) FROM {simplenews_mail_spool} WHERE nid = %d', $node->nid));
     $this->assertEqual(5, $spooled, t('Mails are kept in simplenews_mail_spool after being sent.'));
 
     // Verify mails.
@@ -1685,183 +1478,8 @@ class SimplenewsSendTestCase extends SimplenewsTestCase {
     // Verify.
     $newsletter = simplenews_newsletter_load($node->nid);
     $this->assertFalse($newsletter);
-    $spooled = db_query('SELECT COUNT(*) FROM {simplenews_mail_spool} WHERE nid = :nid', array(':nid' => $node->nid))->fetchField();
+    $spooled = db_result(db_query('SELECT COUNT(*) FROM {simplenews_mail_spool} WHERE nid = %d', $node->nid));
     $this->assertEqual(0, $spooled, t('No mails remaining in spool.'));
 
-  }
-}
-
-/**
- * Test cases for creating and sending newsletters.
- */
-class SimplenewsSourceTestCase extends SimplenewsTestCase {
-  /**
-   * Implementation of getInfo().
-   */
-  function getInfo() {
-    return array(
-      'name' => t('Source tests'),
-      'description' => t('Tests for the new source interfaces and concepts.'),
-      'group' => t('Simplenews'),
-    );
-  }
-
-  function setUp() {
-    parent::setUp();
-
-    $this->user = $this->drupalCreateUser(array('administer newsletters', 'send newsletter', 'administer nodes', 'administer simplenews subscriptions', 'create simplenews content', 'edit any simplenews content', 'view own unpublished content', 'delete any simplenews content', 'administer simplenews settings'));
-    $this->drupalLogin($this->user);
-  }
-
-  function subscribeUsers($count = 100) {
-    // Subscribe users.
-    $this->subscribers = array();
-    for ($i = 0; $i < $count; $i++) {
-      $mail = $this->randomEmail();
-      $this->subscribers[$mail] = $mail;
-    }
-
-    $this->drupalGet('admin/people/simplenews');
-    $this->clickLink(t('Mass subscribe'));
-    $edit = array(
-      'emails' => implode(',', $this->subscribers),
-      // @todo: Don't hardcode the default tid.
-      '1' => TRUE,
-    );
-    $this->drupalPost(NULL, $edit, t('Subscribe'));
-  }
-
-  /**
-   * Tests that sending a minimal implementation of the source interface works.
-   */
-  function testSendMinimalSourceImplementation() {
-    // Create a basic plaintext test source and send it.
-    $plain_source = new SimplenewsSourceTest('plain');
-    simplenews_send_source($plain_source);
-    $mails = $this->drupalGetMails();
-    $mail = $mails[0];
-
-    // Assert resulting mail.
-    $this->assertEqual('simplenews_node', $mail['id']);
-    $this->assertEqual('simplenews', $mail['module']);
-    $this->assertEqual('node', $mail['key']);
-    $this->assertEqual($plain_source->getRecipient(), $mail['to']);
-    $this->assertEqual($plain_source->getFromFormatted(), $mail['from']);
-    $this->assertEqual($plain_source->getLanguage(), $mail['language']);
-    $this->assertTrue($mail['params']['plain']);
-
-    $this->assertFalse(isset($mail['params']['plaintext']));
-    $this->assertFalse(isset($mail['params']['attachments']));
-
-    $this->assertEqual($plain_source->getSubject(), $mail['subject']);
-    $this->assertTrue(strpos($mail['body'], 'the plain body') !== FALSE);
-    $this->assertTrue(strpos($mail['body'], 'the plain footer') !== FALSE);
-
-    $html_source = new SimplenewsSourceTest('html');
-    simplenews_send_source($html_source);
-    $mails = $this->drupalGetMails();
-    $mail = $mails[1];
-
-    // Assert resulting mail.
-    $this->assertEqual('simplenews_node', $mail['id']);
-    $this->assertEqual('simplenews', $mail['module']);
-    $this->assertEqual('node', $mail['key']);
-    $this->assertEqual($plain_source->getRecipient(), $mail['to']);
-    $this->assertEqual($plain_source->getFromFormatted(), $mail['from']);
-    $this->assertEqual($plain_source->getLanguage(), $mail['language']);
-    $this->assertEqual(NULL, $mail['params']['plain']);
-
-    $this->assertTrue(isset($mail['params']['plaintext']));
-    $this->assertTrue(strpos($mail['params']['plaintext'], 'the plain body') !== FALSE);
-    $this->assertTrue(strpos($mail['params']['plaintext'], 'the plain footer') !== FALSE);
-    $this->assertTrue(isset($mail['params']['attachments']));
-    $this->assertEqual('example://test.png', $mail['params']['attachments'][0]['uri']);
-
-    $this->assertEqual($plain_source->getSubject(), $mail['subject']);
-    $this->assertTrue(strpos($mail['body'], 'the body') !== FALSE);
-    $this->assertTrue(strpos($mail['body'], 'the footer') !== FALSE);
-  }
-
-  /**
-   * Test sending a newsletter to 100 recipients with caching enabled.
-   */
-  function testSendCaching() {
-
-    $this->subscribeUsers(100);
-    // Enable build caching.
-    $edit = array(
-      'simplenews_source_cache' => 'SimplenewsSourceCacheBuild',
-    );
-    $this->drupalPost('admin/config/services/simplenews/settings/mail', $edit, t('Save configuration'));
-
-    $edit = array(
-      'title' => $this->randomName(),
-      'body[und][0][value]' => "Mail token: [simplenews-subscriber:mail]",
-    );
-    $this->drupalPost('node/add/simplenews', $edit, ('Save'));
-    $this->assertTrue(preg_match('|node/(\d+)$|', $this->getUrl(), $matches), 'Node created');
-    $node = node_load($matches[1]);
-
-    // Add node to spool.
-    simplenews_add_node_to_spool($node);
-
-    $before = microtime(TRUE);
-    simplenews_mail_spool();
-    $after = microtime(TRUE);
-
-    // Make sure that 100 mails have been sent.
-    $this->assertEqual(100, count($this->drupalGetMails()));
-
-    // Test that tokens are correctly replaced.
-    foreach (array_slice($this->drupalGetMails(), 0, 3) as $mail) {
-      // Make sure that the same mail was used in the body token as it has been
-      // sent to. Also verify that the mail is plaintext.
-      $this->assertTrue(strpos($mail['body'], $mail['to']) !== FALSE);
-      $this->assertFalse(strpos($mail['body'], '<strong>'));
-    }
-
-    // Report time. @todo: Find a way to actually do some assertions here.
-    $this->pass(t('Mails have been sent in @sec seconds with build caching enabled.', array('@sec' => round($after - $before, 3))));
-  }
-
-  /**
-   * Test with disabled caching.
-   */
-  function testSendNoCaching() {
-    $this->subscribeUsers(100);
-    // Disable caching.
-    $edit = array(
-      'simplenews_source_cache' => 'SimplenewsSourceCacheNone',
-    );
-    $this->drupalPost('admin/config/services/simplenews/settings/mail', $edit, t('Save configuration'));
-
-    $edit = array(
-      'title' => $this->randomName(),
-      'body[und][0][value]' => "Mail token: <strong>[simplenews-subscriber:mail]</strong>",
-    );
-    $this->drupalPost('node/add/simplenews', $edit, ('Save'));
-    $this->assertTrue(preg_match('|node/(\d+)$|', $this->getUrl(), $matches), 'Node created');
-    $node = node_load($matches[1]);
-
-    // Add node to spool.
-    simplenews_add_node_to_spool($node);
-
-    $before = microtime(TRUE);
-    simplenews_mail_spool();
-    $after = microtime(TRUE);
-
-    // Make sure that 100 mails have been sent.
-    $this->assertEqual(100, count($this->drupalGetMails()));
-
-    // Test that tokens are correctly replaced.
-    foreach (array_slice($this->drupalGetMails(), 0, 3) as $mail) {
-      // Make sure that the same mail was used in the body token as it has been
-      // sent to. Also verify that the mail is plaintext.
-      $this->assertTrue(strpos($mail['body'], $mail['to']) !== FALSE);
-      $this->assertFalse(strpos($mail['body'], '<strong>'));
-    }
-
-    // Report time. @todo: Find a way to actually do some assertions here.
-    $this->pass(t('Mails have been sent in @sec seconds with caching disabled.', array('@sec' => round($after - $before, 3))));
   }
 }
