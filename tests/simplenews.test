@@ -1818,6 +1818,8 @@ class SimplenewsSourceTestCase extends SimplenewsTestCase {
       // sent to. Also verify that the mail is plaintext.
       $this->assertTrue(strpos($mail['body'], $mail['to']) !== FALSE);
       $this->assertFalse(strpos($mail['body'], '<strong>'));
+      // Make sure the body is only attached once.
+      $this->assertEqual(1, preg_match_all('/Mail token/', $mail['body'], $matches));
     }
 
     // Report time. @todo: Find a way to actually do some assertions here.
@@ -1859,6 +1861,8 @@ class SimplenewsSourceTestCase extends SimplenewsTestCase {
       // sent to. Also verify that the mail is plaintext.
       $this->assertTrue(strpos($mail['body'], $mail['to']) !== FALSE);
       $this->assertFalse(strpos($mail['body'], '<strong>'));
+      // Make sure the body is only attached once.
+      $this->assertEqual(1, preg_match_all('/Mail token/', $mail['body'], $matches));
     }
 
     // Report time. @todo: Find a way to actually do some assertions here.
