@@ -2336,7 +2336,6 @@ function simplenews_locale_refresh() {
  *   Invitation text. Optionally translated.
  *
  * @see simplenews_locale()
- * @todo Either port to new i18n API or drop in favor of variable translation.
  */
 function simplenews_subscription_confirmation_text($key, $langcode = NULL, $translate = TRUE) {
   $langcode = isset($language) ? $language->language : NULL;
