@@ -3,7 +3,7 @@ DESCRIPTION
 -----------
 
 Simplenews publishes and sends newsletters to lists of subscribers. Both
-anonymous and authenticated users can opt-in to different mailing lists. 
+anonymous and authenticated users can opt-in to different mailing lists.
 HTML email can be sent by adding Mime mail module.
 
 
@@ -12,7 +12,7 @@ REQUIREMENTS
 
  * For large mailing lists, cron is required.
  * HTML-format newsletters and/or newsletters with file attachments require the
-   mime mail or HMTL mail module. 
+   mime mail or HMTL mail module.
 
 INSTALLATION
 ------------
@@ -29,7 +29,7 @@ INSTALLATION
  3. ACCESS PERMISSION
 
     Grant the access at the Access control page:
-      People > Permissions. 
+      People > Permissions.
 
  4. CONFIGURE SIMPLENEWS
 
@@ -53,16 +53,16 @@ INSTALLATION
  6. CONFIGURE SIMPLENEWS BLOCK
 
     Configure the Simplenews block on the Block configuration page. You reach
-    this page from Block admin page (Structure > Blocks). 
+    this page from Block admin page (Structure > Blocks).
     Click the 'Configure' link of the appropriate simplenews block.
- 
+
     Permission "subscribe to newsletters" is required to view the subscription
     form in the simplenews block or to view the link to the subscription form.
 
  7. SIMPLENEWS BLOCK THEMING
 
-    More control over the content of simplenews blocks can be achieved using 
-    the block theming. Theme your simplenews block by copying 
+    More control over the content of simplenews blocks can be achieved using
+    the block theming. Theme your simplenews block by copying
     simplenews-block.tpl.php into your theme directory and edit the content.
     The file is self documented listing all available variables.
 
@@ -71,7 +71,7 @@ INSTALLATION
       simplenews-block.tpl--[tid].php (for newsletter series tid)
 
  8. MULTILINGUAL SUPPORT
- 
+
     Simplenews supports multilingual newsletters for node translation,
     multilingual taxonomy and url path prefixes.
 
@@ -89,7 +89,7 @@ INSTALLATION
     Use 'per language terms' for mailing lists each with a different language.
     Newsletters of different language each have their own tag and own list of
     subscribers.
-    
+
     Path prefixes are added to footer message according to the subscribers
     preferred language.
 
@@ -98,9 +98,15 @@ INSTALLATION
     change their preferred language. Users with an account on the site will be
     subscribed with the preferred language as set in their account settings.
 
+    The confirmation mails can be translated by enableding the Simplenews
+    variables at:
+      Home > Administration > Configuration > Regional and language > Multilingual settings > Variables
+    Afterwards, the mail subject and body can be entered for every enabled
+    language.
+
 9.  NEWSLETTER THEMING
 
-    You can customize the theming of newsletters. Copy any of the *.tpl.php 
+    You can customize the theming of newsletters. Copy any of the *.tpl.php
     files from the simplenews module directory to your theme directory. Both
     general and by-newsletter theming can be performed.
     Theme newsletter body:
@@ -129,7 +135,7 @@ INSTALLATION
 
     Using the fields Display settings each field of a simplenews newsletter can
     be displayed or hidden in 'plain text', 'HTML' and 'HTML text alternative'
-    format. You find these settings at: 
+    format. You find these settings at:
       Structure > Content types > Manage display > Email
 
 
@@ -192,7 +198,7 @@ INSTALLATION
     vulnerable to Cross Site Request Forgeries. Email addresses may be
     (un)subscribed without a notice. Do not use this setting in uncontrolled
     environments (like the internet!).
- 
+
  13. TIPS
     A subscription page is available at: /newsletter/subscriptions
 
