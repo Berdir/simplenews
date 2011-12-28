@@ -772,17 +772,17 @@ function simplenews_subscription_list_add($form, &$form_state) {
     '#description' => t('Email addresses must be separated by comma, space or newline.'),
   );
 
-  $form['lists'] = array(
+  $form['newsletters'] = array(
     '#type' => 'fieldset',
     '#description' => t('Subscribe to'),
+    '#tree' => TRUE,
    );
 
   foreach (simplenews_get_mailing_lists(TRUE) as $list) {
-    $form['lists'][$list->tid] = array(
+    $form['newsletters'][$list->tid] = array(
       '#type' => 'checkbox',
       '#title' => check_plain(_simplenews_newsletter_name($list)),
       '#description'  => _simplenews_newsletter_description($list),
-      '#default_value' => FALSE,
     );
   }
 
@@ -825,7 +825,7 @@ function simplenews_subscription_list_add($form, &$form_state) {
 function simplenews_subscription_list_add_submit($form, &$form_state) {
   $added = array();
   $invalid = array();
-  $checked_lists = array_keys(array_filter($form_state['values']));
+  $checked_categories = array_keys(array_filter($form_state['values']['newsletters']));
   $langcode = $form_state['values']['language'];
 
   $emails = preg_split("/[\s,]+/", $form_state['values']['emails']);
@@ -835,8 +835,8 @@ function simplenews_subscription_list_add_submit($form, &$form_state) {
       continue;
     }
     if (valid_email_address($email)) {
-      foreach ($checked_lists as $tid) {
-        $category = simplenews_category_load($tid);
+      foreach (simplenews_categories_load_multiple($checked_categories) as $category) {
+
         simplenews_subscribe_user($email, $category->tid, FALSE, 'mass subscribe', $langcode);
         $added[] = $email;
       }
@@ -850,8 +850,7 @@ function simplenews_subscription_list_add_submit($form, &$form_state) {
     drupal_set_message(t('The following addresses were added or updated: %added.', array('%added' => $added)));
 
     $list_names = array();
-    foreach ($checked_lists as $tid) {
-      $category = simplenews_category_load($tid);
+    foreach (simplenews_categories_load_multiple($checked_categories) as $category) {
       $list_names[] = $category->name;
     }
     drupal_set_message(t('The addresses were subscribed to the following newsletters: %newsletters.', array('%newsletters' => implode(', ', $list_names))));
@@ -879,7 +878,7 @@ function simplenews_subscription_list_export($form, &$form_state) {
   // Get sensible default values for the form elements in this form.
   $default['states'] = isset($_GET['states']) ? $_GET['states'] : array('active' => 'active');
   $default['subscribed'] = isset($_GET['subscribed']) ? $_GET['subscribed'] : array('subscribed' => 'subscribed');
-  $default['lists'] = isset($_GET['lists']) ? $_GET['lists'] : array();
+  $default['newsletters'] = isset($_GET['newsletters']) ? $_GET['newsletters'] : array();
 
   $form['states'] = array(
     '#type' => 'checkboxes',
@@ -905,15 +904,12 @@ function simplenews_subscription_list_export($form, &$form_state) {
     '#required' => TRUE,
   );
 
-  $lists = array();
-  foreach (simplenews_get_mailing_lists(TRUE) as $list) {
-    $lists[$list->tid] = check_plain(_simplenews_newsletter_name($list));
-  }
-  $form['lists'] = array(
+  $options = simplenews_category_list();
+  $form['newsletters'] = array(
     '#type' => 'checkboxes',
     '#title' => t('Newsletter'),
-    '#options' => $lists,
-    '#default_value' => $default['lists'],
+    '#options' => $options,
+    '#default_value' => $default['newsletters'],
     '#description' => t('Subscriptions matching the selected newsletters will be exported.'),
     '#required' => TRUE,
   );
@@ -926,7 +922,7 @@ function simplenews_subscription_list_export($form, &$form_state) {
       '#title' => t('Export results'),
       '#cols' => 60,
       '#rows' => 5,
-      '#value' => _simplenews_subscription_list_export_get_emails($_GET['states'], $_GET['subscribed'], $_GET['lists']),
+      '#value' => _simplenews_subscription_list_export_get_emails($_GET['states'], $_GET['subscribed'], $_GET['newsletters']),
     );
   }
 
@@ -946,7 +942,7 @@ function simplenews_subscription_list_export_submit($form, &$form_state) {
   // Get data for query string and redirect back to the current page.
   $options['query']['states'] = array_filter($form_values['states']);
   $options['query']['subscribed'] = array_filter($form_values['subscribed']);
-  $options['query']['lists'] = array_keys(array_filter($form_values['lists']));
+  $options['query']['newsletters'] = array_keys(array_filter($form_values['newsletters']));
   $form_state['redirect'] = array('admin/people/simplenews/export', $options);
 }
 
@@ -957,12 +953,12 @@ function simplenews_subscription_list_export_submit($form, &$form_state) {
  *   Array of subscriber states to filter on.
  * @param $subscribed
  *   Array of subscription states to filter on.
- * @param $lists
+ * @param $newsletters
  *   Array of taxonomy ids to fitler on.
  * @return string
  *   Comma separated list of email adresses.
  */
-function _simplenews_subscription_list_export_get_emails($states, $subscribed, $lists) {
+function _simplenews_subscription_list_export_get_emails($states, $subscribed, $newsletters) {
 
   // Build conditions for active state, subscribed state and newsletter selection.
   if (isset($states['active'])) {
@@ -977,7 +973,6 @@ function _simplenews_subscription_list_export_get_emails($states, $subscribed, $
   if (isset($subscribed['unsubscribed'])) {
     $condition_subscribed[] = 0;
   }
-  $tids = $lists;
 
   // Get emails from the database.
   $query = db_select('simplenews_subscriber', 'ss');
@@ -985,7 +980,7 @@ function _simplenews_subscription_list_export_get_emails($states, $subscribed, $
   $query->fields('ss', array('mail'))
     ->condition('ss.activated', $condition_active)
     ->condition('si.status', $condition_subscribed)
-    ->condition('si.tid', $tids)
+    ->condition('si.tid', $newsletters)
     ->distinct();
   $mails = $query->execute()->fetchCol(0);
 
@@ -1012,17 +1007,17 @@ function simplenews_subscription_list_remove($form, &$form_state) {
     '#description' => t('Email addresses must be separated by comma, space or newline.'),
   );
 
-  $form['lists'] = array(
+  $form['newsletters'] = array(
     '#type' => 'fieldset',
     '#description' => t('Unsubscribe from'),
+    '#tree' => TRUE,
   );
 
   foreach (simplenews_get_mailing_lists(TRUE) as $list) {
-    $form['lists'][$list->tid] = array(
+    $form['newsletters'][$list->tid] = array(
       '#type' => 'checkbox',
       '#title' => check_plain(_simplenews_newsletter_name($list)),
       '#description'  => _simplenews_newsletter_description($list),
-      '#default_value' => FALSE,
     );
   }
 
@@ -1039,7 +1034,7 @@ function simplenews_subscription_list_remove($form, &$form_state) {
 function simplenews_subscription_list_remove_submit($form, &$form_state) {
   $removed = array();
   $invalid = array();
-  $checked_lists = array_keys(array_filter($form_state['values']));
+  $checked_lists = array_keys(array_filter($form_state['values']['newsletters']));
 
   $emails = preg_split("/[\s,]+/", $form_state['values']['emails']);
   foreach ($emails as $email) {

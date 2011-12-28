@@ -1838,7 +1838,7 @@ function simplenews_category_list() {
   $categories = simplenews_categories_load_multiple();
   $cats = array();
   foreach ($categories as $key => $category) {
-    $cats[$key] = _simplenews_newsletter_name($category);
+    $cats[$key] = check_plain(_simplenews_newsletter_name($category));
   }
   return $cats;
 }

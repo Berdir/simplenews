@@ -291,7 +291,7 @@ function simplenews_subscriptions_page_form_validate($form, &$form_state) {
  * FAPI PAGE subscription form_submit.
  */
 function simplenews_subscriptions_page_form_submit($form, &$form_state) {
-  $subscription = simplenews_get_subscription(simplenews_load_user_by_mail($form_state['values']['mail']));
+  $account = simplenews_get_subscription(simplenews_load_user_by_mail($form_state['values']['mail']));
 
   switch ($form_state['values']['op']) {
     case t('Update'):
@@ -300,10 +300,10 @@ function simplenews_subscriptions_page_form_submit($form, &$form_state) {
       arsort($form_state['values']['newsletters'], SORT_NUMERIC);
       foreach ($form_state['values']['newsletters'] as $tid => $checked) {
         if ($checked) {
-          simplenews_subscribe_user($form_state['values']['mail'], $tid, FALSE, 'website');
+          simplenews_subscribe_user($account->mail, $tid, FALSE, 'website');
         }
         else {
-          simplenews_unsubscribe_user($form_state['values']['mail'], $tid, FALSE, 'website');
+          simplenews_unsubscribe_user($account->mail, $tid, FALSE, 'website');
         }
       }
       drupal_set_message(t('The newsletter subscriptions for %mail have been updated.', array('%mail' => $form_state['values']['mail'])));
@@ -314,7 +314,7 @@ function simplenews_subscriptions_page_form_submit($form, &$form_state) {
         if ($checked) {
           $confirm = simplenews_require_double_opt_in($tid, $account);
           $confirm_any |= $confirm;
-          simplenews_subscribe_user($form_state['values']['mail'], $tid, $confirm, 'website');
+          simplenews_subscribe_user($account->mail, $tid, $confirm, 'website');
         }
       }
       if ($confirm_any) {
@@ -330,7 +330,7 @@ function simplenews_subscriptions_page_form_submit($form, &$form_state) {
         if ($checked) {
           $confirm = simplenews_require_double_opt_in($tid, $account);
           $confirm_any |= $confirm;
-          simplenews_unsubscribe_user($form_state['values']['mail'], $tid, $confirm, 'website');
+          simplenews_unsubscribe_user($account->mail, $tid, $confirm, 'website');
         }
       }
       if ($confirm_any) {
