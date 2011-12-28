@@ -228,30 +228,19 @@ function simplenews_menu() {
   );
   $items['admin/config/services/simplenews/settings'] = array(
     'title' => 'Settings',
-    'description' => 'Simplenews vocabulary setting.',
+    'description' => 'Simplenews settings.',
     'page callback' => 'drupal_get_form',
     'weight' => 20,
-    'page arguments' => array('simplenews_admin_settings'),
-    'access arguments' => array('administer simplenews settings'),
-    'file' => 'includes/simplenews.admin.inc',
-    'file path' => drupal_get_path('module', 'simplenews'),
-    'type' => MENU_LOCAL_TASK,
-  );
-  $items['admin/config/services/simplenews/settings/general'] = array(
-    'title' => 'General',
-    'weight' => -20,
-    'type' => MENU_DEFAULT_LOCAL_TASK,
-  );
-  $items['admin/config/services/simplenews/settings/newsletter'] = array(
-    'title' => 'Newsletter',
-    'description' => 'Newsletter default settings and sender data.',
-    'page callback' => 'drupal_get_form',
-    'weight' => -15,
     'page arguments' => array('simplenews_admin_settings_newsletter'),
     'access arguments' => array('administer simplenews settings'),
     'file' => 'includes/simplenews.admin.inc',
     'file path' => drupal_get_path('module', 'simplenews'),
     'type' => MENU_LOCAL_TASK,
+  );
+  $items['admin/config/services/simplenews/settings/newsletter'] = array(
+    'title' => 'Newsletter',
+    'weight' => -15,
+    'type' => MENU_DEFAULT_LOCAL_TASK,
   );
   $items['admin/config/services/simplenews/settings/subscription'] = array(
     'title' => 'Subscription',
