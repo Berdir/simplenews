@@ -1825,13 +1825,6 @@ function simplenews_node_tab_page($node){
 }
 
 /**
- * Access callback; Acces to Newsletter tab page.
- */
-function simplenews_node_tab_access($node) {
-  return simplenews_check_node_types($node->type) && user_access('send newsletter');
-}
-
-/**
  * @todo
  */
 function simplenews_node_tab_send_form($form, &$form_state, $node){

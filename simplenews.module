@@ -2630,6 +2630,13 @@ function template_preprocess_simplenews_newsletter_footer(&$variables) {
 }
 
 /**
+ * Access callback; Acces to Newsletter tab page.
+ */
+function simplenews_node_tab_access($node) {
+  return simplenews_check_node_types($node->type) && user_access('send newsletter');
+}
+
+/**
  * Update the sent status of a node.
  *
  * If the node part of a translation set, all corresponding translations are
