@@ -13,13 +13,6 @@
  * @see simplenews_admin_newsletter_submit()
  */
 function simplenews_admin_newsletter_issues($form, &$form_state, $action = 'sent') {
-/*
-  // @todo Fix the delete operation
-  if (isset($form_state['input']['operation']) && $form_state['input']['operation'] == 'delete') {
-    return simplenews_issue_multiple_delete_confirm($form, $form_state);
-  }
-*/
-
   $form['filter'] = simplenews_issue_filter_form();
   $form['#submit'][] = 'simplenews_issue_filter_form_submit';
   $form['filter']['#theme'] = 'simplenews_filter_form';
@@ -871,8 +864,6 @@ function simplenews_subscription_list_add_submit($form, &$form_state) {
  * Menu callback: Export email address of subscriptions.
  *
  * @see simplenews_admin_export_after_build()
- *
- * @todo Add checkboxes for subscribed and unsubscribed selection.
  */
 function simplenews_subscription_list_export($form, &$form_state) {
   // Get sensible default values for the form elements in this form.

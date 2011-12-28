@@ -88,11 +88,9 @@ define('SIMPLENEWS_UNLIMITED', -1);
  * Implements hook_permission().
  *
  * @todo Change sort order where required: http://drupal.org/node/224333#sorting_permissions
- * @todo Review the use of 'administer nodes': http://drupal.org/node/224333#bypass_node_access
  */
 function simplenews_permission() {
   return array(
-    // @todo Change to administer newsletter categories. And update existing permissions in hook_update_N.
     'administer newsletters' => array(
       'title' => t('Administer newsletters'),
     ),
@@ -988,7 +986,6 @@ function simplenews_user_presave(&$edit, $account, $category) {
         if ($subscription->snid) {
           $subscriber = simplenews_subscriber_load($subscription->snid);
           // Update mail, status and language if they are changed.
-          // @todo convert this code to simplenews_subscriber_save().
           $fields = array();
           if (isset($edit['mail'])) {
             $subscriber->mail = $edit['mail'];
@@ -2019,7 +2016,6 @@ function simplenews_newsletter_delete($newsletter) {
  * Implements hook_token_info().
  */
 function simplenews_token_info() {
-  // @todo Add desription to the types and extend available tokens.
   $types['simplenews-subscriber'] = array(
     'name' => t('Simplenews subscriber'),
     'description' => t('Tokens related to the newsletter recipient'),
