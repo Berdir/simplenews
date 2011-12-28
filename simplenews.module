@@ -2363,6 +2363,11 @@ function simplenews_subscription_confirmation_text($key, $langcode = NULL, $tran
         break;
     }
   }
+
+  // If this is a multilingual website we use i18nstrings module to translate the content.
+  if (variable_get('language_count', 1) > 1 && function_exists('i18nstrings') && $translate) {
+    $text = i18nstrings('simplenews:' . $key, $text, $langcode);
+  }
   return $text;
 }
 
