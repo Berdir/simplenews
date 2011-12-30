@@ -15,8 +15,18 @@
  *
  * @param $node
  *   The newsletter node to be sent.
+ * @param $use_batch
+ *   (Optional) If Simplenews is configured to send immediatly, setting this
+ *   argument to TRUE means that a batch process will be built up and initiated
+ *   instead of sending everything at once. If this is not executed within a
+ *   form submit callback, the batch process needs to be started manually with
+ *   batch_process(). Defaults to FALSE.
+ *
+ * @return
+ *   SIMPLENEWS_STATUS_SEND_READY if the mails have been sent or
+ *   SIMPLENEWS_STATUS_SEND_PENDING if they were just added to the spool.
  */
-function simplenews_add_node_to_spool($node) {
+function simplenews_add_node_to_spool($node, $use_batch = FALSE) {
   // To send the newsletter, the node id and target email addresses
   // are stored in the spool.
   // Only subscribed recipients are stored in the spool (status = 1).
@@ -43,9 +53,33 @@ function simplenews_add_node_to_spool($node) {
   // in the spool. When cron is used newsletters are send to addresses in the
   // spool during the next (and following) cron run.
   if (variable_get('simplenews_use_cron', TRUE) == FALSE) {
-    simplenews_mail_spool();
-    simplenews_clear_spool();
-    simplenews_send_status_update();
+    if ($use_batch) {
+      $operations = array();
+      // Set up as many send operations as necessary to send all mails with the
+      // defined throttle amount.
+      $throttle = variable_get('simplenews_throttle', 20);
+      $spool_count = simplenews_count_spool($node->nid);
+      $num_operations = ceil($spool_count / $throttle);
+      for ($i = 0; $i < $num_operations; $i++) {
+        $operations[] = array('simplenews_mail_spool', array($throttle));
+      }
+
+      // Add separate operations to clear the spool and updat the send status.
+      $operations[] = array('simplenews_clear_spool', array());
+      $operations[] = array('simplenews_send_status_update', array());
+
+      $batch = array(
+        'operations' => $operations,
+        'title' => t('Sending mails'),
+        'file' => drupal_get_path('module', 'simplenews') . '/includes/simplenews.mail.inc',
+      );
+      batch_set($batch);
+    }
+    else {
+      simplenews_mail_spool();
+      simplenews_clear_spool();
+      simplenews_send_status_update();
+    }
     return SIMPLENEWS_STATUS_SEND_READY;
   }
   else {

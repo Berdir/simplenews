@@ -2981,7 +2981,7 @@ function simplenews_node_tab_send_form_submit($form, &$form_state) {
   // Send newsletter to all subscribers or send test newsletter
   module_load_include('inc', 'simplenews', 'includes/simplenews.mail');
   if ($values['simplenews']['send'] == SIMPLENEWS_COMMAND_SEND_NOW) {
-    $status = simplenews_add_node_to_spool($node);
+    $status = simplenews_add_node_to_spool($node, TRUE);
     if ($status == SIMPLENEWS_STATUS_SEND_READY) {
       drupal_set_message(t('Newsletter %title sent.', array('%title' => $node->title)));
     }
