@@ -1875,7 +1875,7 @@ class SimplenewsSourceTestCase extends SimplenewsTestCase {
    * Send a newsletter with the category set to hidden.
    */
   function testSendHidden() {
-    $this->subscribeUsers(5);
+    $this->setUpSubscribers(5);
 
     // Set the format to HTML.
     $this->drupalGet('admin/config/services/simplenews');
