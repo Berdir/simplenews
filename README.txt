@@ -12,7 +12,12 @@ REQUIREMENTS
 
  * For large mailing lists, cron is required.
  * HTML-format newsletters and/or newsletters with file attachments require the
-   mime mail or HMTL mail module. 
+   mime mail or HMTL mail module.
+ * When sending newsletters on cron, it is important that the base url is  set
+   correctly or links inside the newsletter will not work. When using Drush to
+   start cron, it is important to use the --uri=http://www.example.com
+   parameter. Alternatively, it's also possible to enforce the $site_url in
+   settings.php, see the Tips (13.) below for more details.
 
 INSTALLATION
 ------------
@@ -192,9 +197,14 @@ INSTALLATION
     vulnerable to Cross Site Request Forgeries. Email addresses may be
     (un)subscribed without a notice. Do not use this setting in uncontrolled
     environments (like the internet!).
- 
+
  13. TIPS
     A subscription page is available at: /newsletter/subscriptions
+
+    The Elysia Cron module (http://drupal.org/project/elysia_cron) can be used
+    to start the simplenews cron hook more often than others, so that newsletter
+    are sent faster without decreasing site performance due to long-running cron
+    hooks.
 
     If your unsubscribe URL looks like:
       http://newsletter/confirm/remove/8acd182182615t632
