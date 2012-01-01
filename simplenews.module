@@ -2427,9 +2427,9 @@ function simplenews_theme() {
       'path' => $path . '/theme',
     ),
     'simplenews_subscription_list' => array(
-      'file' => 'includes/simplenews.admin.inc',
+      'file' => 'simplenews.admin.inc',
       'arguments' => array('form' => NULL),
-      'path' => $path . '/theme',
+      'path' => $path . '/includes',
     ),
   );
 }
