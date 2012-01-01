@@ -691,7 +691,7 @@ function _simplenews_set_from($node = NULL) {
   }
 
   // Windows based PHP systems don't accept formatted emails.
-  $formatted_address = drupal_substr(PHP_OS, 0, 3) == 'WIN' ? $address : '"' . mime_header_encode($name) . '" <' . $address . '>';
+  $formatted_address = drupal_substr(PHP_OS, 0, 3) == 'WIN' ? $address : '"' . $name . '" <' . $address . '>';
 
   return array(
     'address' => $address,
