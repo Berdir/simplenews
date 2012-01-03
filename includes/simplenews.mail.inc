@@ -79,6 +79,15 @@ function simplenews_send_test($node, $test_addresses) {
     $mail = trim($mail);
     if (!empty($mail)) {
       $subscriber = simplenews_subscriber_load_by_mail($mail);
+      if (!$subscriber) {
+        // The source expects a subscriber object with mail and language set.
+        global $langugage;
+
+        $subscriber = new stdClass();
+        $subscriber->mail = $mail;
+        $subscriber->language = $langugage->language;
+      }
+
       if (!empty($account->uid)) {
         $recipients['user'][] = $account->name . ' <' . $mail . '>';
       }

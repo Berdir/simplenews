@@ -1999,6 +1999,9 @@ function simplenews_tokens($type, $tokens, $data = array(), $options = array()) 
 
   switch ($type) {
     case 'simplenews-subscriber':
+      if (!isset($data['simplenews_subscriber'])) {
+        return;
+      }
       $subscriber = $data['simplenews_subscriber'];
       $category = $data['category'];
       $language = isset($subscriber->language->language) ? $subscriber->language : user_preferred_language($subscriber);
@@ -2033,6 +2036,9 @@ function simplenews_tokens($type, $tokens, $data = array(), $options = array()) 
       break;
 
     case 'simplenews-category':
+      if (!isset($data['category'])) {
+        return;
+      }
       $category = $data['category'];
       foreach ($tokens as $name => $original) {
         switch ($name) {

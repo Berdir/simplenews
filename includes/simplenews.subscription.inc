@@ -391,7 +391,7 @@ function simplenews_subscriptions_multi_block_form($form, &$form_state) {
   // Anonymous users see an email box and will receive confirmations
   if (user_is_logged_in()) {
     // @todo why not simply Manage your subscriptions?
-    $form['mail'] = array('#type' => 'value', '#value' => $subscriber->mail);
+    $form['mail'] = array('#type' => 'value', '#value' => $user->mail);
     $form['update'] = array(
       '#type' => 'submit',
       '#value' => t('Update'),

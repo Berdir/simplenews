@@ -550,7 +550,8 @@ class SimplenewsSourceNode implements SimplenewsSourceNodeInterface {
    * Implements SimplenewsSourceInterface::getLanguage().
    */
   function getLanguage() {
-    return $this->getSubscriber()->language;
+    $subscriber = $this->getSubscriber();
+    return $subscriber ? $subscriber->default : language_default('language');
   }
 
   /**
