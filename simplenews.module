@@ -901,10 +901,9 @@ function simplenews_form_user_register_form_alter(&$form, &$form_state) {
  *
  * Update uid and preferred language when the new account was already subscribed.
  */
-function simplenews_user_insert(&$edit, $account, $category) {  // Use the email address to check if new account is already subscribed.
-  $subscriber = new stdClass();
-  $subscriber->mail = $edit['mail'];
-  $subscription = simplenews_get_subscription($subscriber);
+function simplenews_user_insert(&$edit, $account, $category) {
+  // Use the email address to check if new account is already subscribed.
+  $subscription = simplenews_subscriber_load_by_mail($edit['mail']);
   // If the user is subscribed, we update the subscriber with uid and language.
   if (!empty($subscription->snid)) {
     $subscriber->uid = $edit['uid'];
@@ -974,7 +973,7 @@ function simplenews_user_presave(&$edit, $account, $category) {
     case 'account':
       // We only process existing accounts.
       if (!empty($account->uid)) {
-        $subscription = simplenews_get_subscription((object)array('uid' => $account->uid));
+        $subscription = simplenews_subscriber_load_by_uid($account->uid);
         // Only process existing subscriptions.
         if ($subscription->snid) {
           $subscriber = simplenews_subscriber_load($subscription->snid);
@@ -1015,13 +1014,8 @@ function simplenews_user_cancel($edit, $account, $method) {
  */
 function simplenews_user_delete($account) {
   // Delete subscription and all newsletter subscriptions when account is removed.
-  // We don't use simplenews_get_subscription() here because the user is already
-  // deleted from the {user} table.
-  $subscribers = simplenews_subscribers_load_multiple(array(), array('mail' => $account->mail));
-  $subscriber = $subscribers ? reset($subscribers) : FALSE;
-
+  $subscriber = simplenews_subscriber_load_by_mail($account->mail);
   if ($subscriber) {
-    simplenews_subscription_delete(array('snid' => $subscriber->snid));
     simplenews_subscriber_delete($subscriber);
   }
 }
@@ -1630,23 +1624,58 @@ function simplenews_subscription_delete($conditions = array()) {
 }
 
 /**
- * Get a simplenews newsletter subscriber object.
+ * Load a simplenews newsletter subscriber object.
  *
  * @param $snid
  *   Simplenews subscriber ID.
  * @return
- *   Newsletter subscriber object.
- *   FALSE if subscriber does not exist.
+ *   Newsletter subscriber object, FALSE if subscriber does not exist.
  */
 function simplenews_subscriber_load($snid, $reset = FALSE) {
-  $subscribers = simplenews_subscribers_load_multiple(array($snid), $reset);
+  $subscribers = simplenews_subscriber_load_multiple(array($snid), $reset);
   return $subscribers ? reset($subscribers) : FALSE;
 }
 
 /**
- * @todo
+ * Load a simplenews newsletter subscriber object.
+ *
+ * @param $mail
+ *   Subscriber e-mail address.
+ * @return
+ *   Newsletter subscriber object, FALSE if subscriber does not exist.
  */
-function simplenews_subscribers_load_multiple($snids = array(), $conditions = array(), $reset = FALSE) {
+function simplenews_subscriber_load_by_mail($mail) {
+  $subscribers = simplenews_subscriber_load_multiple(array(), array('mail' => $mail));
+  return $subscribers ? reset($subscribers) : FALSE;
+}
+
+/**
+ * Load a simplenews newsletter subscriber object.
+ *
+ * @param $uid
+ *   Subscriber user id.
+ * @return
+ *   Newsletter subscriber object, FALSE if subscriber does not exist.
+ */
+function simplenews_subscriber_load_by_uid($uid) {
+  $subscribers = simplenews_subscriber_load_multiple(array(), array('uid' => $uid));
+  return $subscribers ? reset($subscribers) : FALSE;
+}
+
+/**
+ * Loads simplenews subscriber objects.
+ *
+ * @param $snids
+ *   (Optional) Array of subscriber ID's.
+ * @param $conditions
+ *   (Optional) Array of query conditions.
+ * @param $reset
+ *   Reset the static cache.
+ *
+ * @return
+ *   Array of subscriber objects that match the given ID's/conditions.
+ */
+function simplenews_subscriber_load_multiple($snids = array(), $conditions = array(), $reset = FALSE) {
   $subscribers = &drupal_static(__FUNCTION__, array());
 
   // Only cache if we load all records from the database.
@@ -1665,6 +1694,23 @@ function simplenews_subscribers_load_multiple($snids = array(), $conditions = ar
     }
 
     $subscribers = $query->execute()->fetchAllAssoc('snid');
+    if (!empty($subscribers)) {
+      // Initialize default values.
+      foreach ($subscribers as $subscriber) {
+        $subscriber->tids = array();
+      }
+
+      $query = db_select('simplenews_subscription', 'ss')
+        ->fields('ss')
+        ->condition('snid', array_keys($subscribers));
+
+      foreach ($query->execute() as $subscription) {
+        if ($subscription->status == SIMPLENEWS_SUBSCRIPTION_STATUS_SUBSCRIBED) {
+          $subscribers[$subscription->snid]->tids[$subscription->tid] = $subscription->tid;
+        }
+        $subscribers[$subscription->snid]->newsletter_subscription[$subscription->tid] = $subscription;
+      }
+    }
   }
   return $subscribers;
 }
@@ -1703,12 +1749,13 @@ function simplenews_subscriber_save(&$subscriber) {
 }
 
 /**
- * Delete subscriber from the database.
+ * Delete subscriber and corresponding subscriptions from the database.
  *
  * @param $snid
  *   Simplenews subscriber object.
  */
 function simplenews_subscriber_delete(stdClass $subscriber) {
+  simplenews_subscription_delete(array('snid' => $subscriber->snid));
   db_delete('simplenews_subscriber')
     ->condition('snid', $subscriber->snid)
     ->execute();
