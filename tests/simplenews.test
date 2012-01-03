@@ -402,8 +402,7 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
     $this->drupalPost(NULL, $edit, t('Subscribe'));
     $this->assertText(t('You have been subscribed.'), t('Anonymous subscriber added to newsletter'));
 
-    $account = (object)array('mail' => $mail);
-    $subscriber = simplenews_get_subscription($account);
+    $subscriber = simplenews_subscriber_load_by_mail($mail);
   }
 
   /**
