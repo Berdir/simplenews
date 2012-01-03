@@ -625,8 +625,8 @@ class SimpleNewsAdministrationTestCase extends SimplenewsTestCase {
       }
     }
 
-    drupal_static_reset('simplenews_categories_load_multiple');
-    $categories = simplenews_categories_load_multiple();
+    drupal_static_reset('simplenews_category_load_multiple');
+    $categories = simplenews_category_load_multiple();
 
     // Check block settings.
     $this->drupalGet('admin/structure/block');
@@ -778,8 +778,8 @@ class SimpleNewsAdministrationTestCase extends SimplenewsTestCase {
     // Add a number of users to each category separately and then add another
     // bunch to both.
     $subscribers = array();
-    drupal_static_reset('simplenews_categories_load_multiple');
-    $categories = simplenews_categories_load_multiple();
+    drupal_static_reset('simplenews_category_load_multiple');
+    $categories = simplenews_category_load_multiple();
 
     $groups = array();
     foreach (array_keys($categories) as $tid) {
@@ -1105,7 +1105,7 @@ class SimpleNewsI18nTestCase extends SimplenewsTestCase {
     // Refresh strings.
     module_invoke_all('i18n_string_refresh', 'taxonomy');
 
-    $tid = array_shift(simplenews_categories_load_multiple())->tid;
+    $tid = array_shift(simplenews_category_load_multiple())->tid;
     // Translate term to spanish.
     list($textgroup, $context) = i18n_string_context(array('taxonomy', 'term', $tid, 'name'));
     i18n_string_textgroup($textgroup)->update_translation($context, 'es', $es_name = $this->randomName());

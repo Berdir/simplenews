@@ -408,7 +408,7 @@ function _simplenews_init_simplenews_vocabulary() {
  */
 function _simplenews_init_simplenews_category() {
   if ($tree = taxonomy_get_tree(variable_get('simplenews_vid', ''))) {
-    $categories = simplenews_categories_load_multiple();
+    $categories = simplenews_category_load_multiple();
     $first = TRUE;
     foreach ($tree as $term) {
       // Create a newsletter category for each newsletter taxonomy term.

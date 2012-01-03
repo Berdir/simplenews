@@ -311,7 +311,7 @@ function simplenews_build_issue_filter_query(SelectQueryInterface $query) {
  */
 function simplenews_admin_categories() {
   $form['#tree'] = TRUE;
-  if ($categories = simplenews_categories_load_multiple(array(), array('show_all' => TRUE))) {
+  if ($categories = simplenews_category_load_multiple(array(), array('show_all' => TRUE))) {
     foreach ($categories as $category) {
       $form[$category->tid]['#category'] = $category;
       $form[$category->tid]['name'] = array('#markup' => check_plain(_simplenews_newsletter_name($category)));
@@ -773,7 +773,7 @@ function simplenews_subscription_list_add_submit($form, &$form_state) {
       continue;
     }
     if (valid_email_address($email)) {
-      foreach (simplenews_categories_load_multiple($checked_categories) as $category) {
+      foreach (simplenews_category_load_multiple($checked_categories) as $category) {
 
         simplenews_subscribe_user($email, $category->tid, FALSE, 'mass subscribe', $langcode);
         $added[] = $email;
@@ -788,7 +788,7 @@ function simplenews_subscription_list_add_submit($form, &$form_state) {
     drupal_set_message(t('The following addresses were added or updated: %added.', array('%added' => $added)));
 
     $list_names = array();
-    foreach (simplenews_categories_load_multiple($checked_categories) as $category) {
+    foreach (simplenews_category_load_multiple($checked_categories) as $category) {
       $list_names[] = $category->name;
     }
     drupal_set_message(t('The addresses were subscribed to the following newsletters: %newsletters.', array('%newsletters' => implode(', ', $list_names))));
