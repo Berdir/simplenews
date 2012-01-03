@@ -81,11 +81,11 @@ function simplenews_send_test($node, $test_addresses) {
       $subscriber = simplenews_subscriber_load_by_mail($mail);
       if (!$subscriber) {
         // The source expects a subscriber object with mail and language set.
-        global $language;
-
+        // @todo: Find a cleaner way to do this.
         $subscriber = new stdClass();
+        $subscriber->uid = 0;
         $subscriber->mail = $mail;
-        $subscriber->language = $language->language;
+        $subscriber->language = $GLOBALS['language']->language;
       }
 
       if (!empty($account->uid)) {
