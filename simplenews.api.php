@@ -11,7 +11,7 @@
  * Simplenews builds on the following basic concepts.
  *
  * @link subscriber Subscribers @endlink subscribe to @link newsletter
- * newsletters (categories) @endlink . That connection is called
+ * newsletters (categories) @endlink. That connection is called
  * a @link subscription subscription @endlink. Nodes of enabled content types
  * are @link issue newsletter issues @endlink. These are then sent to the
  * subscribers of the newsletter the issue is attached to.
@@ -19,46 +19,46 @@
  * Sending is done by first adding a row for each subscriber to the @link spool
  * mail spool @endlink.
  * Then they are processed either immediatly or during cron runs. The actual
- * sending happens through a @link source source instance @source, which is
+ * sending happens through a @link source source instance @endlink, which is
  * first instanciated based on the mail spool and then used to generated the
  * actual mail content.
  *
  */
 
 /**
- * @defgroup subscriber Subscriber
+ * @defgroup subscriber 
  *
- * TODO
+ * Subscriber
  */
 
 /**
- * @defgroup newsletter Newsletter (category)
+ * @defgroup newsletter 
  *
- * TODO
+ * Newsletter (category)
  */
 
 /**
- * @defgroup subscription Subscription
+ * @defgroup subscription
  *
- * TODO
+ * Subscription
  */
 
 /**
- * @defgroup issue Newsletter issue
+ * @defgroup issue
  *
- * TODO
+ * Newsletter issue
  */
 
 /**
- * @defgroup spool Mail spool
+ * @defgroup spool
  *
- * TODO
+ * Mail spool
  */
 
 /**
- * @defgroup source Source
+ * @defgroup source
  *
- * TODO
+ * Source
  */
 
 /**
