@@ -37,7 +37,7 @@ function simplenews_add_node_to_spool($node) {
     ->execute();
 
   // Update simplenews newsletter status to send pending.
-  simplenews_update_sent_status($node);
+  simplenews_newsletter_update_sent_status($node);
 
   // When cron is not used the newsletter is send immediately to the emails
   // in the spool. When cron is used newsletters are send to addresses in the

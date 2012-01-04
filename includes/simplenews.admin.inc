@@ -265,7 +265,7 @@ function simplenews_issue_send($nids) {
     }
 
     if ($node->status == NODE_NOT_PUBLISHED) {
-      simplenews_update_sent_status($node, SIMPLENEWS_COMMAND_SEND_PUBLISH);
+      simplenews_newsletter_update_sent_status($node, SIMPLENEWS_COMMAND_SEND_PUBLISH);
       drupal_set_message(t('Newsletter %title is unpublished and will be sent on publish', array('%title' => $node->title)));
       continue;
     }
