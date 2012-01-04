@@ -26,39 +26,39 @@
  */
 
 /**
- * @defgroup subscriber 
+ * @defgroup subscriber Subscriber
  *
- * Subscriber
+ * TODO
  */
 
 /**
- * @defgroup newsletter 
+ * @defgroup newsletter Newsletter (category)
  *
- * Newsletter (category)
+ * TODO
  */
 
 /**
- * @defgroup subscription
+ * @defgroup subscription Subscription
  *
- * Subscription
+ * TODO
  */
 
 /**
- * @defgroup issue
+ * @defgroup issue Newsletter issue
  *
- * Newsletter issue
+ * TODO
  */
 
 /**
- * @defgroup spool
+ * @defgroup spool Mail spool
  *
- * Mail spool
+ * TODO
  */
 
 /**
- * @defgroup source
+ * @defgroup source Source
  *
- * Source
+ * TODO
  */
 
 /**
