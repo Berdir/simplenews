@@ -1,6 +1,0 @@
-name = Plaintext widget
-description = Defines text field widget type for simplenews plaintext content.
-package = Mail
-core = 7.x
-dependencies[] = simplenews
-;files[] = text.test

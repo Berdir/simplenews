@@ -17,10 +17,9 @@
 /**
  * Implements hook_field_widget_info().
  */
-function simplenews_plaintext_field_widget_info() {
-
+function simplenews_field_widget_info() {
   return array(
-    'plaintext_textarea' => array(
+    'simplenews_plaintext_textarea' => array(
       'label' => t('Textarea for Plaintext (multiple rows)'),
       'field types' => array('text_long'),
       'settings' => array('rows' => 20),
@@ -35,17 +34,22 @@ function simplenews_plaintext_field_widget_info() {
  * display of the created field in 'email_plain' to hidden.
  */
 
-function simplenews_plaintext_field_create_instance($instance) {
+function simplenews_field_create_instance($instance) {
 
-  if ($instance['widget']['type'] == 'plaintext_textarea') {
+  if ($instance['widget']['type'] == 'simplenews_plaintext_textarea') {
     $bundle_settings = array(
       'view_modes' => array(
         'email_plain' => array('custom_settings' => TRUE),
+        'email_html' => array('custom_settings' => TRUE),  
       ),
     );
     field_bundle_settings('node', $instance['bundle'], $bundle_settings);
 
     $instance['display']['email_plain'] = array(
+      'label' => 'hidden',
+      'type' => 'hidden',
+    );
+    $instance['display']['email_html'] = array(
       'label' => 'hidden',
       'type' => 'hidden',
     );
@@ -56,7 +60,7 @@ function simplenews_plaintext_field_create_instance($instance) {
 /**
  * Implements hook_field_widget_settings_form().
  */
-function simplenews_plaintext_field_widget_settings_form($field, $instance) {
+function simplenews_field_widget_settings_form($field, $instance) {
 
   $widget = $instance['widget'];
   $settings = $widget['settings'];
@@ -77,7 +81,7 @@ function simplenews_plaintext_field_widget_settings_form($field, $instance) {
  *
  * @todo: maybe integrate the elements of the widget into a fieldset for clearer visual presentation
  */
-function simplenews_plaintext_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
+function simplenews_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
 
   $widget = array();
 
@@ -98,7 +102,7 @@ function simplenews_plaintext_field_widget_form(&$form, &$form_state, $field, $i
     '#type' => 'submit',
     '#value' => t('Generate plaintext'),
     '#ajax' => array(
-      'callback' => 'simplenews_plaintext_process_plaintext_value',
+      'callback' => 'simplenews_process_plaintext_value',
       'progress' => array(
         'type' => 'progress',
       ),
@@ -110,50 +114,16 @@ function simplenews_plaintext_field_widget_form(&$form, &$form_state, $field, $i
   return $widget;
 }
 
-function simplenews_plaintext_process_plaintext_value($form, $form_state) {
+function simplenews_process_plaintext_value($form, $form_state) {
 
-  // build a pseudonode to get all necessary field values
+  // Build the node to get all necessary field values.
   $node = $form_state['node'];
   entity_form_submit_build_entity('node', $node, $form, $form_state);
   node_submit($node);
 
-  // gather plaintext values from relevant fields
-  /*
-    // the way miro wanted it to be done, unfortunately
-    // links like 'edit' or 'delete' get rendered too this way
-    $data = node_view($node, 'email_plain');
-    $text = render($data);
-   */
-
-  // code below pulls the textdata out of $form_state directly
-  $text = '';
-  $field_types = array('text', 'text_long', 'text_with_summary');
-  foreach ($form_state['field'] as $field_name => $field) {
-    // skip empty fields
-    if (!isset($form_state['values'][$field_name]['und'][0]['value']) || empty($form_state['values'][$field_name]['und'][0]['value'])) {
-      continue;
-    }
-    if (in_array($field['und']['field']['type'], $field_types)
-      && $field['und']['instance']['widget']['type'] != 'plaintext_textarea') {
-      $label = $field['und']['instance']['label'];
-      if (count($form_state['values'][$field_name]['und']) > 1) {
-        $text .= $label . '<br />';
-        foreach ($form_state['values'][$field_name]['und'] as $key => $val) {
-          $text .= '<p>' . t('Value') . ' ' . ($key + 1) . '<br />' . $val['value'] . '</p>';
-        }
-      } else {
-        $value = $form_state['values'][$field_name]['und'][0]['value'];
-        if ($field['und']['instance']['display']['email_plain']['label'] != 'hidden') {
-          $text .= '<p>' . $label . '<br />' . $value . '</p>';
-        } else {
-          $text .= '<p>' . $value . '</p>';
-        }
-      }
-    }
-  }
-
-  // convert html values of fields to plaintext
+  // Generate default plaintext variant.
   module_load_include('inc', 'simplenews', 'includes/simplenews.mail');
+  $source = new SimplenewsSourceNode($node, $subscriber);
   $plaintext = simplenews_html_to_text($text);
 
   // send the plaintext value to a client side js command

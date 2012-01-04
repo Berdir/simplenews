@@ -2783,7 +2783,7 @@ function simplenews_get_plaintext_field_names($bundle) {
     $fieldinfo = field_info_instances('node', $bundle);
     foreach($fieldinfo as $field_name => $info) {
       // Check if field has a plaintext_textarea widget.
-      if ($info['widget']['type'] != 'plaintext_textarea') {
+      if ($info['widget']['type'] != 'simplenews_plaintext_textarea') {
         continue;
       }
       $fieldnames[$bundle][] = $info['field_name'];
