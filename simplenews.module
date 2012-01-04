@@ -1437,8 +1437,10 @@ function simplenews_user_is_subscribed($mail, $tid) {
   $subscribed = &drupal_static(__FUNCTION__, array());
 
   if (!isset($subscribed[$mail][$tid])) {
-    $subscription = simplenews_subscriber_load_by_mail($mail);
-    $subscribed[$mail][$tid] = isset($subscription->tids[$tid]);
+    $subscriber = simplenews_subscriber_load_by_mail($mail);
+    // Check that a subscriber was found, he is active and subscribed to the
+    // requested tid.
+    $subscribed[$mail][$tid] = $subscriber && $subscriber->activated && isset($subscriber->tids[$tid]);
   }
   return $subscribed[$mail][$tid];
 }
