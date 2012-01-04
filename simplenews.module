@@ -2502,8 +2502,8 @@ function template_preprocess_simplenews_newsletter_body(&$variables) {
   unset($variables['build']['comments']);
 
   $variables['title'] = check_plain($variables['build']['#node']->title);
-  $variables['language'] = $build["#language"];
-  $variables['view_mode'] = $build['#view_mode'];
+  $variables['language'] = $variables['build']["#language"];
+  $variables['view_mode'] = $variables['build']['#view_mode'];
 
   // Add specific suggestions that can override the default implementation.
   $variables['theme_hook_suggestions'] = array(
