@@ -2351,12 +2351,6 @@ function simplenews_theme() {
     'simplenews_field' => array(
       'render element' => 'element',
     ),
-    'simplenews_newsletter_plaintext_body' => array(
-      'variables' => array(
-        'node' => NULL,
-        'plain_field' => NULL,
-      ),
-    ),
   );
 }
 
@@ -2512,10 +2506,17 @@ function template_preprocess_simplenews_newsletter_body(&$variables) {
   unset($variables['build']['links']);
   unset($variables['build']['comments']);
 
+  $variables['plaintext_fieldnames'] = array();
   if ($variables['category']->format == 'html') {
-    // hide the plaintext field for html mails since the plaintext part has it's own theme function
-    $field_plaintext = simplenews_get_plaintext_field_name($variables['build']['#bundle']);
-    hide($variables['build'][$field_plaintext]);
+    // Hide the plaintext field for html mails since the plaintext part has
+    // it's own theme function.
+    foreach (simplenews_get_plaintext_field_names($variables['build']['#bundle']) as $field_plaintext) {
+      hide($variables['build'][$field_plaintext]);
+    }
+  }
+  else {
+    // For plaintext, add plaintext fieldnames to  variables.
+    $variables['plaintext_fieldnames'] = simplenews_get_plaintext_field_names($variables['build']['#bundle']);
   }
 
   $variables['title'] = check_plain($variables['build']['#node']->title);
@@ -2556,15 +2557,6 @@ function template_preprocess_simplenews_newsletter_footer(&$variables) {
 
   // Do not display the unsubscribe link by default for hidden categories.
   $variables['opt_out_hidden'] = $variables['category']->opt_inout == 'hidden';
-}
-
-/**
-* Theme the newsletter message subject and alternative plaintext body.
-*/
-function theme_simplenews_newsletter_plaintext_body($variables) {
-  $text = $variables['node']->title . "\n\n";
-  $text = simplenews_html_to_text(field_view_field('node', $variables['node'], $variables['plain_field']));
-  return $text;
 }
 
 /**
@@ -2779,16 +2771,23 @@ function simplenews_revert_user() {
 }
 
 /*
- * Function gets the fieldname of an optional plaintext field.
+ * Returns the field names of the configured plaintext fields.
  *
- * Note: At the moment only one (the first) plaintext field
- * will be detected.
+ * Plaintext fields are fields which use the plaintext_textarea widget.
  */
-function simplenews_get_plaintext_field_name($bundle) {
-  $fieldinfo = field_info_instances('node', $bundle);
+function simplenews_get_plaintext_field_names($bundle) {
+  $fieldnames = &drupal_static(__FUNCTION__, array());
+
+  if (!isset($fieldnames[$bundle])) {
+    $fieldnames[$bundle] = array();
+    $fieldinfo = field_info_instances('node', $bundle);
     foreach($fieldinfo as $field_name => $info) {
-      // check if field has a plaintext_textarea widget
-      if ($info['widget']['type'] != 'plaintext_textarea') continue;
-      else return $info['field_name'];
+      // Check if field has a plaintext_textarea widget.
+      if ($info['widget']['type'] != 'plaintext_textarea') {
+        continue;
+      }
+      $fieldnames[$bundle][] = $info['field_name'];
     }
+  }
+  return $fieldnames[$bundle];
 }

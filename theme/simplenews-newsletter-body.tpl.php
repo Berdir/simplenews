@@ -21,4 +21,10 @@
  */
 ?>
 <h2><?php print $title; ?></h2>
-<?php print render($build); ?>
+<?php if ($view_mode == 'email_plain' && !empty($variables['plaintext_fieldnames'])): ?>
+  <?php foreach ($variables['plaintext_fieldnames'] as $plaintext_fieldname): ?>
+    <?php simplenews_html_to_text(field_view_field('node', $variables['node'], $variables['plain_field'])) ?>
+  <?php endforeach; ?>
+<?php else: ?>
+  <?php print render($build); ?>
+<?php endif; ?>
