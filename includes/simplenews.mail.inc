@@ -15,6 +15,8 @@
  *
  * @param $node
  *   The newsletter node to be sent.
+ *
+ * @ingroup issue
  */
 function simplenews_add_node_to_spool($node) {
   // To send the newsletter, the node id and target email addresses
@@ -58,6 +60,8 @@ function simplenews_add_node_to_spool($node) {
  *
  * @param mixed $node
  *   The newsletter node to be sent.
+ *
+ * @ingroup issue
  */
 function simplenews_send_test($node, $test_addresses) {
   // Prevent session information from being saved while sending.
@@ -114,6 +118,8 @@ function simplenews_send_test($node, $test_addresses) {
  *
  * @return boolean
  *   TRUE if the email was successfully delivered; otherwise FALSE.
+ *
+ * @ingroup source
  */
 function simplenews_send_source(SimplenewsSourceInterface $source) {
   $params['simplenews_source'] = $source;
@@ -158,6 +164,8 @@ function simplenews_send_source(SimplenewsSourceInterface $source) {
  * If sending is successful the message is marked as send in the spool.
  *
  * TODO: Redesign API to allow language counter in multilingual sends.
+ *
+ * @ingroup spool
  */
 function simplenews_mail_spool($limit = SIMPLENEWS_UNLIMITED) {
   $check_counter = 0;
@@ -245,6 +253,8 @@ function simplenews_mail_spool($limit = SIMPLENEWS_UNLIMITED) {
  *   - tid
  *   - status: (optional) Defaults to SIMPLENEWS_SPOOL_PENDING
  *   - time: (optional) Defaults to REQUEST_TIME.
+ *
+ * @ingroup spool
  */
 function simplenews_save_spool($spool) {
   $status = isset($spool['status']) ? $spool['status'] : SIMPLENEWS_SPOOL_PENDING;
@@ -295,6 +305,8 @@ function simplenews_get_expiration_time() {
  *
  * @return array
  *   An array of message ids to be sent in the current run.
+ *
+ * @ingroup spool
  */
 function simplenews_get_spool($status, $limit = SIMPLENEWS_UNLIMITED) {
   $messages = array();
@@ -374,6 +386,8 @@ function simplenews_get_spool($status, $limit = SIMPLENEWS_UNLIMITED) {
  *     - 2: send
  *     - 3: in progress
  *   - error: (optional) The error id.  Defaults to 0 (no error).
+ *
+ * @ingroup spool
  */
 function simplenews_update_spool($msids, $data) {
   db_update('simplenews_mail_spool')
@@ -396,6 +410,8 @@ function simplenews_update_spool($msids, $data) {
  *
  * @return integer
  *   Count of mail spool elements which own the attributes passed in as params.
+ *
+ * @ingroup spool
  */
 function simplenews_count_spool($nid, $status = array(SIMPLENEWS_SPOOL_PENDING, SIMPLENEWS_SPOOL_IN_PROGRESS)) {
   $clauses = array();
@@ -423,6 +439,8 @@ function simplenews_count_spool($nid, $status = array(SIMPLENEWS_SPOOL_PENDING, 
  *
  * @return
  *   Number of deleted spool rows.
+ *
+ * @ingroup spool
  */
 function simplenews_clear_spool() {
   $expiration_time = REQUEST_TIME - variable_get('simplenews_spool_expire', 0) * 86400;
@@ -436,6 +454,8 @@ function simplenews_clear_spool() {
  * Remove records from mail spool table for node.
  *
  * @return Count deleted
+ *
+ * @ingroup spool
  */
 function simplenews_clear_spool_node($node) {
   return db_delete('simplenews_mail_spool')
@@ -461,6 +481,8 @@ function simplenews_clear_spool_node($node) {
  * Only one node of the group is found in the spool, but all nodes should share
  * the same state. Therefore they are checked for the combined number of emails
  * in the spool.
+ *
+ * @ingroup issue
  */
 function simplenews_send_status_update() {
   $counts = array(); // number pending of emails in the spool
@@ -653,6 +675,8 @@ function _simplenews_measure_usec($start = FALSE) {
  *   Message array as used by hook_mail().
  * @param array $source
  *   The SimplenewsSource instance.
+ *
+ * @ingroup source
  */
 function simplenews_build_newsletter_mail(&$message, SimplenewsSourceInterface $source) {
   // Get message data from source.
