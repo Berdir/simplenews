@@ -96,7 +96,7 @@ function simplenews_plaintext_field_widget_form(&$form, &$form_state, $field, $i
 
   $widget['process_trigger'] = array(
     '#type' => 'submit',
-    '#value' => t('Process'), // @todo maybe give the label a better text
+    '#value' => t('Generate plaintext'),
     '#ajax' => array(
       'callback' => 'simplenews_plaintext_process_plaintext_value',
       'progress' => array(
