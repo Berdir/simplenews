@@ -358,6 +358,9 @@ class SimplenewsSourceNode implements SimplenewsSourceNodeInterface {
     $this->setSubscriber($subscriber);
     $this->setNode($node);
     $this->newsletter = simplenews_newsletter_load($node->nid);
+    if (!$this->newsletter) {
+      $this->newsletter = (object)simplenews_newsletter_defaults($node);
+    }
     $this->category = simplenews_category_load($this->newsletter->tid);
     $this->initCache();
   }
@@ -375,7 +378,7 @@ class SimplenewsSourceNode implements SimplenewsSourceNodeInterface {
       // If the node has translations and a translation is required
       // the equivalent of the node in the required language is used
       // or the base node (nid == tnid) is used.
-      if ($tnid = $node->tnid) {
+      if (!empty($node->tnid) && $tnid = $node->tnid) {
         if ($langcode != $node->language) {
           $translations = translation_node_get_translations($tnid);
           // A translation is available in the preferred language.
