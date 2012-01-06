@@ -577,7 +577,10 @@ class SimplenewsSourceNode implements SimplenewsSourceNodeInterface {
    */
   function getSubject() {
     // Build email subject and perform some sanitizing.
-    $subject = token_replace($this->getCategory()->email_subject, $this->getTokenContext(), array('sanitize' => FALSE));
+    $langcode = $this->getLanguage();
+    $language_list = language_list();
+    $language = $language_list[$langcode];
+    $subject = token_replace($this->getCategory()->email_subject, $this->getTokenContext(), array('sanitize' => FALSE, 'language' => $language));
 
     // Line breaks are removed from the email subject to prevent injection of
     // malicious data into the email header.
@@ -586,20 +589,41 @@ class SimplenewsSourceNode implements SimplenewsSourceNodeInterface {
   }
 
   /**
-   * Overwrites the current content language for i18n_select.
+   * Set up the necessary language and user context.
    */
-  protected function setContentLanguage($language) {
+  protected function setContext($language) {
+
+    // Switch to the user
+    if ($this->uid = $this->getSubscriber()->uid) {
+      simplenews_impersonate_user($this->uid);
+    }
+
+    // Change language.
+    $this->original_language = $GLOBALS['language'];
+    $languages = language_list();
+    $GLOBALS['language'] = $languages[$language];
+    $GLOBALS['language_url'] = $language;
+
+
+    // Overwrites the current content language for i18n_select.
     if (module_exists('i18n_select')) {
-      $this->original_language = $GLOBALS['language_content'];
-      $languages = language_list();
       $GLOBALS['language_content'] = $languages[$language];
     }
   }
 
   /**
-   * Reset the content language back to the previous value.
+   * Reset the context.
    */
-  protected function resetContentLanguage() {
+  protected function resetContext() {
+
+    // Switch back to the previous user.
+    if ($this->uid) {
+      simplenews_revert_user();
+    }
+
+    $languages = language_list();
+    $GLOBALS['language'] = $languages[$this->original_language];
+
     if (module_exists('i18n_select')) {
       $GLOBALS['language_content'] = $this->original_language;
     }
@@ -620,11 +644,6 @@ class SimplenewsSourceNode implements SimplenewsSourceNodeInterface {
       return $this->build[$format];
     }
 
-    // Set the active language to the node's language.
-    // This needs to be done as otherwise the language used to send the mail
-    // is the language of the user logged in.
-    $this->setContentLanguage($this->node->language);
-
     // Build message body
     // Supported view modes: 'email_plain', 'email_html', 'email_textalt'
     $build = node_view($this->node, 'email_' . $format);
@@ -635,8 +654,6 @@ class SimplenewsSourceNode implements SimplenewsSourceNodeInterface {
         $build[$field_name]['#theme'] = 'simplenews_field';
       }
     }
-
-    $this->resetContentLanguage();
 
     $this->build[$format] = $build;
     return $this->build[$format];
@@ -684,10 +701,8 @@ class SimplenewsSourceNode implements SimplenewsSourceNodeInterface {
    *   The rendered mail body as a string.
    */
   protected function getBodyWithFormat($format) {
-    // Impersonate the subscriber if he is a user.
-    if ($uid = $this->getSubscriber()->uid) {
-      simplenews_impersonate_user($uid);
-    }
+    // Switch to correct user and language context.
+    $this->setContext($this->node->language);
 
     if ($cache = $this->cache->get('final', 'body:' . $format)) {
       return $cache;
@@ -702,11 +717,7 @@ class SimplenewsSourceNode implements SimplenewsSourceNodeInterface {
       $body = simplenews_html_to_text($body, $this->getCategory()->hyperlinks);
     }
     $this->cache->set('final', 'body:' . $format, $body);
-
-    // Switch back to the previous user.
-    if ($uid) {
-      simplenews_revert_user();
-    }
+    $this->resetContext();
     return $body;
   }
 
@@ -763,11 +774,14 @@ class SimplenewsSourceNode implements SimplenewsSourceNodeInterface {
    *   The footer for the requested format.
    */
   protected function getFooterWithFormat($format) {
+    // Switch to correct user and language context.
+    $this->setContext($this->node->language);
     if ($cache = $this->cache->get('final', 'footer:' . $format)) {
       return $cache;
     }
     $final_footer = token_replace($this->buildFooter($format), $this->getTokenContext(), array('sanitize' => FALSE));
     $this->cache->set('build', 'footer:' . $format, $final_footer);
+    $this->resetContext();
     return $final_footer;
   }
 
