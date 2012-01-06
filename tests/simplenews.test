@@ -1250,22 +1250,25 @@ class SimpleNewsI18nTestCase extends SimplenewsTestCase {
 
     $category = simplenews_category_load($this->getRandomNewsletter());
 
+    $languages = language_list();
     foreach ($this->drupalGetMails() as $mail) {
 
       if ($mail['to'] == $english_mail) {
         $this->assertEqual('en', $mail['language']);
         $this->assertEqual('[' . $category->name . '] ' . $english_node->title, $mail['subject']);
+        $node_url = url('node/' . $english_node->nid, array('language' => $languages['en'], 'absolute' => TRUE));
       }
-
-      if ($mail['to'] == $spanish_mail) {
+      elseif ($mail['to'] == $spanish_mail) {
         $this->assertEqual('es', $mail['language']);
         $this->assertEqual('[' . $es_name . '] ' . $spanish_node->title, $mail['subject']);
+        $node_url = url('node/' . $spanish_node->nid, array('language' => $languages['es'], 'absolute' => TRUE));
+      }
+      else {
+        $this->fail(t('Mail not sent to expected recipient'));
       }
 
-      debug($mail['to']);
-      debug($mail['subject']);
-      debug($mail['language']);
-      debug($mail['body']);
+      // Verify that the link is in the correct language.
+      $this->assertTrue(strpos($mail['body'], $node_url) !== FALSE);
     }
   }
 

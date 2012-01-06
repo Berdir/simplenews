@@ -602,9 +602,7 @@ class SimplenewsSourceNode implements SimplenewsSourceNodeInterface {
     $this->original_language = $GLOBALS['language'];
     $languages = language_list();
     $GLOBALS['language'] = $languages[$language];
-    $GLOBALS['language_url'] = $language;
-
-
+    $GLOBALS['language_url'] = $languages[$language];
     // Overwrites the current content language for i18n_select.
     if (module_exists('i18n_select')) {
       $GLOBALS['language_content'] = $languages[$language];
@@ -621,9 +619,9 @@ class SimplenewsSourceNode implements SimplenewsSourceNodeInterface {
       simplenews_revert_user();
     }
 
-    $languages = language_list();
-    $GLOBALS['language'] = $languages[$this->original_language];
-
+    // Switch language back.
+    $GLOBALS['language'] = $this->original_language;
+    $GLOBALS['language_url'] = $this->original_language;
     if (module_exists('i18n_select')) {
       $GLOBALS['language_content'] = $this->original_language;
     }
