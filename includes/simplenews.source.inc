@@ -591,7 +591,7 @@ class SimplenewsSourceNode implements SimplenewsSourceNodeInterface {
   /**
    * Set up the necessary language and user context.
    */
-  protected function setContext($language) {
+  protected function setContext() {
 
     // Switch to the user
     if ($this->uid = $this->getSubscriber()->uid) {
@@ -599,6 +599,7 @@ class SimplenewsSourceNode implements SimplenewsSourceNodeInterface {
     }
 
     // Change language.
+    $language = $this->getLanguage();
     $this->original_language = $GLOBALS['language'];
     $languages = language_list();
     $GLOBALS['language'] = $languages[$language];
@@ -700,7 +701,7 @@ class SimplenewsSourceNode implements SimplenewsSourceNodeInterface {
    */
   protected function getBodyWithFormat($format) {
     // Switch to correct user and language context.
-    $this->setContext($this->node->language);
+    $this->setContext();
 
     if ($cache = $this->cache->get('final', 'body:' . $format)) {
       return $cache;
@@ -773,7 +774,7 @@ class SimplenewsSourceNode implements SimplenewsSourceNodeInterface {
    */
   protected function getFooterWithFormat($format) {
     // Switch to correct user and language context.
-    $this->setContext($this->node->language);
+    $this->setContext();
     if ($cache = $this->cache->get('final', 'footer:' . $format)) {
       return $cache;
     }
