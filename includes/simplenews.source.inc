@@ -579,7 +579,8 @@ class SimplenewsSourceNode implements SimplenewsSourceNodeInterface {
     // Build email subject and perform some sanitizing.
     $langcode = $this->getLanguage();
     $language_list = language_list();
-    $language = $language_list[$langcode];
+    // Use the requested language if enabled.
+    $language = isset($language_list[$langcode]) ? $language_list[$langcode] : NULL;
     $subject = token_replace($this->getCategory()->email_subject, $this->getTokenContext(), array('sanitize' => FALSE, 'language' => $language));
 
     // Line breaks are removed from the email subject to prevent injection of
@@ -598,15 +599,17 @@ class SimplenewsSourceNode implements SimplenewsSourceNodeInterface {
       simplenews_impersonate_user($this->uid);
     }
 
-    // Change language.
+    // Change language if the requested language is enabled.
     $language = $this->getLanguage();
-    $this->original_language = $GLOBALS['language'];
     $languages = language_list();
-    $GLOBALS['language'] = $languages[$language];
-    $GLOBALS['language_url'] = $languages[$language];
-    // Overwrites the current content language for i18n_select.
-    if (module_exists('i18n_select')) {
-      $GLOBALS['language_content'] = $languages[$language];
+    if (isset($languages[$language])) {
+      $this->original_language = $GLOBALS['language'];
+      $GLOBALS['language'] = $languages[$language];
+      $GLOBALS['language_url'] = $languages[$language];
+      // Overwrites the current content language for i18n_select.
+      if (module_exists('i18n_select')) {
+        $GLOBALS['language_content'] = $languages[$language];
+      }
     }
   }
 
@@ -621,10 +624,12 @@ class SimplenewsSourceNode implements SimplenewsSourceNodeInterface {
     }
 
     // Switch language back.
-    $GLOBALS['language'] = $this->original_language;
-    $GLOBALS['language_url'] = $this->original_language;
-    if (module_exists('i18n_select')) {
-      $GLOBALS['language_content'] = $this->original_language;
+    if (!empty($this->original_language)) {
+      $GLOBALS['language'] = $this->original_language;
+      $GLOBALS['language_url'] = $this->original_language;
+      if (module_exists('i18n_select')) {
+        $GLOBALS['language_content'] = $this->original_language;
+      }
     }
   }
 
