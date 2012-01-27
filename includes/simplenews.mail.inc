@@ -472,7 +472,7 @@ function simplenews_count_spool(array $conditions = array()) {
 
   $query->addExpression('COUNT(*)', 'count');
 
-  return $query
+  return (int)$query
     ->execute()
     ->fetchField();
 }

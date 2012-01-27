@@ -77,7 +77,7 @@ function drush_simplenews_spool_send($limit = FALSE) {
     $remaining = simplenews_count_spool();
     if (drush_get_option('pipe')) {
       // For pipe, just print the sent first and then the remaining count.
-      drush_print_pipe($sent . "\n");
+      drush_print_pipe($sent . " ");
       drush_print_pipe($remaining);
 
     }
