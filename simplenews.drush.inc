@@ -11,6 +11,9 @@ function simplenews_drush_command() {
     'description' => 'Print the current simplenews mail spool count',
     'aliases' => array('sn-sc'),
     'drupal dependencies' => array('simplenews'),
+    'options' => array(
+      'pipe' => dt('Just print the count value to allow parsing'),
+    )
   );
 
   $items['simplenews-spool-send'] = array(
@@ -19,6 +22,9 @@ function simplenews_drush_command() {
       'drush sn-ss' => dt('Send the default amount of mails, as defined by the simplenews_throttle variable.'),
       'drush sn-ss 0' => dt('Send all mails.'),
       'drush sn-ss 100' => dt('Send 100 mails'),
+    ),
+    'options' => array(
+      'pipe' => dt('Just print the sent and remaining count on separate lines to allow parsing'),
     ),
     'aliases' => array('sn-ss'),
     'drupal dependencies' => array('simplenews'),
@@ -68,9 +74,17 @@ function drush_simplenews_spool_send($limit = FALSE) {
 
   // Report the number of sent mails.
   if ($sent > 0) {
-    drush_log(dt('Sent @count mails from the queue in @sec seconds.', array('@count' => $sent, '@sec' => $durance)), 'status');
     $remaining = simplenews_count_spool();
-    drush_log(dt('Remaining simplenews mail spool count: @count', array('@count' => $remaining)), 'status');
+    if (drush_get_option('pipe')) {
+      // For pipe, just print the sent first and then the remaining count.
+      drush_print_pipe($sent . "\n");
+      drush_print_pipe($remaining);
+
+    }
+    else {
+      drush_log(dt('Sent @count mails from the queue in @sec seconds.', array('@count' => $sent, '@sec' => $durance)), 'status');
+      drush_log(dt('Remaining simplenews mail spool count: @count', array('@count' => $remaining)), 'status');
+    }
   }
 
 }
