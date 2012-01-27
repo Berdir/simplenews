@@ -2081,6 +2081,10 @@ function simplenews_tokens($type, $tokens, $data = array(), $options = array()) 
             $replacements[$original] = url('newsletter/confirm/remove/' . $hash, array('absolute' => TRUE, 'language' => $language));
             break;
 
+          case 'manage-url':
+            $replacements[$original] = url('newsletter/subscriptions/' . $hash, array('absolute' => TRUE, 'language' => $language));
+            break;
+
           case 'mail':
             $replacements[$original] = $sanitize ? check_plain($subscriber->mail) : $subscriber->mail;
             break;
