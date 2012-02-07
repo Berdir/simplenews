@@ -1401,6 +1401,7 @@ function simplenews_unsubscribe_user($mail, $tid, $confirm = TRUE, $source = 'un
     unset($subscriber->tids[$tid]);
 
     // Clear eventually existing mail spool rows for this subscriber.
+    module_load_include('inc', 'simplenews', 'includes/simplenews.mail');
     simplenews_delete_spool(array('snid' => $subscriber->snid, 'tid' => $tid));
 
     module_invoke_all('simplenews_unsubscribe_user', $subscriber, $subscriber->newsletter_subscription[$tid]);
