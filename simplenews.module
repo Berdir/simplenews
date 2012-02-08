@@ -1278,6 +1278,7 @@ function simplenews_subscribe_user($mail, $tid, $confirm = TRUE, $source = 'unkn
 
   // Get current subscriptions if any.
   $subscriber = simplenews_subscriber_load_by_mail($mail);
+  debug($subscriber);
 
   // If user is not subscribed to ANY newsletter, create a subscription account
   if (!$subscriber) {
@@ -1316,13 +1317,21 @@ function simplenews_subscribe_user($mail, $tid, $confirm = TRUE, $source = 'unkn
   }
 
   if ($confirm) {
-    $subscription = new stdClass();
-    $subscription->snid = $subscriber->snid;
-    $subscription->tid = $tid;
-    $subscription->status = SIMPLENEWS_SUBSCRIPTION_STATUS_UNCONFIRMED;
-    $subscription->timestamp = REQUEST_TIME;
-    $subscription->source = $source;
-    simplenews_subscription_save($subscription);
+      // Create an unconfirmed subscription object if it doesn't exist yet.
+      if (!isset($subscriber->tids[$tid])) {
+
+      debug($subscriber);
+      debug('saved unconfirmed');
+
+      $subscription = new stdClass();
+      $subscription->snid = $subscriber->snid;
+      $subscription->tid = $tid;
+      $subscription->status = SIMPLENEWS_SUBSCRIPTION_STATUS_UNCONFIRMED;
+      $subscription->timestamp = REQUEST_TIME;
+      $subscription->source = $source;
+      simplenews_subscription_save($subscription);
+      $subscriber->newsletter_subscription[$tid] = $subscription;
+    }
 
     // Send confirmation email to user to complete subscription or to tell
     // them that he or she is already subscribed.
