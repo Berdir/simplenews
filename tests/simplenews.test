@@ -343,7 +343,6 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
     $this->assertRaw(t('%user was added to the %newsletter mailing list.', array('%user' => $mail, '%newsletter' => $newsletter->name)), t('Anonymous subscriber added to newsletter'));
 
     // Try to subscribe again, this should not re-set the status to unconfirmed.
-    $mail = $this->randomEmail(8, 'testmail');
     $edit = array(
       'mail' => $mail,
       'newsletters[' . $tid . ']' => TRUE,

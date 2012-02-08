@@ -1278,7 +1278,6 @@ function simplenews_subscribe_user($mail, $tid, $confirm = TRUE, $source = 'unkn
 
   // Get current subscriptions if any.
   $subscriber = simplenews_subscriber_load_by_mail($mail);
-  debug($subscriber);
 
   // If user is not subscribed to ANY newsletter, create a subscription account
   if (!$subscriber) {
@@ -1319,10 +1318,6 @@ function simplenews_subscribe_user($mail, $tid, $confirm = TRUE, $source = 'unkn
   if ($confirm) {
       // Create an unconfirmed subscription object if it doesn't exist yet.
       if (!isset($subscriber->tids[$tid])) {
-
-      debug($subscriber);
-      debug('saved unconfirmed');
-
       $subscription = new stdClass();
       $subscription->snid = $subscriber->snid;
       $subscription->tid = $tid;
