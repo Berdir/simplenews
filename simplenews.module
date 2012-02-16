@@ -5,6 +5,7 @@
  * Enable nodes to be used as newsletter, manage subscriptions and sent
  * email newsletter to subscribers.
  */
+
 /**
  * @file
  * Simplenews node handling, sent email, newsletter block and general hooks
@@ -17,6 +18,7 @@
  * @todo Separate token function into simplenews.tokens.inc
  * @todo Consider using hook_hook_info() to move hooks out of .module. http://drupal.org/update/modules/6/7#new_hook_hook_info
  */
+
 /**
  * NEWSLETTER MAIL PRIORITY
  */
@@ -121,7 +123,7 @@ function simplenews_init() {
  * Implements hook_menu().
  */
 function simplenews_menu() {
-  $items['admin/content/simplenews'] = array(
+    $items['admin/content/simplenews'] = array(
     'title' => 'Newsletters',
     'description' => 'List newsletters and newsletter sent status.',
     'type' => MENU_LOCAL_TASK,
@@ -142,8 +144,8 @@ function simplenews_menu() {
 
   $items['admin/config/services/simplenews/categories'] = array(
     'title' => 'Newsletters',
-    'type' => MENU_DEFAULT_LOCAL_TASK,
-  );
+     'type' => MENU_DEFAULT_LOCAL_TASK,
+   );
 
   $items['admin/config/services/simplenews/categories/%simplenews_category/edit'] = array(
     'title' => 'Newsletters',
@@ -396,7 +398,7 @@ function simplenews_get_term_values($node) {
   }
 
   $term = current($taxonomy);
-  return ($term) ? $term : FALSE;
+  return ($term)? $term : FALSE;
 }
 
 /**
@@ -438,7 +440,7 @@ function simplenews_node_presave($node) {
   $newsletter = simplenews_newsletter_load($node->nid);
   //$newsletter = simplenews_newsletter_load($node->nid, $node->vid);
   if (!$newsletter) {
-    $newsletter = (object) simplenews_newsletter_defaults($node);
+    $newsletter = (object)simplenews_newsletter_defaults($node);
   }
   $node->simplenews = $newsletter;
 }
@@ -451,7 +453,7 @@ function simplenews_node_insert($node) {
     return;
   }
 
-  $node->simplenews = (object) simplenews_newsletter_defaults($node);
+  $node->simplenews = (object)simplenews_newsletter_defaults($node);
   simplenews_newsletter_save($node->simplenews);
 }
 
@@ -485,7 +487,7 @@ function simplenews_node_update($node) {
 
   $node->simplenews = simplenews_newsletter_load($node->nid);
   if (!$node->simplenews) {
-    $node->simplenews = (object) simplenews_newsletter_defaults($node);
+    $node->simplenews = (object)simplenews_newsletter_defaults($node);
   }
   else {
     // Update tid.
@@ -518,13 +520,13 @@ function simplenews_node_delete($node) {
   $count = simplenews_delete_spool(array('nid' => $node->nid));
   if ($count) {
     drupal_set_message(t('Newsletter %title was deleted but had @count pending emails. They can no longer be sent.', array(
-        '%title' => $node->title,
-        '@count' => $count,
-      )), 'warning');
+      '%title' => $node->title,
+      '@count' => $count,
+     )), 'warning');
     watchdog('simplenews', 'Newsletter %title deleted with @count pending emails. Emails can no longer be sent.', array(
       '%title' => $node->title,
       '@count' => $count,
-      ), WATCHDOG_ALERT);
+     ), WATCHDOG_ALERT);
   }
   drupal_set_message(t('Newsletter %title was deleted.', array('%title' => $node->title)));
 }
@@ -553,7 +555,7 @@ function simplenews_node_load($nodes, $types) {
       $newsletter = $newsletters[$nid];
     }
     if (!$newsletter) {
-      $newsletter = (object) simplenews_newsletter_defaults($node);
+      $newsletter = (object)simplenews_newsletter_defaults($node);
     }
     $nodes[$nid]->simplenews = $newsletter;
   }
@@ -879,6 +881,7 @@ function simplenews_form_user_register_form_alter(&$form, &$form_state) {
   }
 }
 
+
 /**
  * Implements hook_user_insert().
  *
@@ -934,7 +937,7 @@ function simplenews_user_insert(&$edit, $account, $category) {
 function simplenews_user_login(&$edit, $account) {
   // Subscriptions of users that did sign up by themselves have to be
   // activated first at their first login (-> account::access = 0)
-  if ($account->access == 0) {
+  if ($account->access == 0){
     $query = db_update('simplenews_subscriber')
       ->fields(array('activated' => SIMPLENEWS_SUBSCRIPTION_ACTIVE))
       ->condition('uid', $account->uid)
@@ -978,7 +981,7 @@ function simplenews_user_presave(&$edit, $account, $category) {
  * Implements hook_user_cancel().
  */
 function simplenews_user_cancel($edit, $account, $method) {
-  // Deactivate subscriber when account is disabled via cancel user.
+ // Deactivate subscriber when account is disabled via cancel user.
 
   if ($account) {
     $query = db_update('simplenews_subscriber')
@@ -1023,7 +1026,7 @@ function simplenews_form_user_profile_form_alter(&$form, &$form_state) {
     $subscription = simplenews_subscriber_load_by_mail($form['#user']->mail);
     module_load_include('inc', 'simplenews', 'includes/simplenews.subscription');
     simplenews_subscriptions_account_form($form, $form_state, $subscription);
-    $form['subscriptions']['#title'] = t('Newsletter subscriptions');
+    $form['subscriptions']['#title'] =  t('Newsletter subscriptions');
     unset($form['update'], $form['subscriptions']['mail']);
   }
 }
@@ -1216,7 +1219,7 @@ function simplenews_forms($form_id, $args) {
   $match = preg_match('/simplenews_block_form_(\d+)/', $form_id, $matches);
   if ($match) {
     module_load_include('inc', 'simplenews', 'includes/simplenews.subscription');
-    $forms['simplenews_block_form_' . $matches[1]] = array(
+    $forms['simplenews_block_form_'. $matches[1]] = array(
       'callback' => 'simplenews_block_form',
       'callback arguments' => array($matches[1]),
     );
@@ -1650,7 +1653,7 @@ function simplenews_subscriber_save(&$subscriber) {
       ->condition('snid', $subscriber->snid)
       ->fields(array(
         'snid' => $subscriber->snid,
-        'activated' => (int) $subscriber->activated,
+        'activated' => (int)$subscriber->activated,
         'mail' => $subscriber->mail,
         'uid' => $subscriber->uid,
         'language' => $subscriber->language,
@@ -1661,10 +1664,10 @@ function simplenews_subscriber_save(&$subscriber) {
   elseif (empty($subscriber->snid)) {
     $query = db_insert('simplenews_subscriber')
       ->fields(array(
-      'activated' => $subscriber->activated,
-      'mail' => $subscriber->mail,
-      'uid' => $subscriber->uid,
-      'language' => $subscriber->language,
+        'activated' => $subscriber->activated,
+        'mail' => $subscriber->mail,
+        'uid' => $subscriber->uid,
+        'language' => $subscriber->language,
       ));
     $last_insert_id = $query->execute();
     if ($last_insert_id !== FALSE) {
@@ -1765,8 +1768,8 @@ function simplenews_mail($key, &$message, $params) {
  */
 function simplenews_views_api() {
   return array(
-    'api' => 3,
-    'path' => drupal_get_path('module', 'simplenews') . '/includes/views'
+  'api' => 3,
+  'path' => drupal_get_path('module', 'simplenews') . '/includes/views'
   );
 }
 
@@ -1857,17 +1860,17 @@ function simplenews_category_save($category) {
   db_merge('simplenews_category')
     ->key(array('tid' => $category->tid))
     ->fields(array(
-      'tid' => $category->tid,
-      'format' => $category->format,
-      'priority' => $category->priority,
-      'receipt' => $category->receipt,
-      'from_name' => $category->from_name,
-      'from_address' => $category->from_address,
+      'tid'           => $category->tid,
+      'format'        => $category->format,
+      'priority'      => $category->priority,
+      'receipt'       => $category->receipt,
+      'from_name'     => $category->from_name,
+      'from_address'  => $category->from_address,
       'email_subject' => $category->email_subject,
-      'hyperlinks' => $category->hyperlinks,
-      'new_account' => $category->new_account,
-      'opt_inout' => $category->opt_inout,
-      'block' => $category->block,
+      'hyperlinks'    => $category->hyperlinks,
+      'new_account'   => $category->new_account,
+      'opt_inout'     => $category->opt_inout,
+      'block'         => $category->block,
     ))
     ->execute();
   module_invoke_all('simplenews_category_update', $category);
@@ -2175,7 +2178,7 @@ function simplenews_private_key() {
 function simplenews_help($path, $arg) {
   switch ($path) {
     case 'admin/help#simplenews':
-      $help = "<p>" . t('Simplenews publishes and sends newsletters to lists of subscribers. Both anonymous and authenticated users can opt-in to different mailing lists.') . "</p>\n";
+      $help  = "<p>" . t('Simplenews publishes and sends newsletters to lists of subscribers. Both anonymous and authenticated users can opt-in to different mailing lists.') . "</p>\n";
       $help .= "<p>" . t('Simplenews uses nodes for <strong>newsletter issues</strong>. Newsletter issues are grouped by a <strong>newsletter taxonomy term</strong>. Node type and vocabulary are selectable. A newsletter is send to all email addresses which are subscribed to the newsletter. Newsletter issues can be sent only once. Large mailings should be sent by cron to balance the mailserver load.') . "</p>\n";
       $help .= "<p>" . t('Simplenews adds elements to the newsletter node add/edit form to manage newsletter format and sending of the newsletter issue. A newsletter issue can be sent for test before sending officially.') . "</p>\n";
       $help .= "<p>" . t('Both anonymous and authenticated users can <strong>opt-in and opt-out</strong> to a newsletter. A confirmation message is sent to anonymous users when they (un)subscribe. Users can (un)subscribe using a form and a block. A <strong>subscription block</strong> is available for each newsletter offering a subscription form, a link to recent newsletters and RSS feed. Email addresses can also be imported and exported via the subscription administration pages.') . "</p>\n";
@@ -2198,7 +2201,7 @@ function simplenews_help($path, $arg) {
       $help .= "<p>" . t('For more information, see the online handbook entry for <a href="@handbook">Simplenews</a>.', array('@handbook', 'http://drupal.org/node/197057')) . "</p>\n";
       return $help;
     case 'node/add/simplenews':
-      $help = '<ul>';
+      $help  = '<ul>';
       $help .= '<li>' . t('Add this newsletter issue to a newsletter by selecting a newsletter from the select list. To send this newsletter issue, first save the node, then use the "Newsletter" tab.') . "</li>\n";
       if (user_access('administer simplenews settings')) {
         $help .= '<li>' . t('Set default send options at <a href="@configuration">Administration > Configuration > Web services > Newsletters</a>.', array('@configuration' => url('admin/config/services/simplenews'))) . "</li>\n";
@@ -2246,6 +2249,7 @@ function _simplenews_newsletter_name($newsletter, $langcode = NULL) {
   }
   return $newsletter->name;
 }
+
 
 /**
  * Helper function to translate a newsletter description if required.
@@ -2383,7 +2387,7 @@ function simplenews_theme() {
     ),
     'simplenews_status' => array(
       'file' => 'simplenews.admin.inc',
-      'path' => $path . '/includes',
+      'path' => $path  . '/includes',
       'variables' => array(
         'source' => NULL,
         'status' => NULL,
@@ -2669,7 +2673,7 @@ function simplenews_newsletter_update_sent_status($node, $status = SIMPLENEWS_ST
     $newsletter = simplenews_newsletter_load($node->nid);
   }
   if (!$newsletter) {
-    $newsletter = (object) simplenews_newsletter_defaults($node);
+    $newsletter = (object)simplenews_newsletter_defaults($node);
   }
   $newsletter->status = $status;
   simplenews_newsletter_save($newsletter);
@@ -2690,6 +2694,7 @@ function simplenews_field_extra_fields() {
   );
   return $return;
 }
+
 
 /**
  * Implements hook_node_access().
@@ -2719,7 +2724,7 @@ function simplenews_node_access($node, $op, $account) {
  *
  * As initiated by elysia_cron.
  * http://drupal.org/project/elysia_cron
- * */
+ **/
 function simplenews_cronapi($op) {
 
   switch ($op) {
@@ -2780,6 +2785,7 @@ function simplenews_simplenews_source_cache_info() {
     ),
   );
 }
+
 
 /**
  * Impersonates another user.
