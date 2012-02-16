@@ -1751,6 +1751,10 @@ function simplenews_mail($key, &$message, $params) {
     case 'subscribe':
       simplenews_build_subscribe_mail($message, $params);
       break;
+      break;
+    case 'subscribe_multi':
+      simplenews_build_multi_mail($message, $params);
+      break;
     case 'unsubscribe':
       simplenews_build_unsubscribe_mail($message, $params);
       break;
@@ -2347,6 +2351,24 @@ function simplenews_subscription_confirmation_text($key) {
       case 'subscribe_subject':
         $text = t("Confirmation for [simplenews-category:name] from [site:name]");
         break;
+      case 'multi_subject':
+        $text = t('Confirmation from [site:name]');
+        break;
+      case 'multi_body':
+        $text = t("We have received a request for the following subscription changes for [simplenews-subscriber:mail] at [site:url]:\n\n[changes-list]\n\nTo confirm please use the link below.\n\n[simplenews-subscriber:multi-url]");
+        break;
+        case 'multi_line_subscribe_unsubscribed';
+          $text = t('Subscribe to [category:name]');
+          break;
+        case 'multi_line_subscribe_subscribed';
+          $text = t('Already subscribed to [category:name]');
+          break;
+        case 'multi_line_unsubscribe_unsubscribed';
+          $text = t('Unsubscribe from [category:name]');
+          break;
+        case 'multi_line_unsubscribe_subscribed';
+          $text = t('Already unsubscribed from [category:name]');
+          break;
     }
   }
   return $text;
@@ -2863,11 +2885,26 @@ function simplenews_group_confirmations($collect = NULL) {
 function simplenews_add_group_confirmation($action = NULL, $subscriber = NULL, $category = NULL) {
   $group = &drupal_static(__FUNCTION__, array());
   if (!empty($action)) {
-    $group[] = array(
+    $group[$subscriber->snid][] = array(
       'action' => $action,
-      'snid' => $subscriber->snid,
       'tid' => $category->tid,
     );
+  }
+  else {
+    return $group;
+  }
+}
+
+function simplenews_send_group_confirmation() {
+  simplenews_group_confirmations(FALSE);
+  $group = simplenews_add_group_confirmation();
+  foreach ($group as $snid => $changes) {
+    module_load_include('inc', 'simplenews', 'includes/simplenews.mail');
+    $params['from'] = _simplenews_set_from();
+    $params['context']['changes'] = $changes;
+    $subscriber = simplenews_subscriber_load($snid);
+    $params['context']['simplenews_subscriber'] = $subscriber;
+    drupal_mail('simplenews', 'subscribe_multi', $subscriber->mail, $subscriber->language, $params, $params['from']['address']);
   }
 }
 

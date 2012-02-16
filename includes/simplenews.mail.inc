@@ -778,6 +778,52 @@ function simplenews_build_subscribe_mail(&$message, $params) {
 }
 
 /**
+ * Build subject and body of the subscribe confirmation email.
+ *
+ * @param array $message
+ *   Message array as used by hook_mail().
+ * @param array $params
+ *   Parameter array as used by hook_mail().
+ */
+function simplenews_build_multi_mail(&$message, $params) {
+  $context = $params['context'];
+  $langcode = $message['language'];
+
+  // Use formatted from address "name" <mail_address>
+  $message['headers']['From'] = $params['from']['formatted'];
+
+  $message['subject'] = simplenews_subscription_confirmation_text('multi_subject', $langcode);
+  $message['subject'] = token_replace($message['subject'], $context, array('sanitize' => FALSE));
+
+  $changes_list = array();
+  foreach ($context['changes'] as $change) {
+    $subscribed = simplenews_user_is_subscribed($context['simplenews_subscriber']->mail, $change['tid']);
+
+    // Get text for each possible combination.
+    if ($change['action'] == 'subscribe' && !$subscribed) {
+      $line = simplenews_subscription_confirmation_text('multi_line_subscribe_unsubscribed', $langcode);
+    }
+    else if ($change['action'] == 'subscribe' && $subscribed) {
+      $line = simplenews_subscription_confirmation_text('multi_line_subscribe_subscribed', $langcode);
+    }
+    else if ($change['action'] == 'unsubscribe' && !$subscribed) {
+      $line = simplenews_subscription_confirmation_text('multi_line_unsubscribe_unsubscribed', $langcode);
+    }
+    else if ($change['action'] == 'unsubscribe' && $subscribed) {
+      $line = simplenews_subscription_confirmation_text('multi_line_unsubscribe_subscribed', $langcode);
+    }
+    $category_context = array(
+      'simplenews_subscriber' => $context['simplenews_subscriber'],
+      'category' => simplenews_category_load($cache['tid']),
+    );
+    $changes_list[] = token_replace($line, $category_context, array('sanitize' => FALSE));
+  }
+  
+  $body = simplenews_subscription_confirmation_text('multi_body', $langcode);
+  $message['body'][] = token_replace($body, $context, array('sanitize' => FALSE));
+}
+
+/**
  * Build subject and body of the unsubscribe confirmation email.
  *
  * @param array $message

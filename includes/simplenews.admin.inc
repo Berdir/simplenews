@@ -1441,6 +1441,19 @@ function simplenews_admin_settings_subscription($form, &$form_state) {
     '#rows' => 5,
   );
 
+  $form['simplenews_subscription']['subscription_mail']['simplenews_confirm_multi_subject'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Subject text for combined confirmation mail'),
+    '#default_value' => simplenews_subscription_confirmation_text('multi_subject'),
+  );
+
+  $form['simplenews_subscription']['subscription_mail']['simplenews_confirm_multi_body'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Body text for combined confirmation mail'),
+    '#default_value' => simplenews_subscription_confirmation_text('multi_body'),
+    '#rows' => 5,
+  );
+
   $form['simplenews_subscription']['confirm_pages'] = array(
     '#type' => 'fieldset',
     '#title' => t('Confirmation pages'),
