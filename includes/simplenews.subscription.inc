@@ -316,7 +316,7 @@ function simplenews_subscriptions_page_form_submit($form, &$form_state) {
   $account = simplenews_load_user_by_mail($mail);
 
   // Group confirmation mails as necessary and configured.
-  simplenews_group_confirmations(TRUE);
+  simplenews_combine_confirmations(TRUE);
 
   switch ($form_state['values']['op']) {
     case t('Update'):
@@ -332,7 +332,7 @@ function simplenews_subscriptions_page_form_submit($form, &$form_state) {
           simplenews_unsubscribe_user($mail, $tid, $confirm, 'website');
         }
       }
-      if (simplenews_send_group_confirmation()) {
+      if (simplenews_send_combined_confirmation()) {
         drupal_set_message(t('You will receive a confirmation e-mail shortly containing further instructions on how to complete your subscription.'));
       }
       else {
@@ -346,7 +346,7 @@ function simplenews_subscriptions_page_form_submit($form, &$form_state) {
           simplenews_subscribe_user($mail, $tid, $confirm, 'website');
         }
       }
-      if (simplenews_send_group_confirmation()) {
+      if (simplenews_send_combined_confirmation()) {
         drupal_set_message(t('You will receive a confirmation e-mail shortly containing further instructions on how to complete your subscription.'));
       }
       else {
@@ -360,7 +360,7 @@ function simplenews_subscriptions_page_form_submit($form, &$form_state) {
           simplenews_unsubscribe_user($mail, $tid, $confirm, 'website');
         }
       }
-      if (simplenews_send_group_confirmation()) {
+      if (simplenews_send_combined_confirmation()) {
         drupal_set_message(t('You will receive a confirmation e-mail shortly containing further instructions on how to cancel your subscription.'));
       }
       else {

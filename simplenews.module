@@ -2910,9 +2910,16 @@ function simplenews_revert_user() {
 }
 
 /**
+ * Starts combining confirmation mails.
  *
+ * @param $collect
+ *   TRUE to start combining mail conformations, FALSE to disable it.
+ *
+ * @return
+ *   TRUE if combining has been started and combined mails aren not disabled,
+ *   FALSE otherwise.
  */
-function simplenews_group_confirmations($collect = NULL) {
+function simplenews_combine_confirmations($collect = NULL) {
   $static_collect = &drupal_static(__FUNCTION__, FALSE);
   if (isset($collect)) {
     $static_collect = $collect;
@@ -2920,7 +2927,21 @@ function simplenews_group_confirmations($collect = NULL) {
   return $static_collect && variable_get('simplenews_use_multi', 'multi') != 'never';
 }
 
-function simplenews_add_group_confirmation($action = NULL, $subscriber = NULL, $category = NULL) {
+/**
+ * Add a mail confirmation or fetch them.
+ *
+ * @param $action
+ *   (Optional) The confirmation type, either subscribe or unsubscribe.
+ * @param $subscriber
+ *   (Optional) The subscriber object.
+ * @param $category
+ *   (Optional) The newsletter category object.
+ *
+ * @return
+ *   If no arguments are passed in, an array of current confirmations, keyed by
+ *   subscriber id, the value is an array with the keys action and tid.
+ */
+function simplenews_add_combined_confirmation($action = NULL, $subscriber = NULL, $category = NULL) {
   $group = &drupal_static(__FUNCTION__, array());
   if (!empty($action)) {
     $group[$subscriber->snid][] = array(
@@ -2933,9 +2954,18 @@ function simplenews_add_group_confirmation($action = NULL, $subscriber = NULL, $
   }
 }
 
-function simplenews_send_group_confirmation() {
-  simplenews_group_confirmations(FALSE);
-  $group = simplenews_add_group_confirmation();
+/**
+ * Send collected confirmations.
+ *
+ * Depending on the settings, either always sends a combined confirmation or
+ * only when there are multiple changes for a subscriber.
+ *
+ * @return
+ *   TRUE if any confirmation mails have been sent.
+ */
+function simplenews_send_combined_confirmation() {
+  simplenews_combine_confirmations(FALSE);
+  $group = simplenews_add_combined_confirmation();
   foreach ($group as $snid => $changes) {
     module_load_include('inc', 'simplenews', 'includes/simplenews.mail');
     $params['from'] = _simplenews_set_from();
@@ -2961,10 +2991,22 @@ function simplenews_send_group_confirmation() {
   return !empty($group);
 }
 
+/**
+ * Send a confirmation mail.
+ *
+ * Either sends a mail immediatly or collects them for a combined mail.
+ *
+ * @param $action
+ *   The confirmation type, either subscribe or unsubscribe.
+ * @param $subscriber
+ *   The subscriber object.
+ * @param $category
+ *   The newsletter category object.
+ */
 function simplenews_send_confirmation($action, $subscriber, $category) {
   // Check if confirmation should be sent immediatly or grouped.
-  if (simplenews_group_confirmations()) {
-    simplenews_add_group_confirmation($action, $subscriber, $category);
+  if (simplenews_combine_confirmations()) {
+    simplenews_add_combined_confirmation($action, $subscriber, $category);
   }
   else {
     // Send confirmation email to user to complete (un)subscription.
@@ -2978,10 +3020,30 @@ function simplenews_send_confirmation($action, $subscriber, $category) {
   }
 }
 
-function simplenews_get_changes_list($subscriber, $changes, $langcode = NULL) {
+/**
+ * Converts an array of subscription changes into descriptions.
+ *
+ * @param $subscriber
+ *   Simplenews subscriber object.
+ * @param $changes
+ *   (Optional) Array of changes, each is an array with the keys action and tid.
+ *   Defaults to $subscriber->changes, which contains the currently saved
+ *   changes for the subscriber.
+ * @param $langcode
+ *   (Optional) Specify the language of the description strings, defaults to the
+ *   current language.
+ *
+ * @return
+ *   Array of description strings describing the changes.
+ */
+function simplenews_get_changes_list($subscriber, $changes = NULL, $langcode = NULL) {
   if (empty($langcode)) {
     global $language;
     $langcode = $language->language;
+  }
+
+  if (empty($changes)) {
+    $changes = $subscriber->changes;
   }
 
   $changes_list= array();
