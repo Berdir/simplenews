@@ -2551,7 +2551,7 @@ function template_preprocess_simplenews_block(&$variables) {
 function template_preprocess_simplenews_combined_block(&$variables) {
   // Block content variables
   $variables['message'] = check_plain(variable_get('simplenews_block_m_multiple', t('Select the newsletter(s) to which you want to subscribe or unsubscribe.')));
-  $variables['form'] = drupal_get_form('simplenews_subscriptions_combined_block_form');
+  $variables['form'] = drupal_get_form('simplenews_subscriptions_multi_block_form');
 }
 
 /**
