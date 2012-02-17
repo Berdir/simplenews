@@ -2039,7 +2039,7 @@ function simplenews_token_info() {
     'name' => t('Manage URL'),
     'description' => t('The URL of the page where the subscribers can manage their newsletter subscriptions.'),
   );
-  $subscriber['multi-url'] = array(
+  $subscriber['combined-url'] = array(
     'name' => t('Combined confirmation URL'),
     'description' => t('The URL of the page where subscribers can confirm their subscription changes.'),
   );
@@ -2393,7 +2393,7 @@ function simplenews_subscription_confirmation_text($key) {
         $text = t('Confirmation for [site:name]');
         break;
       case 'combined_body':
-        $text = t("We have received a request for the following subscription changes for [simplenews-subscriber:mail] at [site:url]:\n\n[changes-list]\n\nTo confirm please use the link below.\n\n[simplenews-subscriber:multi-url]");
+        $text = t("We have received a request for the following subscription changes for [simplenews-subscriber:mail] at [site:url]:\n\n[changes-list]\n\nTo confirm please use the link below.\n\n[simplenews-subscriber:combined-url]");
         break;
       case 'combined_line_subscribe_unsubscribed';
         $text = t('Subscribe to [simplenews-category:name]');

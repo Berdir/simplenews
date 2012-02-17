@@ -220,7 +220,7 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
       }
     }
 
-    $pattern = '@newsletter/confirm/multi/[0-9,a-f]+t0@';
+    $pattern = '@newsletter/confirm/combined/[0-9,a-f]+t0@';
     $found = preg_match($pattern, $body, $match);
     $confirm_url = $match[0];
     $this->assertTrue($found, t('Confirmation URL found: @url', array('@url' => $confirm_url)));
@@ -278,7 +278,7 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
       }
     }
 
-    $pattern = '@newsletter/confirm/multi/[0-9,a-f]+t0@';
+    $pattern = '@newsletter/confirm/combined/[0-9,a-f]+t0@';
     $found = preg_match($pattern, $body, $match);
     $confirm_url = $match[0];
     $this->assertTrue($found, t('Confirmation URL found: @url', array('@url' => $confirm_url)));
@@ -337,7 +337,8 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
     $mails = $this->drupalGetMails();
     $body = $mails[3]['body'];
 
-    $pattern = '@newsletter/confirm/multi/[0-9,a-f]+t0@';
+    debug($body);
+    $pattern = '@newsletter/confirm/combined/[0-9,a-f]+t0@';
     $found= preg_match($pattern, $body, $match);
     $confirm_url = $match[0];
     $this->assertTrue($found, t('Multi confirmation URL found: @url', array('@url' => $confirm_url)));
