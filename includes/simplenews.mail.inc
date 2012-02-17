@@ -795,31 +795,14 @@ function simplenews_build_multi_mail(&$message, $params) {
   $message['subject'] = simplenews_subscription_confirmation_text('multi_subject', $langcode);
   $message['subject'] = token_replace($message['subject'], $context, array('sanitize' => FALSE));
 
-  $changes_list = array();
-  foreach ($context['changes'] as $change) {
-    $subscribed = simplenews_user_is_subscribed($context['simplenews_subscriber']->mail, $change['tid']);
-
-    // Get text for each possible combination.
-    if ($change['action'] == 'subscribe' && !$subscribed) {
-      $line = simplenews_subscription_confirmation_text('multi_line_subscribe_unsubscribed', $langcode);
-    }
-    else if ($change['action'] == 'subscribe' && $subscribed) {
-      $line = simplenews_subscription_confirmation_text('multi_line_subscribe_subscribed', $langcode);
-    }
-    else if ($change['action'] == 'unsubscribe' && !$subscribed) {
-      $line = simplenews_subscription_confirmation_text('multi_line_unsubscribe_unsubscribed', $langcode);
-    }
-    else if ($change['action'] == 'unsubscribe' && $subscribed) {
-      $line = simplenews_subscription_confirmation_text('multi_line_unsubscribe_subscribed', $langcode);
-    }
-    $category_context = array(
-      'simplenews_subscriber' => $context['simplenews_subscriber'],
-      'category' => simplenews_category_load($cache['tid']),
-    );
-    $changes_list[] = token_replace($line, $category_context, array('sanitize' => FALSE));
+  $changes_list = '';
+  foreach (simplenews_get_changes_list($context['simplenews_subscriber'], $context['changes'], $langcode) as $change) {
+    $changes_list .= ' - ' . $change . "\n";
   }
-  
+
   $body = simplenews_subscription_confirmation_text('multi_body', $langcode);
+  // The changes list is not an actual token.
+  $body = str_replace('[changes-list]', $changes_list, $body);
   $message['body'][] = token_replace($body, $context, array('sanitize' => FALSE));
 }
 

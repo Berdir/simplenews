@@ -1622,8 +1622,9 @@ function simplenews_subscriber_load_multiple($snids = array(), $conditions = arr
 
     $subscribers = $query->execute()->fetchAllAssoc('snid');
     if (!empty($subscribers)) {
-      // Initialize default values.
+      // Initialize default values and unserialize.
       foreach ($subscribers as $subscriber) {
+        $subscriber->changes = unserialize($subscriber->changes);
         $subscriber->tids = array();
       }
 
@@ -1657,6 +1658,7 @@ function simplenews_subscriber_save(&$subscriber) {
         'mail' => $subscriber->mail,
         'uid' => $subscriber->uid,
         'language' => $subscriber->language,
+        'changes' => serialize(isset($subscriber->changes) ? $subscriber->changes : array()),
       ))
       ->execute();
     module_invoke_all('simplenews_subscriber_update', $subscriber);
@@ -1668,6 +1670,7 @@ function simplenews_subscriber_save(&$subscriber) {
         'mail' => $subscriber->mail,
         'uid' => $subscriber->uid,
         'language' => $subscriber->language,
+        'changes' => serialize(isset($subscriber->changes) ? $subscriber->changes : array()),
       ));
     $last_insert_id = $query->execute();
     if ($last_insert_id !== FALSE) {
@@ -2036,6 +2039,10 @@ function simplenews_token_info() {
     'name' => t('Manage URL'),
     'description' => t('The URL of the page where the subscribers can manage their newsletter subscriptions.'),
   );
+  $subscriber['multi-url'] = array(
+    'name' => t('Combined confirmation URL'),
+    'description' => t('The URL of the page where subscribers can confirm their subscription changes.'),
+  );
   $subscriber['mail'] = array(
     'name' => t('Subscriber email'),
     'description' => t('The email address of the newsletter receiver.'),
@@ -2092,13 +2099,16 @@ function simplenews_tokens($type, $tokens, $data = array(), $options = array()) 
         return;
       }
       $subscriber = $data['simplenews_subscriber'];
-      $category = $data['category'];
+      $category = isset($data['category']) ? $data['category'] : NULL;
       $language = isset($subscriber->language->language) ? $subscriber->language : user_preferred_language($subscriber);
 
       // Build hash for the URL of the (un)subscribe confirmation page.
       $hash = '';
       if (isset($subscriber->snid) && isset($category->tid)) {
         $hash = simplenews_generate_hash($subscriber->mail, $subscriber->snid, $category->tid);
+      }
+      else if (isset($subscriber->snid)) {
+        $multi_hash = simplenews_generate_hash($subscriber->mail, $subscriber->snid, 0);
       }
 
       foreach ($tokens as $name => $original) {
@@ -2110,6 +2120,10 @@ function simplenews_tokens($type, $tokens, $data = array(), $options = array()) 
 
           case 'unsubscribe-url':
             $replacements[$original] = url('newsletter/confirm/remove/' . $hash, array('absolute' => TRUE, 'language' => $language));
+            break;
+
+          case 'multi-url':
+            $replacements[$original] = url('newsletter/confirm/multi/' . $multi_hash, array('absolute' => TRUE, 'language' => $language));
             break;
 
           case 'manage-url':
@@ -2317,6 +2331,30 @@ function simplenews_variable_info($options) {
     'title' => t('Simplenews unsubscription confirmation body (not subscribed)'),
     'localize' => TRUE,
   );
+  $variable['simplenews_confirm_multi_subject'] = array(
+    'title' => t('Simplenews combined confirmation subject'),
+    'localize' => TRUE,
+  );
+  $variable['simplenews_confirm_multi_body'] = array(
+    'title' => t('Simplenews combined confirmation subject'),
+    'localize' => TRUE,
+  );
+  $variable['simplenews_confirm_multi_line_subscribe_unsubscribed'] = array(
+    'title' => t('Simplenews combined confirmation subscribe line'),
+    'localize' => TRUE,
+  );
+  $variable['simplenews_confirm_multi_line_subscribe_subscribed'] = array(
+    'title' => t('Simplenews combined confirmation already subscribed line'),
+    'localize' => TRUE,
+  );
+  $variable['simplenews_confirm_multi_line_unsubscribe_subscribed'] = array(
+    'title' => t('Simplenews combined confirmation unsubscribe line'),
+    'localize' => TRUE,
+  );
+  $variable['simplenews_confirm_multi_line_unsubscribe_unsubscribed'] = array(
+    'title' => t('Simplenews combined confirmation not subscribed line'),
+    'localize' => TRUE,
+  );
   return $variable;
 }
 
@@ -2352,23 +2390,23 @@ function simplenews_subscription_confirmation_text($key) {
         $text = t("Confirmation for [simplenews-category:name] from [site:name]");
         break;
       case 'multi_subject':
-        $text = t('Confirmation from [site:name]');
+        $text = t('Confirmation for [site:name]');
         break;
       case 'multi_body':
         $text = t("We have received a request for the following subscription changes for [simplenews-subscriber:mail] at [site:url]:\n\n[changes-list]\n\nTo confirm please use the link below.\n\n[simplenews-subscriber:multi-url]");
         break;
-        case 'multi_line_subscribe_unsubscribed';
-          $text = t('Subscribe to [category:name]');
-          break;
-        case 'multi_line_subscribe_subscribed';
-          $text = t('Already subscribed to [category:name]');
-          break;
-        case 'multi_line_unsubscribe_unsubscribed';
-          $text = t('Unsubscribe from [category:name]');
-          break;
-        case 'multi_line_unsubscribe_subscribed';
-          $text = t('Already unsubscribed from [category:name]');
-          break;
+      case 'multi_line_subscribe_unsubscribed';
+        $text = t('Subscribe to [simplenews-category:name]');
+        break;
+      case 'multi_line_subscribe_subscribed';
+        $text = t('Already subscribed to [simplenews-category:name]');
+        break;
+      case 'multi_line_unsubscribe_subscribed';
+        $text = t('Unsubscribe from [simplenews-category:name]');
+        break;
+      case 'multi_line_unsubscribe_unsubscribed';
+        $text = t('Already unsubscribed from [simplenews-category:name]');
+        break;
     }
   }
   return $text;
@@ -2879,7 +2917,7 @@ function simplenews_group_confirmations($collect = NULL) {
   if (isset($collect)) {
     $static_collect = $collect;
   }
-  return $static_collect && variable_get('simplenews_group_confirmations', TRUE);
+  return $static_collect && variable_get('simplenews_use_multi', 'multi') != 'never';
 }
 
 function simplenews_add_group_confirmation($action = NULL, $subscriber = NULL, $category = NULL) {
@@ -2901,15 +2939,30 @@ function simplenews_send_group_confirmation() {
   foreach ($group as $snid => $changes) {
     module_load_include('inc', 'simplenews', 'includes/simplenews.mail');
     $params['from'] = _simplenews_set_from();
-    $params['context']['changes'] = $changes;
     $subscriber = simplenews_subscriber_load($snid);
     $params['context']['simplenews_subscriber'] = $subscriber;
-    drupal_mail('simplenews', 'subscribe_multi', $subscriber->mail, $subscriber->language, $params, $params['from']['address']);
+    // Send multiple if there is more than one change for this subscriber
+    // single otherwise.
+    if (count($changes) > 1 || variable_get('simplenews_use_multi', 'multi') == 'always') {
+      $params['context']['changes'] = $changes;
+      $key = 'subscribe_multi';
+    }
+    else {
+      $change = reset($changes);
+      $params['context']['category'] = simplenews_category_load($change['tid']);
+      $key = $change['action'];
+    }
+    drupal_mail('simplenews', $key, $subscriber->mail, $subscriber->language, $params, $params['from']['address']);
+
+    // Save the changes in the subscriber.
+    $subscriber->changes = $changes;
+    simplenews_subscriber_save($subscriber);
   }
+  return !empty($group);
 }
 
 function simplenews_send_confirmation($action, $subscriber, $category) {
-  // Check if confirmation should be sent immediatly.
+  // Check if confirmation should be sent immediatly or grouped.
   if (simplenews_group_confirmations()) {
     simplenews_add_group_confirmation($action, $subscriber, $category);
   }
@@ -2923,4 +2976,36 @@ function simplenews_send_confirmation($action, $subscriber, $category) {
     $params['context']['simplenews_subscriber'] = $subscriber;
     drupal_mail('simplenews', $action, $subscriber->mail, $subscriber->language, $params, $params['from']['address']);
   }
+}
+
+function simplenews_get_changes_list($subscriber, $changes, $langcode = NULL) {
+  if (empty($langcode)) {
+    global $language;
+    $langcode = $language->language;
+  }
+
+  $changes_list= array();
+  foreach ($changes as $change) {
+    $subscribed = simplenews_user_is_subscribed($subscriber->mail, $change['tid']);
+
+    // Get text for each possible combination.
+    if ($change['action'] == 'subscribe' && !$subscribed) {
+      $line = simplenews_subscription_confirmation_text('multi_line_subscribe_unsubscribed', $langcode);
+    }
+    else if ($change['action'] == 'subscribe' && $subscribed) {
+      $line = simplenews_subscription_confirmation_text('multi_line_subscribe_subscribed', $langcode);
+    }
+    else if ($change['action'] == 'unsubscribe' && !$subscribed) {
+      $line = simplenews_subscription_confirmation_text('multi_line_unsubscribe_unsubscribed', $langcode);
+    }
+    else if ($change['action'] == 'unsubscribe' && $subscribed) {
+      $line = simplenews_subscription_confirmation_text('multi_line_unsubscribe_subscribed', $langcode);
+    }
+    $category_context = array(
+      'simplenews_subscriber' => $subscriber,
+      'category' => simplenews_category_load($change['tid']),
+    );
+    $changes_list[] = token_replace($line, $category_context, array('sanitize' => FALSE));
+  }
+  return $changes_list;
 }
