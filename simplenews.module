@@ -1187,7 +1187,7 @@ function simplenews_block_view($delta = '') {
       // render block only if permitted
       $block = array(
         'subject' => t('Newsletters'),
-        'content' => theme('simplenews_multi_block'),
+        'content' => theme('simplenews_combined_block'),
       );
       return $block;
     }
@@ -1756,7 +1756,7 @@ function simplenews_mail($key, &$message, $params) {
       break;
       break;
     case 'subscribe_multi':
-      simplenews_build_multi_mail($message, $params);
+      simplenews_build_combined_mail($message, $params);
       break;
     case 'unsubscribe':
       simplenews_build_unsubscribe_mail($message, $params);
@@ -2108,7 +2108,7 @@ function simplenews_tokens($type, $tokens, $data = array(), $options = array()) 
         $hash = simplenews_generate_hash($subscriber->mail, $subscriber->snid, $category->tid);
       }
       else if (isset($subscriber->snid)) {
-        $multi_hash = simplenews_generate_hash($subscriber->mail, $subscriber->snid, 0);
+        $combined_hash = simplenews_generate_hash($subscriber->mail, $subscriber->snid, 0);
       }
 
       foreach ($tokens as $name => $original) {
@@ -2122,8 +2122,8 @@ function simplenews_tokens($type, $tokens, $data = array(), $options = array()) 
             $replacements[$original] = url('newsletter/confirm/remove/' . $hash, array('absolute' => TRUE, 'language' => $language));
             break;
 
-          case 'multi-url':
-            $replacements[$original] = url('newsletter/confirm/multi/' . $multi_hash, array('absolute' => TRUE, 'language' => $language));
+          case 'combined-url':
+            $replacements[$original] = url('newsletter/confirm/combined/' . $combined_hash, array('absolute' => TRUE, 'language' => $language));
             break;
 
           case 'manage-url':
@@ -2331,27 +2331,27 @@ function simplenews_variable_info($options) {
     'title' => t('Simplenews unsubscription confirmation body (not subscribed)'),
     'localize' => TRUE,
   );
-  $variable['simplenews_confirm_multi_subject'] = array(
+  $variable['simplenews_confirm_combined_subject'] = array(
     'title' => t('Simplenews combined confirmation subject'),
     'localize' => TRUE,
   );
-  $variable['simplenews_confirm_multi_body'] = array(
+  $variable['simplenews_confirm_combined_body'] = array(
     'title' => t('Simplenews combined confirmation subject'),
     'localize' => TRUE,
   );
-  $variable['simplenews_confirm_multi_line_subscribe_unsubscribed'] = array(
+  $variable['simplenews_confirm_combined_line_subscribe_unsubscribed'] = array(
     'title' => t('Simplenews combined confirmation subscribe line'),
     'localize' => TRUE,
   );
-  $variable['simplenews_confirm_multi_line_subscribe_subscribed'] = array(
+  $variable['simplenews_confirm_combined_line_subscribe_subscribed'] = array(
     'title' => t('Simplenews combined confirmation already subscribed line'),
     'localize' => TRUE,
   );
-  $variable['simplenews_confirm_multi_line_unsubscribe_subscribed'] = array(
+  $variable['simplenews_confirm_combined_line_unsubscribe_subscribed'] = array(
     'title' => t('Simplenews combined confirmation unsubscribe line'),
     'localize' => TRUE,
   );
-  $variable['simplenews_confirm_multi_line_unsubscribe_unsubscribed'] = array(
+  $variable['simplenews_confirm_combined_line_unsubscribe_unsubscribed'] = array(
     'title' => t('Simplenews combined confirmation not subscribed line'),
     'localize' => TRUE,
   );
@@ -2389,22 +2389,22 @@ function simplenews_subscription_confirmation_text($key) {
       case 'subscribe_subject':
         $text = t("Confirmation for [simplenews-category:name] from [site:name]");
         break;
-      case 'multi_subject':
+      case 'combined_subject':
         $text = t('Confirmation for [site:name]');
         break;
-      case 'multi_body':
+      case 'combined_body':
         $text = t("We have received a request for the following subscription changes for [simplenews-subscriber:mail] at [site:url]:\n\n[changes-list]\n\nTo confirm please use the link below.\n\n[simplenews-subscriber:multi-url]");
         break;
-      case 'multi_line_subscribe_unsubscribed';
+      case 'combined_line_subscribe_unsubscribed';
         $text = t('Subscribe to [simplenews-category:name]');
         break;
-      case 'multi_line_subscribe_subscribed';
+      case 'combined_line_subscribe_subscribed';
         $text = t('Already subscribed to [simplenews-category:name]');
         break;
-      case 'multi_line_unsubscribe_subscribed';
+      case 'combined_line_unsubscribe_subscribed';
         $text = t('Unsubscribe from [simplenews-category:name]');
         break;
-      case 'multi_line_unsubscribe_unsubscribed';
+      case 'combined_line_unsubscribe_unsubscribed';
         $text = t('Already unsubscribed from [simplenews-category:name]');
         break;
     }
@@ -2431,7 +2431,7 @@ function simplenews_theme() {
   $path = drupal_get_path('module', 'simplenews');
 
   return array(
-    'simplenews_multi_block' => array(
+    'simplenews_combined_block' => array(
       'template' => 'simplenews-multi-block',
       'arguments' => array(),
       'path' => $path . '/theme',
@@ -2548,10 +2548,10 @@ function template_preprocess_simplenews_block(&$variables) {
  *
  * @ingroup theming
  */
-function template_preprocess_simplenews_multi_block(&$variables) {
+function template_preprocess_simplenews_combined_block(&$variables) {
   // Block content variables
   $variables['message'] = check_plain(variable_get('simplenews_block_m_multiple', t('Select the newsletter(s) to which you want to subscribe or unsubscribe.')));
-  $variables['form'] = drupal_get_form('simplenews_subscriptions_multi_block_form');
+  $variables['form'] = drupal_get_form('simplenews_subscriptions_combined_block_form');
 }
 
 /**
@@ -2924,7 +2924,7 @@ function simplenews_combine_confirmations($collect = NULL) {
   if (isset($collect)) {
     $static_collect = $collect;
   }
-  return $static_collect && variable_get('simplenews_use_multi', 'multi') != 'never';
+  return $static_collect && variable_get('simplenews_use_multi', 'multiple') != 'never';
 }
 
 /**
@@ -2973,7 +2973,7 @@ function simplenews_send_combined_confirmation() {
     $params['context']['simplenews_subscriber'] = $subscriber;
     // Send multiple if there is more than one change for this subscriber
     // single otherwise.
-    if (count($changes) > 1 || variable_get('simplenews_use_multi', 'multi') == 'always') {
+    if (count($changes) > 1 || variable_get('simplenews_use_multi', 'multiple') == 'always') {
       $params['context']['changes'] = $changes;
       $key = 'subscribe_multi';
     }
@@ -3052,16 +3052,16 @@ function simplenews_get_changes_list($subscriber, $changes = NULL, $langcode = N
 
     // Get text for each possible combination.
     if ($change['action'] == 'subscribe' && !$subscribed) {
-      $line = simplenews_subscription_confirmation_text('multi_line_subscribe_unsubscribed', $langcode);
+      $line = simplenews_subscription_confirmation_text('combined_line_subscribe_unsubscribed', $langcode);
     }
     else if ($change['action'] == 'subscribe' && $subscribed) {
-      $line = simplenews_subscription_confirmation_text('multi_line_subscribe_subscribed', $langcode);
+      $line = simplenews_subscription_confirmation_text('combined_line_subscribe_subscribed', $langcode);
     }
     else if ($change['action'] == 'unsubscribe' && !$subscribed) {
-      $line = simplenews_subscription_confirmation_text('multi_line_unsubscribe_unsubscribed', $langcode);
+      $line = simplenews_subscription_confirmation_text('combined_line_unsubscribe_unsubscribed', $langcode);
     }
     else if ($change['action'] == 'unsubscribe' && $subscribed) {
-      $line = simplenews_subscription_confirmation_text('multi_line_unsubscribe_subscribed', $langcode);
+      $line = simplenews_subscription_confirmation_text('combined_line_unsubscribe_subscribed', $langcode);
     }
     $category_context = array(
       'simplenews_subscriber' => $subscriber,

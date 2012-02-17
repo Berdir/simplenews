@@ -785,14 +785,14 @@ function simplenews_build_subscribe_mail(&$message, $params) {
  * @param array $params
  *   Parameter array as used by hook_mail().
  */
-function simplenews_build_multi_mail(&$message, $params) {
+function simplenews_build_combined_mail(&$message, $params) {
   $context = $params['context'];
   $langcode = $message['language'];
 
   // Use formatted from address "name" <mail_address>
   $message['headers']['From'] = $params['from']['formatted'];
 
-  $message['subject'] = simplenews_subscription_confirmation_text('multi_subject', $langcode);
+  $message['subject'] = simplenews_subscription_confirmation_text('combined_subject', $langcode);
   $message['subject'] = token_replace($message['subject'], $context, array('sanitize' => FALSE));
 
   $changes_list = '';
@@ -800,7 +800,7 @@ function simplenews_build_multi_mail(&$message, $params) {
     $changes_list .= ' - ' . $change . "\n";
   }
 
-  $body = simplenews_subscription_confirmation_text('multi_body', $langcode);
+  $body = simplenews_subscription_confirmation_text('combined_body', $langcode);
   // The changes list is not an actual token.
   $body = str_replace('[changes-list]', $changes_list, $body);
   $message['body'][] = token_replace($body, $context, array('sanitize' => FALSE));

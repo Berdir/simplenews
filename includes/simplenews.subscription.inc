@@ -499,7 +499,7 @@ function simplenews_confirm_subscription() {
       elseif ($op == 'add') {
         return drupal_get_form('simplenews_confirm_add_form', $subscriber->mail, $category);
       }
-      elseif ($op == 'multi' && !empty($subscriber->changes)) {
+      elseif ($op == 'combined' && !empty($subscriber->changes)) {
         return drupal_get_form('simplenews_confirm_multi_form', $subscriber);
       }
     }
@@ -522,7 +522,7 @@ function simplenews_confirm_subscription() {
         drupal_set_message(t('%user was added to the %newsletter mailing list.', array('%user' => $subscriber->mail, '%newsletter' => _simplenews_newsletter_name($category))));
         drupal_goto(variable_get('site_frontpage', 'node'));
       }
-      else if ($op == 'multi' && !empty($subscriber->changes)) {
+      else if ($op == 'combined' && !empty($subscriber->changes)) {
         foreach ($subscriber->changes as $change) {
           if ($change['action'] == 'subscribe') {
             simplenews_subscribe_user($subscriber->mail, $change['tid'], FALSE, 'website');

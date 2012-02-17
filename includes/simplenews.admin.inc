@@ -1400,12 +1400,12 @@ function simplenews_admin_settings_subscription($form, &$form_state) {
     '#type' => 'select',
     '#title' => t('Use combined confirmation mails'),
     '#options' => array(
-      'multi' => t('For multiple changes'),
+      'multiple' => t('For multiple changes'),
       'always' => t('Always'),
       'never' => t('Never'),
     ),
     '#description' => t('Combined confirmation mails allow subscribers to confirm multiple newsletter changes with single mail.'),
-    '#default_value' => variable_get('simplenews_use_multi', 'multi'),
+    '#default_value' => variable_get('simplenews_use_multi', 'multiple'),
   );
 
   if (module_exists('token')) {
@@ -1467,7 +1467,7 @@ function simplenews_admin_settings_subscription($form, &$form_state) {
     '#rows' => 5,
   );
 
-  $form['subscription_mail']['multi'] = array(
+  $form['subscription_mail']['combined'] = array(
     '#type' => 'fieldset',
     '#title' => t('Combined confirmation mails'),
     '#collapsed' => TRUE,
@@ -1481,41 +1481,41 @@ function simplenews_admin_settings_subscription($form, &$form_state) {
     ),
   );
 
-  $form['subscription_mail']['multi']['simplenews_confirm_multi_subject'] = array(
+  $form['subscription_mail']['combined']['simplenews_confirm_combined_subject'] = array(
     '#type' => 'textfield',
     '#title' => t('Subject text for combined confirmation mail'),
-    '#default_value' => simplenews_subscription_confirmation_text('multi_subject'),
+    '#default_value' => simplenews_subscription_confirmation_text('combined_subject'),
   );
 
-  $form['subscription_mail']['multi']['simplenews_confirm_multi_body'] = array(
+  $form['subscription_mail']['combined']['simplenews_confirm_combined_body'] = array(
     '#type' => 'textarea',
     '#title' => t('Body text for combined confirmation mail'),
-    '#default_value' => simplenews_subscription_confirmation_text('multi_body'),
+    '#default_value' => simplenews_subscription_confirmation_text('combined_body'),
     '#rows' => 5,
   );
 
-  $form['subscription_mail']['multi']['simplenews_confirm_multi_line_subscribe_unsubscribed'] = array(
+  $form['subscription_mail']['combined']['simplenews_confirm_combined_line_subscribe_unsubscribed'] = array(
     '#type' => 'textfield',
     '#title' => t('Change text for a new subscription'),
-    '#default_value' => simplenews_subscription_confirmation_text('multi_line_subscribe_unsubscribed'),
+    '#default_value' => simplenews_subscription_confirmation_text('combined_line_subscribe_unsubscribed'),
   );
 
-  $form['subscription_mail']['multi']['simplenews_confirm_multi_line_subscribe_subscribed'] = array(
+  $form['subscription_mail']['combined']['simplenews_confirm_combined_line_subscribe_subscribed'] = array(
     '#type' => 'textfield',
     '#title' => t('Change text when already subscribed'),
-    '#default_value' => simplenews_subscription_confirmation_text('multi_line_subscribe_subscribed'),
+    '#default_value' => simplenews_subscription_confirmation_text('combined_line_subscribe_subscribed'),
   );
 
-  $form['subscription_mail']['multi']['simplenews_confirm_multi_line_unsubscribe_subscribed'] = array(
+  $form['subscription_mail']['combined']['simplenews_confirm_combined_line_unsubscribe_subscribed'] = array(
     '#type' => 'textfield',
     '#title' => t('Change text for an unsubscription'),
-    '#default_value' => simplenews_subscription_confirmation_text('multi_line_unsubscribe_subscribed'),
+    '#default_value' => simplenews_subscription_confirmation_text('combined_line_unsubscribe_subscribed'),
   );
 
-  $form['simplenews_confirm_multi_line_unsubscribe_unsubscribed'] = array(
+  $form['subscription_mail']['combined']['simplenews_confirm_combined_line_unsubscribe_unsubscribed'] = array(
     '#type' => 'textfield',
     '#title' => t('Change text when already unsubscribed'),
-    '#default_value' => simplenews_subscription_confirmation_text('multi_line_unsubscribe_unsubscribed'),
+    '#default_value' => simplenews_subscription_confirmation_text('combined_line_unsubscribe_unsubscribed'),
   );
 
   $form['confirm_pages'] = array(

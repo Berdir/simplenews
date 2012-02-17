@@ -327,7 +327,7 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
     $confirm_url = $match[0];
     $this->assertTrue($found, t('Single add confirmation URL found: @url', array('@url' => $confirm_url)));
 
-    // Change behavior to always use multi-confirm.
+    // Change behavior to always use combined mails.
     variable_set('simplenews_use_multi', 'always');
     $edit = array(
       'mail' => $mail,
