@@ -599,7 +599,7 @@ function simplenews_confirm_multi_form($form, &$form_state, $subscriber) {
 
   $form['changes'] = array(
     '#theme' => 'item_list',
-    '#items' => simplenews_get_changes_list($subscriber, $subscriber->changes),
+    '#items' => simplenews_get_changes_list($subscriber),
   );
 
   $form['subscriber'] = array(

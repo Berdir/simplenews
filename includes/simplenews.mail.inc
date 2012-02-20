@@ -787,6 +787,7 @@ function simplenews_build_subscribe_mail(&$message, $params) {
  */
 function simplenews_build_combined_mail(&$message, $params) {
   $context = $params['context'];
+  $changes = $context['changes'];
   $langcode = $message['language'];
 
   // Use formatted from address "name" <mail_address>
@@ -796,11 +797,22 @@ function simplenews_build_combined_mail(&$message, $params) {
   $message['subject'] = token_replace($message['subject'], $context, array('sanitize' => FALSE));
 
   $changes_list = '';
-  foreach (simplenews_get_changes_list($context['simplenews_subscriber'], $context['changes'], $langcode) as $change) {
+  $actual_changes = 0;
+  foreach (simplenews_get_changes_list($context['simplenews_subscriber'], $changes, $langcode) as $tid => $change) {
     $changes_list .= ' - ' . $change . "\n";
+
+    // Count the actual changes.
+    $subscribed = simplenews_user_is_subscribed($context['simplenews_subscriber']->mail, $tid);
+    if ($changes[$tid] == 'subscribe' && !$subscribed || $changes[$tid] == 'unsubscribe' && $subscribed) {
+      $actual_changes++;
+    }
   }
 
-  $body = simplenews_subscription_confirmation_text('combined_body', $langcode);
+  // If there are actual changes, use the combined_body key otherwise use the
+  // one without a confirmation link.
+  $body_key = $actual_changes ? 'combined_body' : 'combined_body_unchanged';
+
+  $body = simplenews_subscription_confirmation_text($body_key, $langcode);
   // The changes list is not an actual token.
   $body = str_replace('[changes-list]', $changes_list, $body);
   $message['body'][] = token_replace($body, $context, array('sanitize' => FALSE));

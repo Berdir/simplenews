@@ -1755,7 +1755,7 @@ function simplenews_mail($key, &$message, $params) {
       simplenews_build_subscribe_mail($message, $params);
       break;
       break;
-    case 'subscribe_multi':
+    case 'subscribe_combined':
       simplenews_build_combined_mail($message, $params);
       break;
     case 'unsubscribe':
@@ -2336,7 +2336,11 @@ function simplenews_variable_info($options) {
     'localize' => TRUE,
   );
   $variable['simplenews_confirm_combined_body'] = array(
-    'title' => t('Simplenews combined confirmation subject'),
+    'title' => t('Simplenews combined confirmation body'),
+    'localize' => TRUE,
+  );
+  $variable['simplenews_confirm_combined_body_unchanged'] = array(
+    'title' => t('Simplenews combined confirmation body when there are no changes.'),
     'localize' => TRUE,
   );
   $variable['simplenews_confirm_combined_line_subscribe_unsubscribed'] = array(
@@ -2394,6 +2398,9 @@ function simplenews_subscription_confirmation_text($key) {
         break;
       case 'combined_body':
         $text = t("We have received a request for the following subscription changes for [simplenews-subscriber:mail] at [site:url]:\n\n[changes-list]\n\nTo confirm please use the link below.\n\n[simplenews-subscriber:combined-url]");
+        break;
+      case 'combined_body_unchanged':
+        $text = t("We have received a request for the following subscription changes for [simplenews-subscriber:mail] at [site:url]:\n\n[changes-list]\n\nNo confirmation necessary because all requested changes equal the current state.");
         break;
       case 'combined_line_subscribe_unsubscribed';
         $text = t('Subscribe to [simplenews-category:name]');
@@ -2944,10 +2951,7 @@ function simplenews_combine_confirmations($collect = NULL) {
 function simplenews_add_combined_confirmation($action = NULL, $subscriber = NULL, $category = NULL) {
   $group = &drupal_static(__FUNCTION__, array());
   if (!empty($action)) {
-    $group[$subscriber->snid][] = array(
-      'action' => $action,
-      'tid' => $category->tid,
-    );
+    $group[$subscriber->snid][$category->tid] = $action;
   }
   else {
     return $group;
@@ -2964,6 +2968,7 @@ function simplenews_add_combined_confirmation($action = NULL, $subscriber = NULL
  *   TRUE if any confirmation mails have been sent.
  */
 function simplenews_send_combined_confirmation() {
+  // Disable combining for further confirmations.
   simplenews_combine_confirmations(FALSE);
   $group = simplenews_add_combined_confirmation();
   foreach ($group as $snid => $changes) {
@@ -2975,12 +2980,12 @@ function simplenews_send_combined_confirmation() {
     // single otherwise.
     if (count($changes) > 1 || variable_get('simplenews_use_multi', 'multiple') == 'always') {
       $params['context']['changes'] = $changes;
-      $key = 'subscribe_multi';
+      $key = 'subscribe_combined';
     }
     else {
-      $change = reset($changes);
-      $params['context']['category'] = simplenews_category_load($change['tid']);
-      $key = $change['action'];
+      $tid = key($changes);
+      $params['context']['category'] = simplenews_category_load($tid);
+      $key = reset($changes);
     }
     drupal_mail('simplenews', $key, $subscriber->mail, $subscriber->language, $params, $params['from']['address']);
 
@@ -3028,7 +3033,7 @@ function simplenews_send_confirmation($action, $subscriber, $category) {
  * @param $changes
  *   (Optional) Array of changes, each is an array with the keys action and tid.
  *   Defaults to $subscriber->changes, which contains the currently saved
- *   changes for the subscriber.
+ *   changes for the subscriber. No-op changes are removed from this array.
  * @param $langcode
  *   (Optional) Specify the language of the description strings, defaults to the
  *   current language.
@@ -3036,7 +3041,7 @@ function simplenews_send_confirmation($action, $subscriber, $category) {
  * @return
  *   Array of description strings describing the changes.
  */
-function simplenews_get_changes_list($subscriber, $changes = NULL, $langcode = NULL) {
+function simplenews_get_changes_list($subscriber, &$changes = NULL, $langcode = NULL) {
   if (empty($langcode)) {
     global $language;
     $langcode = $language->language;
@@ -3047,27 +3052,27 @@ function simplenews_get_changes_list($subscriber, $changes = NULL, $langcode = N
   }
 
   $changes_list= array();
-  foreach ($changes as $change) {
-    $subscribed = simplenews_user_is_subscribed($subscriber->mail, $change['tid']);
+  foreach ($changes as $tid => $action) {
+    $subscribed = simplenews_user_is_subscribed($subscriber->mail, $tid);
 
     // Get text for each possible combination.
-    if ($change['action'] == 'subscribe' && !$subscribed) {
+    if ($action == 'subscribe' && !$subscribed) {
       $line = simplenews_subscription_confirmation_text('combined_line_subscribe_unsubscribed', $langcode);
     }
-    else if ($change['action'] == 'subscribe' && $subscribed) {
+    else if ($action == 'subscribe' && $subscribed) {
       $line = simplenews_subscription_confirmation_text('combined_line_subscribe_subscribed', $langcode);
     }
-    else if ($change['action'] == 'unsubscribe' && !$subscribed) {
+    else if ($action == 'unsubscribe' && !$subscribed) {
       $line = simplenews_subscription_confirmation_text('combined_line_unsubscribe_unsubscribed', $langcode);
     }
-    else if ($change['action'] == 'unsubscribe' && $subscribed) {
+    else if ($action == 'unsubscribe' && $subscribed) {
       $line = simplenews_subscription_confirmation_text('combined_line_unsubscribe_subscribed', $langcode);
     }
     $category_context = array(
       'simplenews_subscriber' => $subscriber,
-      'category' => simplenews_category_load($change['tid']),
+      'category' => simplenews_category_load($tid),
     );
-    $changes_list[] = token_replace($line, $category_context, array('sanitize' => FALSE));
+    $changes_list[$tid] = token_replace($line, $category_context, array('sanitize' => FALSE));
   }
   return $changes_list;
 }
