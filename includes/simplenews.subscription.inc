@@ -523,12 +523,12 @@ function simplenews_confirm_subscription() {
         drupal_goto(variable_get('site_frontpage', 'node'));
       }
       else if ($op == 'combined' && !empty($subscriber->changes)) {
-        foreach ($subscriber->changes as $change) {
-          if ($change['action'] == 'subscribe') {
-            simplenews_subscribe_user($subscriber->mail, $change['tid'], FALSE, 'website');
+        foreach ($subscriber->changes as $tid => $action) {
+          if ($action == 'subscribe') {
+            simplenews_subscribe_user($subscriber->mail, $tid, FALSE, 'website');
           }
-          else if ($change['action'] == 'subscribe') {
-            simplenews_unsubscribe_user($subscriber->mail, $change['tid'], FALSE, 'website');
+          else if ($action == 'subscribe') {
+            simplenews_unsubscribe_user($subscriber->mail, $tid, FALSE, 'website');
           }
         }
 
@@ -618,12 +618,12 @@ function simplenews_confirm_multi_form($form, &$form_state, $subscriber) {
 
 function simplenews_confirm_multi_form_submit($form, &$form_state) {
   $subscriber = $form_state['values']['subscriber'];
-  foreach ($subscriber->changes as $change) {
-    if ($change['action'] == 'subscribe') {
-      simplenews_subscribe_user($subscriber->mail, $change['tid'], FALSE, 'website');
+  foreach ($subscriber->changes as $tid => $action) {
+    if ($action == 'subscribe') {
+      simplenews_subscribe_user($subscriber->mail, $tid, FALSE, 'website');
     }
-    else if ($change['action'] == 'unsubscribe') {
-      simplenews_unsubscribe_user($subscriber->mail, $change['tid'], FALSE, 'website');
+    else if ($action == 'unsubscribe') {
+      simplenews_unsubscribe_user($subscriber->mail, $tid, FALSE, 'website');
     }
   }
 

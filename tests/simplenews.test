@@ -252,6 +252,18 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
       }
     }
 
+    // Go to the manage page and submit without changes.
+    $subscriber = simplenews_subscriber_load_by_mail($mail);
+    $hash = simplenews_generate_hash($subscriber->mail, $subscriber->snid, $tid);
+    $this->drupalPost('newsletter/subscriptions/' . $hash, array(), t('Update'));
+    $mails = $this->drupalGetMails();
+    $body = $mails[1]['body'];
+
+    $this->assertTrue(strpos($body, 'No confirmation necessary'));
+    $pattern = '@newsletter/confirm/combined/[0-9,a-f]+t0@';
+    $found = preg_match($pattern, $body, $match);
+    $this->assertFalse($found, t('No confirmation link in unchanged confirm mail.'));
+
     // Unsubscribe from two of the three enabled newsletters.
     $disable = array_rand(array_flip($enable), 2);
 
@@ -265,7 +277,7 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
     $this->assertText(t('You will receive a confirmation e-mail shortly containing further instructions on how to cancel your subscription.'), t('Subscription confirmation e-mail sent.'));
 
     $mails = $this->drupalGetMails();
-    $body = $mails[1]['body'];
+    $body = $mails[2]['body'];
 
     // Verify listed changes.
     foreach ($categories as $tid => $category) {
@@ -320,7 +332,7 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
     );
     $this->drupalPost('newsletter/subscriptions', $edit, t('Subscribe'));
     $mails = $this->drupalGetMails();
-    $body = $mails[2]['body'];
+    $body = $mails[3]['body'];
 
     $pattern = '@newsletter/confirm/add/[0-9,a-f]+t[0-9]+@';
     $found= preg_match($pattern, $body, $match);
@@ -335,7 +347,7 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
     );
     $this->drupalPost('newsletter/subscriptions', $edit, t('Subscribe'));
     $mails = $this->drupalGetMails();
-    $body = $mails[3]['body'];
+    $body = $mails[4]['body'];
 
     $pattern = '@newsletter/confirm/combined/[0-9,a-f]+t0@';
     $found= preg_match($pattern, $body, $match);
@@ -352,7 +364,7 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
     }
     $this->drupalPost('newsletter/subscriptions', $edit, t('Subscribe'));
     $mails = $this->drupalGetMails();
-    foreach (array(4,5) as $id) {
+    foreach (array(5, 6) as $id) {
       $body = $mails[$id]['body'];
 
       $pattern = '@newsletter/confirm/add/[0-9,a-f]+t[0-9]+@';
@@ -360,13 +372,6 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
       $confirm_url = $match[0];
       $this->assertTrue($found, t('Single add confirmation URL found: @url', array('@url' => $confirm_url)));
     }
-
-    // Go to the manage page and submit without changes.
-    $hash = simplenews_generate_hash($subscriber->mail, $subscriber->snid, $tid);
-    $this->drupalPost('newsletter/subscriptions/' . $hash, array(), t('Subscribe'));
-    $mails = $this->drupalGetMails();
-    $body = $mails[2]['body'];
-    debug($body);
   }
 
   /**
