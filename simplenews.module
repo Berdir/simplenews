@@ -2919,6 +2919,10 @@ function simplenews_revert_user() {
 /**
  * Starts combining confirmation mails.
  *
+ * If combining mails is enabled, it is mandatory to call
+ * simplenews_send_combined_confirmation() after all subscription changes have
+ * been applied or no mails will be sent.
+ *
  * @param $collect
  *   TRUE to start combining mail conformations, FALSE to disable it.
  *
