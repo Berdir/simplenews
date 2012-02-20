@@ -1494,6 +1494,14 @@ function simplenews_admin_settings_subscription($form, &$form_state) {
     '#rows' => 5,
   );
 
+  $form['subscription_mail']['combined']['simplenews_confirm_combined_body_unchanged'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Body text for unchanged combined confirmation mail'),
+    '#default_value' => simplenews_subscription_confirmation_text('combined_body_unchanged'),
+    '#rows' => 5,
+    '#description' => t('This body is used when there are no change requests which have no effect, e.g trying to subscribe when already being subscribed to a category.')
+  );
+
   $form['subscription_mail']['combined']['simplenews_confirm_combined_line_subscribe_unsubscribed'] = array(
     '#type' => 'textfield',
     '#title' => t('Change text for a new subscription'),
