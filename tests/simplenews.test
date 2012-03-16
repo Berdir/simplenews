@@ -283,7 +283,7 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
 
     // Disable the category block.
     $edit = array(
-      'blocks[simplenews_' . $tid . '][region]' => -1,
+      'simplenews_' . $tid . '[region]' => -1,
     );
     $this->drupalPost(NULL, $edit, t('Save blocks'));
 
@@ -383,7 +383,7 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
     $edit = array(
       'name' => $this->randomName(),
       'description' => $this->randomString(20),
-      'opt_inout' => 'single',
+      'simplenews_opt_inout_' => 'single',
     );
     $this->drupalPost(NULL, $edit, t('Save'));
 
@@ -482,7 +482,7 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
     $edit = array(
       "newsletters[$tid]" => 0,
     );
-    $url = 'user/' . $subscriber_user->uid . '/edit/simplenews';
+    $url = 'user/' . $subscriber_user->uid . '/edit/newsletter';
     $this->drupalPost($url, $edit, t('Save'));
     $this->assertRaw(t('The changes have been saved.', array('%mail' => $subscriber_user->mail)), t('Authenticated user unsubscribed on the account page.'));
 
@@ -493,7 +493,7 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
     $edit = array(
       "newsletters[$tid]" => '1',
     );
-    $url = 'user/' . $subscriber_user->uid . '/edit/simplenews';
+    $url = 'user/' . $subscriber_user->uid . '/edit/newsletter';
     $this->drupalPost($url, $edit, t('Save'));
     $this->assertRaw(t('The changes have been saved.', array('%mail' => $subscriber_user->mail)), t('Authenticated user unsubscribed on the account page.'));
 
@@ -505,7 +505,7 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
 
     // Disable the category block.
     $edit = array(
-      'blocks[simplenews_' . $tid . '][region]' => -1,
+      'simplenews_' . $tid . '[region]' => -1,
     );
     $this->drupalPost(NULL, $edit, t('Save blocks'));
 
@@ -619,13 +619,13 @@ class SimpleNewsAdministrationTestCase extends SimplenewsTestCase {
           $edit = array(
             'name' => implode('-', array($new_account_setting, $opt_inout_setting, $name)),
             'description' => $this->randomString(20),
-            'new_account' => $new_account_setting,
-            'opt_inout' => $opt_inout_setting,
-            'block' => $value,
-            'priority' => rand(0, 5),
-            'receipt' => rand(0, 1) ? TRUE : FALSE,
-            'from_name' => $this->randomName(),
-            'from_address' => $this->randomEmail(),
+            'simplenews_new_account_' => $new_account_setting,
+            'simplenews_opt_inout_' => $opt_inout_setting,
+            //'simplenews_block_' => $value,
+            //'simplenews_priority_' => rand(0, 5),
+            //'simplenews_receipt_' => rand(0, 1) ? TRUE : FALSE,
+            'simplenews_from_name_' => $this->randomName(),
+            'simplenews_from_address_' => $this->randomEmail(),
           );
           $this->drupalPost(NULL, $edit, t('Save'));
         }
@@ -637,17 +637,16 @@ class SimpleNewsAdministrationTestCase extends SimplenewsTestCase {
     // Check block settings.
     $this->drupalGet('admin/build/block');
 
-    //blocks[simplenews_42][region]
     foreach ($categories as $category) {
       if (strpos($category->name, '-') === FALSE) {
         continue;
       }
       list($new_account_setting, $opt_inout_setting, $block) = explode('-', $category->name);
       if ($block == 'block' && $opt_inout_setting != 'hidden') {
-        $this->assertField('blocks[simplenews_' . $category->tid . '][region]', t('Block is displayed for category'));
+        $this->assertField('simplenews_' . $category->tid . '[region]', t('Block is displayed for category'));
       }
       else {
-        $this->assertNoField('blocks[simplenews_' . $category->tid . '][region]', t('Block is not displayed for category'));
+        $this->assertNoField('simplenews_' . $category->tid . '[region]', t('Block is not displayed for category'));
       }
     }
 
@@ -713,7 +712,7 @@ class SimpleNewsAdministrationTestCase extends SimplenewsTestCase {
 
     // Verify newsletter subscription pages.
     $this->drupalLogin($user);
-    foreach (array('newsletter/subscriptions', 'user/' . $user->uid . '/edit/simplenews') as $path) {
+    foreach (array('newsletter/subscriptions', 'user/' . $user->uid . '/edit/newsletter') as $path) {
       $this->drupalGet($path);
       foreach ($categories as $category) {
         if (strpos($category->name, '-') === FALSE) {
@@ -977,7 +976,7 @@ class SimpleNewsAdministrationTestCase extends SimplenewsTestCase {
    * Test content type configuration.
    */
   function testContentTypes() {
-    $admin_user = $this->drupalCreateUser(array('administer blocks', 'administer content types', 'administer nodes', 'access administration pages', 'administer permissions', 'administer newsletters', 'administer simplenews subscriptions', 'bypass node access', 'send newsletter'));
+    $admin_user = $this->drupalCreateUser(array('administer blocks', 'administer content types', 'administer nodes', 'access administration pages', 'administer permissions', 'administer newsletters', 'administer simplenews subscriptions', 'send newsletter'));
     $this->drupalLogin($admin_user);
 
     $this->drupalGet('admin/content/types');
