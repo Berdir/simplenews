@@ -90,6 +90,9 @@ function simplenews_send_node($node, $accounts = array()) {
     }
     if (variable_get('simplenews_use_cron', TRUE) == FALSE) {
       simplenews_mail_spool($node_data['nid'], $node_data['vid'], 999999);
+      simplenews_clear_spool();
+      // Update sent status for newsletter admin panel.
+      simplenews_send_status_update();
       drupal_set_message(t('Newsletter sent.'));
       simplenews_clear_spool();
     }

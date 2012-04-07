@@ -315,8 +315,7 @@ function simplenews_node_tab_access($node = NULL) {
  * Menu callback. Displays newsletter-related stuff of a node.
  */
 function simplenews_node_tab_page($node = NULL) {
-  $output .= drupal_get_form('simplenews_node_tab_send_form', $node);
-  return $output;
+  return drupal_get_form('simplenews_node_tab_send_form', $node);
 }
 
 /**
@@ -642,7 +641,7 @@ function simplenews_nodeapi(&$node, $op, $teaser, $page) {
       $vid = variable_get('simplenews_vid', '');
       if (!isset($node->taxonomy[$vid]) || empty($node->taxonomy[$vid]) || simplenews_validate_taxonomy($node->taxonomy) == FALSE) {
         form_set_error('taxonomy', t('No newsletter term is selected, the newsletter taxonomy term is probably not configured correctly.<br /> Check and <strong>save</strong> the <a href="@settings">Simplenews general settings</a>.', array(
-          '%name' => $vocabulary->name,
+          '%name' => taxonomy_vocabulary_load($vid)->name,
           '@settings' => url('admin/settings/simplenews/general')
         )));
       }
@@ -659,7 +658,7 @@ function simplenews_nodeapi(&$node, $op, $teaser, $page) {
       }
       // Get Simplenews vid
       $simplenews_vid = variable_get('simplenews_vid', '');
-      $node->simplenews['tid'] = $node->taxonomy[$simplenews_vid];
+      $node->simplenews['tid'] = $node->taxonomy[$simplenews_vid]->tid;
       // Call the same update function as tab submit function
       simplenews_newsletter_update($node, $node->simplenews);
       break;
@@ -690,11 +689,14 @@ function simplenews_nodeapi(&$node, $op, $teaser, $page) {
       break;
     case 'load':
       // @todo: {simplenews_newsletters} data might be missing if an uninstall happened at some time with simplenews nodes created. provide reasonable defaults.
-      $node->simplenews = db_fetch_array(db_query('
+      $newsletter = db_fetch_array(db_query('
         SELECT *
         FROM {simplenews_newsletters}
         WHERE nid = %d',
         $node->nid));
+      return array(
+        'simplenews' => $newsletter,
+      );
       break;
   }
 }
@@ -1115,6 +1117,7 @@ function simplenews_user($op, &$edit, &$account, $category = NULL) {
         $account->content['simplenews'] = array(
           '#type' => 'user_profile_category',
           '#title' => t('Newsletters'),
+          '#children' => array(),
         );
         // Collect newsletter to which the current user is subscribed.
         // 'hidden' newsletters are not listed.
