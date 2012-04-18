@@ -1849,9 +1849,9 @@ class SimplenewsSendTestCase extends SimplenewsTestCase {
   }
 
   function setUp() {
-    parent::setUp();
+    parent::setUp(array('path'));
 
-    $this->user = $this->drupalCreateUser(array('administer newsletters', 'send newsletter', 'administer nodes', 'administer simplenews subscriptions', 'create simplenews content', 'edit any simplenews content', 'view own unpublished content', 'delete any simplenews content'));
+    $this->user = $this->drupalCreateUser(array('administer newsletters', 'send newsletter', 'administer nodes', 'administer simplenews subscriptions', 'create simplenews content', 'edit any simplenews content', 'view own unpublished content', 'delete any simplenews content', 'create url aliases'));
     $this->drupalLogin($this->user);
 
     // Subscribe a few users.
@@ -1902,9 +1902,13 @@ class SimplenewsSendTestCase extends SimplenewsTestCase {
 
     $edit = array(
       'title' => $this->randomName(),
+      // Add a path alias.
+      'path[alias]' => $this->randomName(),
     );
     $this->drupalPost(NULL, $edit, ('Save'));
-    $this->assertTrue(preg_match('|node/(\d+)$|', $this->getUrl(), $matches), 'Node created');
+    // Click on edit to get the node id in the path so that it can be extracted.
+    $this->clickLink('Edit');
+    $this->assertTrue(preg_match('|node/(\d+)/edit$|', $this->getUrl(), $matches), 'Node created');
     $node = node_load($matches[1]);
 
     $this->clickLink(t('Newsletter'));
