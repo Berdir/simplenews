@@ -106,6 +106,9 @@ function simplenews_confirm_subscription($op1 = NULL, $op2 = NULL) {
     return;
   }
 
+  // Prevent search engines from indexing this page.
+  drupal_set_html_head('<meta name="robots" content="noindex" />');
+
   if ($md5 == drupal_substr(md5($subs->mail . simplenews_private_key()), 0, 10)) {
     $newsletter = taxonomy_get_term($tid);
     if ($op1 == 'remove') {
@@ -122,13 +125,29 @@ function simplenews_confirm_subscription($op1 = NULL, $op2 = NULL) {
 }
 
 /**
+ * Mask a mail address.
+ *
+ * For exampl, name@example.org will be masked as n*****@example.org.
+ *
+ * @param $mail
+ *   A valid mail address to mask.
+ *
+ * @return
+ *   The masked mail address.
+ */
+function simplenews_mask_mail($mail) {
+  preg_match('/^(.).*@(.*)$/', $mail, $matches);
+  return preg_replace('/^(.).*@(.*)$/', '$1*****@$2', $mail);
+}
+
+/**
  * Generate the confirm subscription form.
  *
  * @see simplenews_confirm_add_form_submit()
  */
 function simplenews_confirm_add_form(&$form_state, $mail, $newsletter) {
   $form = array();
-  $form['question'] = array('#value' => '<p>'. t('Are you sure you want to add %user to the %newsletter mailing list?', array('%user' => $mail, '%newsletter' => $newsletter->name)) ."<p>\n");
+  $form['question'] = array('#value' => '<p>'. t('Are you sure you want to add %user to the %newsletter mailing list?', array('%user' => simplenews_mask_mail($mail), '%newsletter' => $newsletter->name)) ."<p>\n");
   $form['mail'] = array('#type' => 'value', '#value' => $mail);
   $form['newsletter'] = array('#type' => 'value', '#value' => $newsletter);
   $form['#redirect'] = '';
@@ -154,7 +173,7 @@ function simplenews_confirm_add_form_submit($form, &$form_state) {
  */
 function simplenews_confirm_removal_form(&$form_state, $mail, $newsletter) {
   $form = array();
-  $form['question'] = array('#value' => '<p>'. t('Are you sure you want to remove %user from the %newsletter mailing list?', array('%user' => $mail, '%newsletter' => $newsletter->name)) ."<p>\n");
+  $form['question'] = array('#value' => '<p>'. t('Are you sure you want to remove %user from the %newsletter mailing list?', array('%user' => simplenews_mask_mail($mail), '%newsletter' => $newsletter->name)) ."<p>\n");
   $form['mail'] = array('#type' => 'value', '#value' => $mail);
   $form['newsletter'] = array('#type' => 'value', '#value' => $newsletter);
   $form['#redirect'] = '';
