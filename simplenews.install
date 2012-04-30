@@ -9,14 +9,29 @@
  * Implements hook_schema().
  */
 function simplenews_schema() {
-  $schema['simplenews_category'] = array(
+  $schema['simplenews_newsletter'] = array(
     'description' => 'Simplenews newsletter categories.',
     'fields' => array(
-      'tid' => array(
-        'description' => '{taxonomy_term_data}.tid used as newsletter category.',
-        'type' => 'int',
+      'newsletter_id' => array(
+        'description' => '...',
+        'type' => 'serial',
         'not null' => TRUE,
         'default' => 0,
+      ),
+      'name' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'The newsletter name.',
+        'translatable' => TRUE,
+      ),
+      'description' => array(
+        'type' => 'text',
+        'not null' => FALSE,
+        'size' => 'big',
+        'description' => 'A description of the newsletter.',
+        'translatable' => TRUE,
       ),
       'format' => array(
         'type' => 'varchar',
@@ -90,47 +105,54 @@ function simplenews_schema() {
         'not null' => TRUE,
         'default' => 0,
       ),
+      'weight' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'The weight of this term in relation to other terms.',
+      ),
     ),
-    'primary key' => array('tid'),
+    'primary key' => array('newsletter_id'),
   );
 
-  $schema['simplenews_newsletter'] = array(
-    'description' => 'Simplenews newsletter data.',
-    'fields' => array(
-      'nid' => array(
-        'description' => '{node} that is used as newsletter.',
-        'type' => 'int',
-        'not null' => TRUE,
-        'default' => 0,
-      ),
-      'tid' => array(
-        'description' => 'The newsletter category {simplenews_category}.tid this newsletter belongs to.',
-        'type' => 'int',
-        'not null' => TRUE,
-        'default' => 0,
-      ),
-      'status' => array(
-        'description' => 'sent status of the newsletter issue (0 = not sent; 1 = pending; 2 = sent, 3 = send on publish).',
-        'type' => 'int',
-        'size' => 'tiny',
-        'not null' => TRUE,
-        'default' => 0,
-      ),
-      'sent_subscriber_count' => array(
-        'description' => 'The count of subscribers to the newsletter when it was sent.',
-        'type' => 'int',
-        'not null' => TRUE,
-        'default' => 0,
-      ),
-    ),
-    'primary key' => array('nid'),
-    'foreign keys' => array(
-      'nid' => array(
-        'table' => 'node',
-        'columns' => array('nid' => 'nid'),
-      ),
-    ),
-  );
+//  TODO: Move to custom field type.
+//  $schema['simplenews_newsletter'] = array(
+//    'description' => 'Simplenews newsletter data.',
+//    'fields' => array(
+//      'nid' => array(
+//        'description' => '{node} that is used as newsletter.',
+//        'type' => 'int',
+//        'not null' => TRUE,
+//        'default' => 0,
+//      ),
+//      'tid' => array(
+//        'description' => 'The newsletter category {simplenews_category}.tid this newsletter belongs to.',
+//        'type' => 'int',
+//        'not null' => TRUE,
+//        'default' => 0,
+//      ),
+//      'status' => array(
+//        'description' => 'sent status of the newsletter issue (0 = not sent; 1 = pending; 2 = sent, 3 = send on publish).',
+//        'type' => 'int',
+//        'size' => 'tiny',
+//        'not null' => TRUE,
+//        'default' => 0,
+//      ),
+//      'sent_subscriber_count' => array(
+//        'description' => 'The count of subscribers to the newsletter when it was sent.',
+//        'type' => 'int',
+//        'not null' => TRUE,
+//        'default' => 0,
+//      ),
+//    ),
+//    'primary key' => array('nid'),
+//    'foreign keys' => array(
+//      'nid' => array(
+//        'table' => 'node',
+//        'columns' => array('nid' => 'nid'),
+//      ),
+//    ),
+//  );
 
   $schema['simplenews_subscriber'] = array(
     'description' => 'Subscribers to {simplenews_category}. Many-to-many relation via {simplenews_subscription}',
@@ -209,8 +231,8 @@ function simplenews_schema() {
         'not null' => TRUE,
         'default' => 0,
       ),
-      'tid' => array(
-        'description' => 'The category ({simplenews_category}.tid) the subscriber is subscribed to.',
+      'newsletter_id' => array(
+        'description' => 'The newsletter ({simplenews_newsletter}.newsletter_id) the subscriber is subscribed to.',
         'type' => 'int',
         'not null' => TRUE,
         'default' => 0,
@@ -346,8 +368,9 @@ function simplenews_schema() {
  * Implements hook_install().
  */
 function simplenews_install() {
-  _simplenews_init_simplenews_vocabulary();
-  _simplenews_init_simplenews_category();
+//  TODO: Create default newsletter.
+//  _simplenews_init_simplenews_vocabulary();
+//  _simplenews_init_simplenews_category();
 
   // add nodetype with newsletter vocabulary
   _simplenews_install_nodetype();
@@ -387,6 +410,9 @@ function _simplenews_install_nodetype() {
 
 /**
  * Create simplenews vocabulary and initial term.
+ *
+ * @todo Remove this function
+ * @deprecated Do not need to create a taxonomy vocalulary anymore.
  */
 function _simplenews_init_simplenews_vocabulary() {
   // Create the simplenews vocabulary. If it exists, set simplenews_vid variable.
@@ -417,6 +443,9 @@ function _simplenews_init_simplenews_vocabulary() {
 
 /**
  * Create initial simplenews categories.
+ *
+ * @todo Replace with a init function cleating a newsletter using entities
+ * @deprecated Use the new newsletter entity instead.
  */
 function _simplenews_init_simplenews_category() {
   if ($tree = taxonomy_get_tree(variable_get('simplenews_vid', ''))) {
@@ -769,3 +798,12 @@ function simplenews_update_7006() {
     'default' => 0,
   ));
 }
+
+/**
+ * Switch to newsletter entities
+ */
+//function simplenews_update_7007() {
+//
+// Load all categories and safe them as newsletters. Preserve tid as primary keys.
+//
+//}
