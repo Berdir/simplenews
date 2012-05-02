@@ -8,6 +8,8 @@ dependencies[] = taxonomy
 test_dependencies[] = i18n_taxonomy
 
 files[] = tests/simplenews.test
+files[] = includes/simplenews.entity.inc
+files[] = includes/simplenews.controller.inc
 files[] = includes/simplenews.source.inc
 files[] = includes/views/handlers/simplenews_handler_field_newsletter_status.inc
 files[] = includes/views/handlers/simplenews_handler_field_newsletter_priority.inc

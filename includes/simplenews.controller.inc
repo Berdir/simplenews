@@ -26,6 +26,22 @@ class SimplenewsNewsletterController extends EntityAPIController {
     );
     return parent::create($values);
   }
+
+  public function delete($ids, DatabaseTransaction $transaction = NULL) {
+    parent::delete($ids, $transaction);
+
+    foreach ($ids as $id) {
+      // Delete subscriptions
+      simplenews_subscription_delete(array('tid' => $id));
+      drupal_set_message(t('All subscriptions to newsletter %newsletter have been deleted.', array('%newsletter' => _simplenews_newsletter_name($id))));
+
+      // Delete subscription block
+      db_delete('block')
+        ->condition('module', 'simplenews')
+        ->condition('delta', $id)
+        ->execute();
+    }
+  }
 }
 
 ?>

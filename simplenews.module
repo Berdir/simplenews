@@ -1,9 +1,9 @@
 <?php
+
 /**
  * @file
  * Simplenews node handling, sent email, newsletter block and general hooks
  */
-
 /**
  * NEWSLETTER MAIL PRIORITY
  */
@@ -886,7 +886,7 @@ function simplenews_user_insert(&$edit, $account, $category) {
   if (isset($edit['newsletters'])) {
     $nl_tids = array_keys(array_filter($edit['newsletters']));
     if (!empty($nl_tids)) {
-      $newsletters = simplenews_categories_load_multiple($nl_tids, array('show_all' => TRUE));
+      $newsletters = simplenews_categories_load_multiple($nl_tids);
       foreach ($newsletters as $newsletter) {
         simplenews_subscribe_user($account->mail, $newsletter->tid, FALSE, 'website', $edit['language']);
         drupal_set_message(t('You have been subscribed to %newsletter.', array('%newsletter' => _simplenews_newsletter_name($newsletter))));
@@ -1095,12 +1095,12 @@ function simplenews_block_info() {
   );
 
   // Only list a block if the newsletter is not 'hidden' and marked to provide a block.
-  foreach (simplenews_categories_load_multiple(array(), array('block' => '1', 'show_all' => FALSE)) as $category) {
+  foreach (simplenews_newsletter_get_public(array('block' => '1')) as $newsletter) {
     //@todo 1. without form -> by role; 2. with form -> user caching with refresh on subscribe/unsubscribe (option as setting) or no caching
-    $blocks[$category->tid] = array(
-      'info' => t('Newsletter: @title', array('@title' => _simplenews_newsletter_name($category))),
+    $blocks[$newsletter->tid] = array(
+      'info' => t('Newsletter: @title', array('@title' => _simplenews_newsletter_name($newsletter))),
       // @todo Use block's own settings?
-      'cache' => variable_get('simplenews_block_f_' . $category->tid, 1) ? DRUPAL_NO_CACHE : DRUPAL_CACHE_PER_ROLE,
+      'cache' => variable_get('simplenews_block_f_' . $newsletter->tid, 1) ? DRUPAL_NO_CACHE : DRUPAL_CACHE_PER_ROLE,
     );
   }
   return $blocks;
@@ -1199,7 +1199,7 @@ function simplenews_block_view($delta = '') {
     return NULL;
   }
   else {
-    $newsletters = simplenews_categories_load_multiple(array(), array('block' => '1', 'show_all' => FALSE));
+    $newsletters = simplenews_newsletter_get_public(array('block' => '1'));
 
     // Only display a block if $delta is a valid newsletter term id.
     if (in_array($delta, array_keys($newsletters))) {
@@ -1792,22 +1792,22 @@ function simplenews_views_api() {
 }
 
 /**
- * Get a simplenews newsletter category object.
+ * Get a simplenews newsletter entity object.
  *
- * @param $tid
- *   Simplenews category ID.
+ * @param $nlid
+ *   Simplenews newsletter ID.
  * @return
- *   Newsletter category object.
- *   FALSE if category does not exist
+ *   Newsletter entity object.
+ *   FALSE if newsletter does not exist
  *
  * @ingroup newsletter
  */
-function simplenews_category_load($tid, $reset = FALSE) {
-  if (!is_numeric($tid)) {
+function simplenews_category_load($nlid, $reset = FALSE) {
+  if (!is_numeric($nlid)) {
     return FALSE;
   }
-  $categories = simplenews_categories_load_multiple(array($tid), $reset);
-  return $categories ? $categories[$tid] : FALSE;
+  $newsletter = simplenews_categories_load_multiple(array($nlid), array(), $reset);
+  return $newsletter ? $newsletter : FALSE;
 }
 
 /**
@@ -1819,12 +1819,43 @@ function simplenews_category_load($tid, $reset = FALSE) {
  * @ingroup newsletter.
  */
 function simplenews_category_list() {
-  $categories = simplenews_categories_load_multiple();
-  $cats = array();
-  foreach ($categories as $key => $category) {
-    $cats[$key] = check_plain(_simplenews_newsletter_name($category));
+  $newsletters = array();
+  foreach (simplenews_newsletter_get_all() as $id => $newsletter) {
+    $newsletters[$id] = check_plain(_simplenews_newsletter_name($newsletter));
   }
-  return $cats;
+  return $newsletters;
+}
+
+/**
+ *
+ * @param array $condistions
+ * @return array Newsletter entities
+ */
+function simplenews_newsletter_get_public($condistions = array()) {
+  $query = new EntityFieldQuery;
+  $query
+    ->entityCondition('entity_type', 'simplenews_newsletter')
+    ->propertyCondition('opt_inout', SIMPLENEWS_OPT_INOUT_HIDDEN, '<>')
+    ->propertyOrderBy('weight');
+  foreach ($condistions as $key => $value) {
+    $query->propertyCondition($key, $value);
+  }
+  $result = $query->execute();
+  return isset($result['simplenews_newsletter']) ? simplenews_categories_load_multiple(array_key_exists($result['simplenews_newsletter'])) : NULL;
+}
+
+/**
+ *
+ * @return array
+ */
+function simplenews_newsletter_get_all() {
+  $query = new EntityFieldQuery;
+  $result = $query
+    ->entityCondition('entity_type', 'simplenews_newsletter')
+    ->propertyCondition('opt_inout', SIMPLENEWS_OPT_INOUT_HIDDEN, '<>')
+    ->propertyOrderBy('weight')
+    ->execute();
+  return isset($result['simplenews_newsletter']) ? simplenews_categories_load_multiple(array_key_exists($result['simplenews_newsletter'])) : NULL;
 }
 
 /**
@@ -1832,114 +1863,48 @@ function simplenews_category_list() {
  *
  * @ingroup newsletter
  */
-function simplenews_categories_load_multiple($tids = array(), $conditions = array(), $reset = FALSE) {
-  $categories = &drupal_static(__FUNCTION__, array());
-
-  // Only cache if we load all records from the database. This could be improved.
-  if (!$categories || $tids || $conditions || $reset) {
-    $categories = array();
-    $query = db_select('simplenews_category', 'sc');
-    // This function might be called when the corresponding taxonomy term was
-    // already deleted.
-    $query->leftJoin('taxonomy_term_data', 't', 't.tid = sc.tid');
-    $query->fields('sc')
-      ->fields('t', array('name', 'description', 'weight', 'vid'))
-      ->orderBy('t.weight', 'ASC');
-    if ($tids) {
-      $query->condition('sc.tid', $tids);
-    }
-    if ($conditions) {
-      foreach ($conditions as $key => $condition) {
-        if ($key == 'show_all') {
-          if (!$condition) {
-            $query->condition('opt_inout', SIMPLENEWS_OPT_INOUT_HIDDEN, '<>');
-          }
-        }
-        else {
-          $query->condition($key, $condition);
-        }
-      }
-    }
-
-    $categories = $query->execute()->fetchAllAssoc('tid');
-  }
-  return $categories;
+function simplenews_categories_load_multiple($ids = array(), $conditions = array(), $reset = FALSE) {
+  return entity_load('simplenews_newsletter', $ids, $conditions, $reset);
 }
 
 /**
- * Store newsletter category in the database.
+ * Store newsletter in the database.
  *
- * @param $category
- *   Newsletter category object
+ * @param $newsletter
+ *   Newsletter entity object
  *
  * @ingroup newsletter
  */
-function simplenews_category_save($category) {
-  db_merge('simplenews_category')
-    ->key(array('tid' => $category->tid))
-    ->fields(array(
-      'tid' => $category->tid,
-      'format' => $category->format,
-      'priority' => $category->priority,
-      'receipt' => $category->receipt,
-      'from_name' => $category->from_name,
-      'from_address' => $category->from_address,
-      'email_subject' => $category->email_subject,
-      'hyperlinks' => $category->hyperlinks,
-      'new_account' => $category->new_account,
-      'opt_inout' => $category->opt_inout,
-      'block' => $category->block,
-    ))
-    ->execute();
-  module_invoke_all('simplenews_category_update', $category);
+function simplenews_category_save($newsletter) {
+  entity_save('simplenews_newsletter', $newsletter);
 }
 
 /**
- * Delete newsletter category from the database.
+ * Delete newsletter from the database.
  *
- * @param $category
- *   Simplenews category object or category ID.
+ * @param $id
+ *   Array of Simplenews newsletter ID.
  *
  * @ingroup newsletter
  */
-function simplenews_category_delete($category) {
-  if (!is_object($category)) {
-    $category = simplenews_category_load($category);
-  }
-
-  if ($category) {
-    db_delete('simplenews_category')
-      ->condition('tid', $category->tid)
-      ->execute();
-
-    // Delete subscriptions
-    simplenews_subscription_delete(array('tid' => $category->tid));
-    drupal_set_message(t('All subscriptions to newsletter %newsletter have been deleted.', array('%newsletter' => _simplenews_newsletter_name($category))));
-
-    // Delete subscription block
-    db_delete('block')
-      ->condition('module', 'simplenews')
-      ->condition('delta', $category->tid)
-      ->execute();
-
-    module_invoke_all('simplenews_category_delete', $category);
-  }
+function simplenews_category_delete($ids) {
+  entity_delete('simplenews_newsletter', $ids);
 }
 
 /**
- * Loads all visible newsletter categories.
+ * Loads all visible newsletters.
  *
- * Does not include categories with the opt-out/opt-in setting set to hidden.
+ * Does not include newsletters with the opt-out/opt-in setting set to hidden.
  *
  * @ingroup newsletter
  */
 function simplenews_category_get_visible() {
-  $categories = &drupal_static(__FUNCTION__, NULL);
+  $newsletters = &drupal_static(__FUNCTION__, NULL);
 
-  if (!isset($categories)) {
-    $categories = simplenews_categories_load_multiple(array(), array('show_all' => FALSE));
+  if (!isset($newsletters)) {
+    $newsletters = simplenews_newsletter_get_public();
   }
-  return $categories;
+  return $newsletters;
 }
 
 /**
