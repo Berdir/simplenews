@@ -340,11 +340,11 @@ function simplenews_node_view($node, $view_mode) {
     'node' => $node,
   );
 
-  if ($newsletter = simplenews_newsletter_load($node->nid)) {
-    if ($category = simplenews_category_load($newsletter->tid)) {
-      $context['category'] = $category;
-    }
-  }
+//  if ($newsletter = simplenews_newsletter_load($node->nid)) {
+//    if ($category = simplenews_category_load($newsletter->tid)) {
+//      $context['category'] = $category;
+//    }
+//  }
 
   // If the current user is a subscriber, extend context.
   if ($GLOBALS['user']->uid > 0 && $subscriber = simplenews_subscriber_load_by_mail($GLOBALS['user']->mail)) {
@@ -413,54 +413,6 @@ function simplenews_node_validate($node, $form) {
 }
 
 /**
- * Implements hook_node_presave().
- */
-function simplenews_node_presave($node) {
-  if (!simplenews_check_node_types($node->type)) {
-    return;
-  }
-
-  if (!empty($node->nid) && !isset($node->simplenews)) {
-    $node->simplenews = simplenews_newsletter_load($node->nid);
-  }
-  if (empty($node->simplenews)) {
-    $newsletter = (object) simplenews_newsletter_defaults($node);
-  }
-}
-
-/**
- * Implements hook_node_insert().
- */
-function simplenews_node_insert($node) {
-  if (!simplenews_check_node_types($node->type)) {
-    return;
-  }
-
-  $node->simplenews = (object) simplenews_newsletter_defaults($node);
-  simplenews_newsletter_save($node->simplenews);
-}
-
-/**
- * Return default newsletter.
- */
-function simplenews_newsletter_defaults($node = NULL) {
-  $newsletter = array(
-    'nid' => NULL,
-    'tid' => NULL,
-    'status' => SIMPLENEWS_STATUS_SEND_NOT,
-    'sent_subscriber_count' => 0,
-  );
-
-  if ($node) {
-    $newsletter['nid'] = isset($node->nid) ? $node->nid : NULL;
-    $terms = simplenews_get_term_values($node);
-    $newsletter['tid'] = $terms[0]['tid'];
-  }
-
-  return $newsletter;
-}
-
-/**
  * Implements hook_node_update().
  */
 function simplenews_node_update($node) {
@@ -468,15 +420,15 @@ function simplenews_node_update($node) {
     return;
   }
 
-  $node->simplenews = simplenews_newsletter_load($node->nid);
-  if (!$node->simplenews) {
-    $node->simplenews = (object) simplenews_newsletter_defaults($node);
-  }
-  else {
-    // Update tid.
-    $terms = simplenews_get_term_values($node);
-    $node->simplenews->tid = $terms[0]['tid'];
-  }
+//  $node->simplenews = simplenews_newsletter_load($node->nid);
+//  if (!$node->simplenews) {
+//    $node->simplenews = (object) simplenews_newsletter_defaults($node);
+//  }
+//  else {
+//    // Update tid.
+//    $terms = simplenews_get_term_values($node);
+//    $node->simplenews->tid = $terms[0]['tid'];
+//  }
 
   // Check if the newsletter is set to send on publish and needs to be send.
   if ($node->simplenews->status == SIMPLENEWS_STATUS_SEND_PUBLISH && $node->status == NODE_PUBLISHED) {
@@ -486,7 +438,8 @@ function simplenews_node_update($node) {
   else {
     // simplenews_update_sent_status() already saves the node, only need to do
     // it when not sending.
-    simplenews_newsletter_save($node->simplenews);
+//    TODO: Use field
+//    simplenews_newsletter_save($node->simplenews);
   }
 }
 
@@ -497,7 +450,9 @@ function simplenews_node_delete($node) {
   if (!simplenews_check_node_types($node->type)) {
     return;
   }
-  simplenews_newsletter_delete($node);
+//    TODO: Use Field.
+//  simplenews_newsletter_delete($node);
+
   // Check if pending emails of this newsletter issue exist and delete these too.
   module_load_include('inc', 'simplenews', 'includes/simplenews.mail');
   $count = simplenews_delete_spool(array('nid' => $node->nid));
@@ -523,7 +478,8 @@ function simplenews_node_load($nodes, $types) {
     return;
   }
 
-  $newsletters = simplenews_newsletter_load_multiple(array_keys($nodes));
+//  TODO: Use field.
+//  $newsletters = simplenews_newsletter_load_multiple(array_keys($nodes));
   foreach ($nodes as $nid => $node) {
     // We can have multiple nodes where not all of them are simplenews enabled
     // content type. So we need to check for each individual node is it
@@ -538,7 +494,8 @@ function simplenews_node_load($nodes, $types) {
       $newsletter = $newsletters[$nid];
     }
     if (!$newsletter) {
-      $newsletter = (object) simplenews_newsletter_defaults($node);
+//    TODO: Use Field.
+//      $newsletter = (object) simplenews_newsletter_defaults($node);
     }
     $nodes[$nid]->simplenews = $newsletter;
   }
@@ -763,10 +720,11 @@ function _simplenews_node_form(&$form, $form_state) {
 
   // Display warning if the node is currently being sent.
   if (!empty($form['#node']->nid)) {
-    $newsletter = simplenews_newsletter_load($form['#node']->nid);
-    if ($newsletter && $newsletter->status == SIMPLENEWS_STATUS_SEND_PENDING) {
-      drupal_set_message(t('This newsletter issue is currently being sent. Any changes will be reflected in the e-mails which have not been sent yet.'), 'warning');
-    }
+//    TODO: Use field.
+//    $newsletter = simplenews_newsletter_load($form['#node']->nid);
+//    if ($newsletter && $newsletter->status == SIMPLENEWS_STATUS_SEND_PENDING) {
+//      drupal_set_message(t('This newsletter issue is currently being sent. Any changes will be reflected in the e-mails which have not been sent yet.'), 'warning');
+//    }
   }
 
   if (module_exists('token')) {
@@ -1908,86 +1866,6 @@ function simplenews_category_get_visible() {
 }
 
 /**
- * @todo
- *
- * @ingroup issue
- */
-function simplenews_newsletter_load($nid, $reset = FALSE) {
-  $conditions = array();
-  $newsletters = simplenews_newsletter_load_multiple(array($nid), $conditions, $reset);
-  return $newsletters ? reset($newsletters) : FALSE;
-}
-
-/**
- * @todo
- *
- * @ingroup issue
- */
-function simplenews_newsletter_load_multiple($nids = array(), $conditions = array(), $reset = FALSE) {
-  $newsletters = &drupal_static(__FUNCTION__, array());
-
-  // We only cache if all records are loaded from the database,
-  // unless reset is forced.
-  if (!$newsletters || $nids || $conditions || $reset) {
-    $newsletters = array();
-    $query = db_select('simplenews_newsletter', 'sn');
-    $query->innerJoin('taxonomy_term_data', 't', 't.tid = sn.tid');
-    $query->fields('sn')
-      ->fields('t', array('name', 'description', 'weight'))
-      ->orderBy('t.weight', 'ASC');
-    if ($nids) {
-      $query->condition('nid', $nids);
-    }
-    if ($conditions) {
-      foreach ($conditions as $key => $condition) {
-        $query->condition($key, $condition);
-      }
-    }
-
-    $newsletters = $query->execute()->fetchAllAssoc('nid');
-  }
-  return $newsletters;
-}
-
-/**
- * Store newsletter object in the database.
- *
- * @param $newsletter
- *   Simplenews newsletter object.
- *
- * @ingroup issue
- */
-function simplenews_newsletter_save($newsletter) {
-  db_merge('simplenews_newsletter')
-    ->key(array('nid' => $newsletter->nid))
-    ->fields(array(
-      'tid' => $newsletter->tid,
-      'status' => $newsletter->status,
-    ))
-    ->execute();
-}
-
-/**
- * Delete simplenews newsletter from the database.
- *
- * @param $newsletter
- *   Simplenews newsletter object or nid.
- *
- * @ingroup issue
- */
-function simplenews_newsletter_delete($newsletter) {
-  if (!is_object($newsletter)) {
-    $newsletter = simplenews_newsletter_load($newsletter);
-  }
-
-  if ($newsletter) {
-    db_delete('simplenews_newsletter')
-      ->condition('nid', $newsletter->nid)
-      ->execute();
-  }
-}
-
-/**
  * Create a 32 character identifier.
  */
 function simplenews_private_key() {
@@ -2529,15 +2407,16 @@ function simplenews_newsletter_update_sent_status($node, $status = SIMPLENEWS_ST
   // will be sent too.
   if (module_exists('translation') && translation_supported_type($node->type) && $node->tnid > 0) {
     if ($translations = translation_node_get_translations($node->tnid)) {
-      foreach ($translations as $translation) {
-        $newsletter = simplenews_newsletter_load($translation->nid);
-        if (!$newsletter) {
-          $node = node_load($translation->nid);
-          $newsletter = (object) simplenews_newsletter_defaults($node);
-        }
-        $newsletter->status = SIMPLENEWS_STATUS_SEND_PENDING;
-        simplenews_newsletter_save($newsletter);
-      }
+//      TODO: Use field.
+//      foreach ($translations as $translation) {
+//        $newsletter = simplenews_newsletter_load($translation->nid);
+//        if (!$newsletter) {
+//          $node = node_load($translation->nid);
+//          $newsletter = (object) simplenews_newsletter_defaults($node);
+//        }
+//        $newsletter->status = SIMPLENEWS_STATUS_SEND_PENDING;
+//        simplenews_newsletter_save($newsletter);
+//      }
     }
   }
 
@@ -2545,13 +2424,16 @@ function simplenews_newsletter_update_sent_status($node, $status = SIMPLENEWS_ST
     $newsletter = $node->simplenews;
   }
   else {
-    $newsletter = simplenews_newsletter_load($node->nid);
+//    TODO: Use Field.
+//    $newsletter = simplenews_newsletter_load($node->nid);
   }
   if (!$newsletter) {
-    $newsletter = (object) simplenews_newsletter_defaults($node);
+//    TODO: Use Field.
+//    $newsletter = (object) simplenews_newsletter_defaults($node);
   }
   $newsletter->status = $status;
-  simplenews_newsletter_save($newsletter);
+//    TODO: Use Field.
+//  simplenews_newsletter_save($newsletter);
 }
 
 /**
