@@ -16,7 +16,6 @@ function simplenews_schema() {
         'description' => '...',
         'type' => 'serial',
         'not null' => TRUE,
-        'default' => 0,
       ),
       'name' => array(
         'type' => 'varchar',
@@ -259,15 +258,15 @@ function simplenews_schema() {
         'default' => '',
       ),
     ),
-    'primary key' => array('snid', 'tid'),
+    'primary key' => array('snid', 'newsletter_id'),
     'foreign keys' => array(
       'snid' => array(
         'table' => 'simplenews_subscriber',
         'columns' => array('snid' => 'snid'),
       ),
-      'tid' => array(
-        'table' => 'simplenews_category',
-        'columns' => array('tid' => 'tid'),
+      'newsletter' => array(
+        'table' => 'simplenews_newsletter',
+        'columns' => array('newsletter_id' => 'newsletter_id'),
       )
     ),
     // @todo add foreign keys to other tables too?
@@ -295,8 +294,8 @@ function simplenews_schema() {
         'not null' => TRUE,
         'default' => 0,
       ),
-      'tid' => array(
-        'description' => 'The {simplenews_category}.tid this newsletter belongs to.',
+      'newsletter_id' => array(
+        'description' => 'The {simplenews_newsletter}.newsletter_id this issue belongs to.',
         'type' => 'int',
         'not null' => TRUE,
         'default' => 0,
@@ -339,24 +338,24 @@ function simplenews_schema() {
     ),
     'primary key' => array('msid'),
     'indexes' => array(
-      'tid' => array('tid'),
+      'newsletter_id' => array('newsletter_id'),
       'status' => array('status'),
-      'snid_tid' => array('snid', 'tid'),
+      'snid_newsletter_id' => array('snid', 'newsletter_id'),
     ),
     'foreign keys' => array(
       'nid' => array(
         'table' => 'node',
         'columns' => array('nid' => 'nid'),
       ),
-      'tid' => array(
-        'table' => 'simplenews_category',
-        'columns' => array('tid'),
+      'newsletter_id' => array(
+        'table' => 'simplenews_newsletter',
+        'columns' => array('newsletter_id'),
       ),
-      'snid_tid' => array(
+      'snid_newsletter_id' => array(
         'table' => 'simplenews_subscription',
         'columns' => array(
           'snid' => 'snid',
-          'tid' => 'tid',
+          'newsletter_id' => 'newsletter_id',
         ),
       ),
     ),
@@ -368,9 +367,7 @@ function simplenews_schema() {
  * Implements hook_install().
  */
 function simplenews_install() {
-//  TODO: Create default newsletter.
-//  _simplenews_init_simplenews_vocabulary();
-//  _simplenews_init_simplenews_category();
+  _simplenews_init_default_newsletter();
 
   // add nodetype with newsletter vocabulary
   _simplenews_install_nodetype();
@@ -398,82 +395,27 @@ function _simplenews_install_nodetype() {
       'locked' => 0,
       'custom' => 1,
       'modified' => 1,
-    ));
+      ));
     node_type_save($type);
     node_add_body_field($type);
   }
-  if (!field_info_instance('node', 'field_simplenews_term', $type->type)) {
+  if (!field_info_instance('node', 'simplenews_newsletter', $type->type)) {
     simplenews_add_term_field($type);
   }
+
+
   variable_set('simplenews_content_type_' . $type->type, TRUE);
 }
 
-/**
- * Create simplenews vocabulary and initial term.
- *
- * @todo Remove this function
- * @deprecated Do not need to create a taxonomy vocalulary anymore.
- */
-function _simplenews_init_simplenews_vocabulary() {
-  // Create the simplenews vocabulary. If it exists, set simplenews_vid variable.
-  $vocabularies = taxonomy_vocabulary_load_multiple(array(), array('machine_name' => 'newsletter'));
-  $vocabulary = reset($vocabularies);
-  if (!$vocabulary) {
-    $vocabulary = new stdClass();
-    $vocabulary->name         = t('Newsletter');
-    $vocabulary->machine_name = 'newsletter';
-    $vocabulary->description  = t('Simplenews newsletter categories.');
-    $vocabulary->weight       = '0';
-    $vocabulary->hierarchy    = '0';
-    $vocabulary->module       = 'simplenews';
-  }
-  taxonomy_vocabulary_save($vocabulary);
-  variable_set('simplenews_vid', $vocabulary->vid);
-
-  // Create a newsletter taxonomy term if none exists.
-  $tree = taxonomy_get_tree($vocabulary->vid);
-  if (count($tree) == 0) {
-    $term = new stdClass();
-    $term->name = t('@site_name newsletter', array('@site_name' => variable_get('site_name', 'Drupal')));
-    $term->description = t('@site_name newsletter categories.', array('@site_name' => variable_get('site_name', 'Drupal')));
-    $term->vid = $vocabulary->vid;
-    taxonomy_term_save($term);
-  }
-}
-
-/**
- * Create initial simplenews categories.
- *
- * @todo Replace with a init function cleating a newsletter using entities
- * @deprecated Use the new newsletter entity instead.
- */
-function _simplenews_init_simplenews_category() {
-  if ($tree = taxonomy_get_tree(variable_get('simplenews_vid', ''))) {
-    $categories = simplenews_categories_load_multiple();
-    $first = TRUE;
-    foreach ($tree as $term) {
-      // Create a newsletter category for each newsletter taxonomy term.
-      if (!isset($categories[$term->tid])) {
-        $category = new stdClass();
-        $category->tid = $term->tid;
-        // @todo use a function for category default values
-        $category->from_name      = variable_get('site_name', 'Drupal');
-        $category->email_subject  ='[[simplenews-category:name]] [node:title]';
-        $category->from_address   = variable_get('site_mail', ini_get('sendmail_from'));
-        $category->format         = 'plain';
-        $category->priority       = SIMPLENEWS_PRIORITY_NONE;
-        $category->receipt        = 0;
-        $category->hyperlinks     = 1;
-        $category->new_account    = 'none';
-        $category->opt_inout      = 'double';
-        $category->block          = 0;
-        if ($first) {
-          $category->block        = 1;
-          $first = FALSE;
-        }
-        simplenews_category_save($category);
-      }
-    }
+function _simplenews_init_default_newsletter() {
+  $newsletter = simplenews_newsletter_get_all();
+  $newsletter = reset($newsletter);
+  if (!$newsletter) {
+    $newsletter = entity_create('simplenews_newsletter', array(
+      'name' => t('@site_name newsletter', array('@site_name' => variable_get('site_name', 'Drupal'))),
+      'description' => t('@site_name newsletter categories.', array('@site_name' => variable_get('site_name', 'Drupal'))),
+    ));
+    $newsletter->save();
   }
 }
 
@@ -657,7 +599,7 @@ function simplenews_update_7000() {
         'new_account' => variable_get('simplenews_new_account_' . $tid, 'none'),
         'opt_inout' => variable_get('simplenews_opt_inout_' . $tid, 'double'),
         'block' => isset($blocks[$tid]) ? 1 : 0,
-        ))
+      ))
       ->execute();
   }
 
@@ -691,7 +633,7 @@ function simplenews_update_7000() {
     'description' => 'A serialized array of name value pairs that are related to the email address.',
   ));
 
- // Rename field {simplenews_mail_spool}.s_status to "status".
+  // Rename field {simplenews_mail_spool}.s_status to "status".
   db_change_field('simplenews_newsletter', 's_status', 'status', array(
     'description' => 'sent status of the newsletter issue (0 = not sent; 1 = pending; 2 = sent). ',
     'type' => 'int',
