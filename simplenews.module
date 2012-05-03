@@ -1814,7 +1814,7 @@ function simplenews_views_api() {
 /**
  * Get a simplenews newsletter entity object.
  *
- * @param $nlid
+ * @param $newsletter_id
  *   Simplenews newsletter ID.
  * @return
  *   Newsletter entity object.
@@ -1822,12 +1822,12 @@ function simplenews_views_api() {
  *
  * @ingroup newsletter
  */
-function simplenews_newsletter_load($nlid, $reset = FALSE) {
-  if (!is_numeric($nlid)) {
+function simplenews_newsletter_load($newsletter_id, $reset = FALSE) {
+  if (!is_numeric($newsletter_id)) {
     return FALSE;
   }
-  $newsletter = simplenews_newsletter_load_multiple(array($nlid), array(), $reset);
-  return $newsletter ? $newsletter : FALSE;
+  $newsletter = simplenews_newsletter_load_multiple(array($newsletter_id), array(), $reset);
+  return $newsletter ? reset($newsletter) : FALSE;
 }
 
 /**

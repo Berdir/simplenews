@@ -280,6 +280,8 @@ class SimplenewsSpool implements SimplenewsSpoolInterface {
     // Store this spool row as processed.
     $this->processed[$spool_data->msid] = $spool_data;
 
+    // TODO: What is wrong with the cache?
+    entity_get_controller('node')->resetCache();
     $node = node_load($spool_data->nid);
     if (!$node) {
       // If node the load failed, set the processed status done and proceed with

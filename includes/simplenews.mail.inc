@@ -101,7 +101,6 @@ function simplenews_send_test($node, $test_addresses) {
 
   // Send the test newsletter to the test address(es) specified in the node.
   // Build array of test email addresses
-
   // Send newsletter to test addresses.
   // Emails are send direct, not using the spool.
   $recipients = array('anonymous' => array(), 'user' => array());
@@ -325,6 +324,7 @@ function simplenews_save_spool($spool) {
  *   A unix timestamp. Any IN_PROGRESS messages with a timestamp older than
  *   this will be re-allocated and re-sent.
  */
+
 function simplenews_get_expiration_time() {
   $timeout = variable_get('simplenews_spool_progress_expiration', 3600);
   $expiration_time = REQUEST_TIME - $timeout;
@@ -367,8 +367,8 @@ function simplenews_get_spool($limit = SIMPLENEWS_UNLIMITED, $conditions = array
   foreach ($statuses as $status) {
     if ($status == SIMPLENEWS_SPOOL_IN_PROGRESS) {
       $status_or->condition(db_and()
-        ->condition('status', $status)
-        ->condition('s.timestamp', simplenews_get_expiration_time(), '<')
+          ->condition('status', $status)
+          ->condition('s.timestamp', simplenews_get_expiration_time(), '<')
       );
     }
     else {
@@ -409,8 +409,7 @@ function simplenews_get_spool($limit = SIMPLENEWS_UNLIMITED, $conditions = array
     if (count($messages) > 0) {
       // Set the state and the timestamp of the messages
       simplenews_update_spool(
-        array_keys($messages),
-        array('status' => SIMPLENEWS_SPOOL_IN_PROGRESS)
+        array_keys($messages), array('status' => SIMPLENEWS_SPOOL_IN_PROGRESS)
       );
     }
 
@@ -445,7 +444,7 @@ function simplenews_update_spool($msids, $data) {
     ->condition('msid', $msids)
     ->fields(array(
       'status' => $data['status'],
-      'error' => isset($result['error']) ? (int)$data['error'] : 0,
+      'error' => isset($result['error']) ? (int) $data['error'] : 0,
       'timestamp' => REQUEST_TIME,
     ))
     ->execute();
@@ -481,8 +480,8 @@ function simplenews_count_spool(array $conditions = array()) {
         // Do not count pending entries unless they are expired.
         if ($status == SIMPLENEWS_SPOOL_IN_PROGRESS) {
           $status_or->condition(db_and()
-            ->condition('status', $status)
-            ->condition('timestamp', simplenews_get_expiration_time(), '<')
+              ->condition('status', $status)
+              ->condition('timestamp', simplenews_get_expiration_time(), '<')
           );
         }
         else {
@@ -498,9 +497,9 @@ function simplenews_count_spool(array $conditions = array()) {
 
   $query->addExpression('COUNT(*)', 'count');
 
-  return (int)$query
-    ->execute()
-    ->fetchField();
+  return (int) $query
+      ->execute()
+      ->fetchField();
 }
 
 /**
@@ -517,9 +516,9 @@ function simplenews_count_spool(array $conditions = array()) {
 function simplenews_clear_spool() {
   $expiration_time = REQUEST_TIME - variable_get('simplenews_spool_expire', 0) * 86400;
   return db_delete('simplenews_mail_spool')
-    ->condition('status', SIMPLENEWS_SPOOL_DONE)
-    ->condition('timestamp', $expiration_time, '<=')
-    ->execute();
+      ->condition('status', SIMPLENEWS_SPOOL_DONE)
+      ->condition('timestamp', $expiration_time, '<=')
+      ->execute();
 }
 
 /**
@@ -537,7 +536,6 @@ function simplenews_delete_spool(array $conditions) {
   }
   return $query->execute();
 }
-
 
 /**
  * Update newsletter sent status.
@@ -565,27 +563,28 @@ function simplenews_send_status_update() {
   $send = array(); // nodes with the status 'send'
 
   // For each pending newsletter count the number of pending emails in the spool.
-  $query = db_select('simplenews_newsletter', 's');
-  $query->innerJoin('node', 'n', 's.nid = n.nid');
-  $query->fields('s', array('nid', 'tid'))
-    ->fields('n', array('tnid'))
-    ->condition('s.status', SIMPLENEWS_STATUS_SEND_PENDING);
-  foreach ($query->execute() as $newsletter) {
-    $counts[$newsletter->tnid][$newsletter->nid] = simplenews_count_spool(array('nid' => $newsletter->nid));
+  $query = new EntityFieldQuery;
+  $nodes = $query
+    ->entityCondition('entity_type', 'node')
+    ->fieldCondition(variable_get('simplenews_issue_field', 'simplenews_issue'), 'value', SIMPLENEWS_STATUS_SEND_PENDING)
+    ->execute();
+  if ($nodes) {
+    foreach (reset($nodes) as $node) {
+      $counts[simplenews_issue_newsletter_id($node)][$node->nid] = simplenews_count_spool(array('nid' => $node->nid));
+    }
   }
-
   // Determine which nodes are send per translation group and per individual node.
-  foreach ($counts as $tnid => $node_count) {
+  foreach ($counts as $newsletter_id=> $node_count) {
     // The sum of emails per tnid is the combined status result for the group of translated nodes.
     // Untranslated nodes have tnid == 0 which will be ignored later.
-    $sum[$tnid] = array_sum($node_count);
+    $sum[$newsletter_id] = array_sum($node_count);
     foreach ($node_count as $nid => $count) {
       // Translated nodes (tnid != 0)
-      if ($tnid != '0' && $sum[$tnid] == '0') {
+      if ($newsletter_id != '0' && $sum[$newsletter_id] == '0') {
         $send[] = $nid;
       }
       // Untranslated nodes (tnid == 0)
-      elseif ($tnid == '0' && $count == '0') {
+      elseif ($newsletter_id == '0' && $count == '0') {
         $send[] = $nid;
       }
     }
@@ -594,10 +593,9 @@ function simplenews_send_status_update() {
   // Update overall newsletter status
   if (!empty($send)) {
     foreach ($send as $nid) {
-      db_update('simplenews_newsletter')
-        ->condition('nid', $nid)
-        ->fields(array('status' => SIMPLENEWS_STATUS_SEND_READY))
-        ->execute();
+      $node = node_load($nid);
+      simplenews_issue_status($node, SIMPLENEWS_STATUS_SEND_READY);
+      node_save($node);
     }
   }
 }
@@ -693,26 +691,26 @@ function _simplenews_absolute_mail_urls($match) {
  */
 function _simplenews_html_replace() {
   return array(
-    '/&quot;/i'  => '"',
-    '/&gt;/i'    => '>',
-    '/&lt;/i'    => '<',
-    '/&amp;/i'   => '&',
-    '/&copy;/i'  => '(c)',
+    '/&quot;/i' => '"',
+    '/&gt;/i' => '>',
+    '/&lt;/i' => '<',
+    '/&amp;/i' => '&',
+    '/&copy;/i' => '(c)',
     '/&trade;/i' => '(tm)',
-    '/&#8220;/'  => '"',
-    '/&#8221;/'  => '"',
-    '/&#8211;/'  => '-',
-    '/&#8217;/'  => "'",
-    '/&#38;/'    => '&',
-    '/&#169;/'   => '(c)',
-    '/&#8482;/'  => '(tm)',
-    '/&#151;/'   => '--',
-    '/&#147;/'   => '"',
-    '/&#148;/'   => '"',
-    '/&#149;/'   => '*',
-    '/&reg;/i'   => '(R)',
-    '/&bull;/i'  => '*',
-    '/&euro;/i'  => 'Euro ',
+    '/&#8220;/' => '"',
+    '/&#8221;/' => '"',
+    '/&#8211;/' => '-',
+    '/&#8217;/' => "'",
+    '/&#38;/' => '&',
+    '/&#169;/' => '(c)',
+    '/&#8482;/' => '(tm)',
+    '/&#151;/' => '--',
+    '/&#147;/' => '"',
+    '/&#148;/' => '"',
+    '/&#149;/' => '*',
+    '/&reg;/i' => '(R)',
+    '/&bull;/i' => '*',
+    '/&euro;/i' => 'Euro ',
   );
 }
 
@@ -733,7 +731,7 @@ function _simplenews_measure_usec($start = FALSE) {
 
   $start_time = &drupal_static(__FUNCTION__);
   $usage = getrusage();
-  $now = (float)($usage['ru_stime.tv_sec'] . '.' . $usage['ru_stime.tv_usec']) + (float)($usage['ru_utime.tv_sec'] . '.' . $usage['ru_utime.tv_usec']);
+  $now = (float) ($usage['ru_stime.tv_sec'] . '.' . $usage['ru_stime.tv_usec']) + (float) ($usage['ru_utime.tv_sec'] . '.' . $usage['ru_utime.tv_usec']);
 
   if ($start) {
     $start_time = $now;
@@ -741,7 +739,6 @@ function _simplenews_measure_usec($start = FALSE) {
   }
   return $now - $start_time;
 }
-
 
 /**
  * Build subject and body of the test and normal newsletter email.
@@ -795,7 +792,7 @@ function simplenews_build_subscribe_mail(&$message, $params) {
   else {
     $body = simplenews_subscription_confirmation_text('subscribe_unsubscribed', $langcode);
   }
-    $message['body'][] = token_replace($body, $context, array('sanitize' => FALSE));
+  $message['body'][] = token_replace($body, $context, array('sanitize' => FALSE));
 }
 
 /**
@@ -897,4 +894,5 @@ class SimplenewsHTMLTestingMailSystem implements MailSystemInterface {
     variable_set('drupal_test_email_collector', $captured_emails);
     return TRUE;
   }
+
 }
