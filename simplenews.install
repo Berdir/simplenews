@@ -400,7 +400,7 @@ function _simplenews_install_nodetype() {
     node_add_body_field($type);
   }
 
-  simplenews_add_issue_fields($type);
+  simplenews_issue_fields_add($type);
 
 
   variable_set('simplenews_content_type_' . $type->type, TRUE);

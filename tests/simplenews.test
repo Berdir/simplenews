@@ -13,11 +13,6 @@ class SimplenewsTestCase extends DrupalWebTestCase {
   // Store generated email addresses used to prevent duplications.
   protected $mailadress_cache;
 
-  public function testTemp() {
-    $this->drupalGet('');
-  }
-
-
   public function setUp($modules = array()) {
 
     $modules = array_merge(array('number', 'ctools', 'entity', 'entityreference', 'simplenews'), $modules);
@@ -29,144 +24,139 @@ class SimplenewsTestCase extends DrupalWebTestCase {
     variable_set('site_mail', 'user@example.com');
     $this->mailadress_cache = array();
   }
-//
-//  /**
-//   * Set anonymous user permission to subscribe.
-//   *
-//   * @param boolean $enabled
-//   *   Allow anonymous subscribing.
-//   */
-//  function setAnonymousUserSubscription($enabled) {
-//
-//    if ($enabled) {
-//      db_insert('role_permission')
-//        ->fields(array('rid', 'permission'), array(DRUPAL_ANONYMOUS_RID, 'subscribe to newsletters'))
-//        ->execute();
-//    }
-//  }
-//
-//  /**
-//   * Set authenticated user permission to subscribe.
-//   *
-//   * @param boolean $enabled
-//   *   Allow authenticated subscribing.
-//   */
-//  function setAuthenticatedUserSubscription($enabled) {
-//
-//    if ($enabled) {
-//      db_insert('role_permission')
-//        ->fields(array('rid', 'permission'), array(DRUPAL_AUTHENTICATED_RID, 'subscribe to newsletters'))
-//        ->execute();
-//    }
-//  }
-//
-//  /**
-//   * Generates a random email address.
-//   *
-//   * The generated addresses are stored in a class variable. Each generated
-//   * adress is checked against this store to prevent duplicates.
-//   *
-//   * @todo: Make this function redundant by modification of Simplenews.
-//   * Email addresses are case sensitive, simplenews system should handle with
-//   * this correctly.
-//   */
-//  function randomEmail($number = 4, $prefix = 'simpletest_', $domain = 'example.com') {
-//    $mail = '';
-//    do {
-//      $mail = drupal_strtolower($this->randomName($number, $prefix) . '@' . $domain);
-//    } while (in_array($mail, $this->mailadress_cache));
-//    $this->mailadress_cache[] = $mail;
-//    return $mail;
-//  }
-//
-//  /**
-//   * Select randomly one of the available newsletters.
-//   *
-//   * @return newsletter tid.
-//   */
-//  function getRandomNewsletter() {
-//    if ($taxonomies = taxonomy_get_tree(variable_get('simplenews_vid', ''))) {
-//      $tids = array();
-//      foreach ($taxonomies as $newsletter) {
-//        $tids[] = $newsletter->tid;
-//      }
-//      $key = array_rand($tids);
-//      return $tids[$key];
-//    }
-//    return 0;
-//  }
-//
-//  /**
-//   * Enable newsletter subscription block.
-//   *
-//   * @param integer $tid
-//   *   newsletter term id
-//   * @param array $settings
-//   *  ['message'] = Block message
-//   *  ['form'] = '1': Subscription form; '0': Link to form
-//   *  ['link to previous'] = {1, 0} Display link to previous issues
-//   *  ['previous issues'] = {1, 0} Display previous issues
-//   *  ['issue count'] = {1, 2, 3, ...}Number of issues to display
-//   *  ['rss feed'] = {1, 0} Display RSS-feed icon
-//   */
-//  function setupSubscriptionBlock($tid, $settings = array()) {
-//    $bid = db_select('block')
-//      ->fields('block', array('bid'))
-//      ->condition('module', 'simplenews')
-//      ->condition('delta', $tid)
-//      ->execute();
-//
-//    // Check to see if the box was created by checking that it's in the database..
-//    $this->assertNotNull($bid, t('Block found in database'));
-//
-//    // Set block parameters
-//    $edit = array();
-//    $edit['regions[bartik]'] = 'sidebar_first';
-//    if (isset($settings['message'])) {
-//      $edit['simplenews_block_m_' . $tid] = $settings['message'];
-//    }
-//    if (isset($settings['form'])) {
-//      $edit['simplenews_block_f_' . $tid] = $settings['form'];
-//    }
-//    if (isset($settings['link to previous'])) {
-//      $edit['simplenews_block_l_' . $tid] = $settings['link to previous'];
-//    }
-//    if (isset($settings['previous issues'])) {
-//      $edit['simplenews_block_i_status_' . $tid] = $settings['previous issues'];
-//    }
-//    if (isset($settings['issue count'])) {
-//      $edit['simplenews_block_i_' . $tid] = $settings['issue count'];
-//      // @todo check the count
-//    }
-//    if (isset($settings['rss feed'])) {
-//      $edit['simplenews_block_r_' . $tid] = $settings['rss feed'];
-//    }
-//
-//    // Simplify confirmation form submission by hiding the subscribe block on
-//    // that page. Same for the newsletter/subscriptions page.
-//    $edit['pages'] = "newsletter/confirm/*\nnewsletter/subscriptions";
-//
-//    $this->drupalPost('admin/structure/block/manage/simplenews/' . $tid . '/configure', $edit, t('Save block'));
-//    $this->assertText('The block configuration has been saved.', 'The newsletter block configuration has been saved.');
-//  }
-//
-//  function setUpSubscribers($count = 100, $tid = 1) {
-//    // Subscribe users.
-//    $this->subscribers = array();
-//    for ($i = 0; $i < $count; $i++) {
-//      $mail = $this->randomEmail();
-//      $this->subscribers[$mail] = $mail;
-//    }
-//
-//    $this->drupalGet('admin/people/simplenews');
-//    $this->clickLink(t('Mass subscribe'));
-//    $edit = array(
-//      'emails' => implode(',', $this->subscribers),
-//      // @todo: Don't hardcode the default tid.
-//      'newsletters[' . $tid . ']' => TRUE,
-//    );
-//    $this->drupalPost(NULL, $edit, t('Subscribe'));
-//  }
+
+  /**
+   * Set anonymous user permission to subscribe.
+   *
+   * @param boolean $enabled
+   *   Allow anonymous subscribing.
+   */
+  function setAnonymousUserSubscription($enabled) {
+
+    if ($enabled) {
+      db_insert('role_permission')
+        ->fields(array('rid', 'permission'), array(DRUPAL_ANONYMOUS_RID, 'subscribe to newsletters'))
+        ->execute();
+    }
+  }
+
+  /**
+   * Set authenticated user permission to subscribe.
+   *
+   * @param boolean $enabled
+   *   Allow authenticated subscribing.
+   */
+  function setAuthenticatedUserSubscription($enabled) {
+
+    if ($enabled) {
+      db_insert('role_permission')
+        ->fields(array('rid', 'permission'), array(DRUPAL_AUTHENTICATED_RID, 'subscribe to newsletters'))
+        ->execute();
+    }
+  }
+
+  /**
+   * Generates a random email address.
+   *
+   * The generated addresses are stored in a class variable. Each generated
+   * adress is checked against this store to prevent duplicates.
+   *
+   * @todo: Make this function redundant by modification of Simplenews.
+   * Email addresses are case sensitive, simplenews system should handle with
+   * this correctly.
+   */
+  function randomEmail($number = 4, $prefix = 'simpletest_', $domain = 'example.com') {
+    $mail = '';
+    do {
+      $mail = drupal_strtolower($this->randomName($number, $prefix) . '@' . $domain);
+    } while (in_array($mail, $this->mailadress_cache));
+    $this->mailadress_cache[] = $mail;
+    return $mail;
+  }
+
+  /**
+   * Select randomly one of the available newsletters.
+   *
+   * @return newsletter tid.
+   */
+  function getRandomNewsletter() {
+    if( $newsletters = array_keys(simplenews_newsletter_get_all())) {
+      return $newsletters[array_rand($newsletters)];
+    }
+    return 0;
+  }
+
+  /**
+   * Enable newsletter subscription block.
+   *
+   * @param integer $tid
+   *   newsletter term id
+   * @param array $settings
+   *  ['message'] = Block message
+   *  ['form'] = '1': Subscription form; '0': Link to form
+   *  ['link to previous'] = {1, 0} Display link to previous issues
+   *  ['previous issues'] = {1, 0} Display previous issues
+   *  ['issue count'] = {1, 2, 3, ...}Number of issues to display
+   *  ['rss feed'] = {1, 0} Display RSS-feed icon
+   */
+  function setupSubscriptionBlock($tid, $settings = array()) {
+    $bid = db_select('block')
+      ->fields('block', array('bid'))
+      ->condition('module', 'simplenews')
+      ->condition('delta', $tid)
+      ->execute();
+
+    // Check to see if the box was created by checking that it's in the database..
+    $this->assertNotNull($bid, t('Block found in database'));
+
+    // Set block parameters
+    $edit = array();
+    $edit['regions[bartik]'] = 'sidebar_first';
+    if (isset($settings['message'])) {
+      $edit['simplenews_block_m_' . $tid] = $settings['message'];
+    }
+    if (isset($settings['form'])) {
+      $edit['simplenews_block_f_' . $tid] = $settings['form'];
+    }
+    if (isset($settings['link to previous'])) {
+      $edit['simplenews_block_l_' . $tid] = $settings['link to previous'];
+    }
+    if (isset($settings['previous issues'])) {
+      $edit['simplenews_block_i_status_' . $tid] = $settings['previous issues'];
+    }
+    if (isset($settings['issue count'])) {
+      $edit['simplenews_block_i_' . $tid] = $settings['issue count'];
+      // @todo check the count
+    }
+    if (isset($settings['rss feed'])) {
+      $edit['simplenews_block_r_' . $tid] = $settings['rss feed'];
+    }
+
+    // Simplify confirmation form submission by hiding the subscribe block on
+    // that page. Same for the newsletter/subscriptions page.
+    $edit['pages'] = "newsletter/confirm/*\nnewsletter/subscriptions";
+
+    $this->drupalPost('admin/structure/block/manage/simplenews/' . $tid . '/configure', $edit, t('Save block'));
+    $this->assertText('The block configuration has been saved.', 'The newsletter block configuration has been saved.');
+  }
+
+  function setUpSubscribers($count = 100, $tid = 1) {
+    // Subscribe users.
+    $this->subscribers = array();
+    for ($i = 0; $i < $count; $i++) {
+      $mail = $this->randomEmail();
+      $this->subscribers[$mail] = $mail;
+    }
+
+    $this->drupalGet('admin/people/simplenews');
+    $this->clickLink(t('Mass subscribe'));
+    $edit = array(
+      'emails' => implode(',', $this->subscribers),
+      // @todo: Don't hardcode the default tid.
+      'newsletters[' . $tid . ']' => TRUE,
+    );
+    $this->drupalPost(NULL, $edit, t('Subscribe'));
+  }
 
 }
 
@@ -1986,7 +1976,7 @@ class SimplenewsSendTestCase extends SimplenewsTestCase {
   /**
    * Creates and sends a node using the API.
    */
-  function xtestProgrammaticNewsletter() {
+  function testProgrammaticNewsletter() {
     // Create a very basic node.
     $node = new stdClass();
     $node->type = 'simplenews';
@@ -1994,7 +1984,7 @@ class SimplenewsSendTestCase extends SimplenewsTestCase {
     $node->uid = 0;
     $node->status = 1;
     $node->language = LANGUAGE_NONE;
-    $node->field_simplenews_term[LANGUAGE_NONE][0]['tid'] = $this->getRandomNewsletter();
+    simplenews_issue_newsletter_id($node, $this->getRandomNewsletter());
     node_save($node);
 
     // Send the node.
@@ -2002,47 +1992,47 @@ class SimplenewsSendTestCase extends SimplenewsTestCase {
 
     // Send mails.
     simplenews_mail_spool();
-    simplenews_clear_spool();
-    // Update sent status for newsletter admin panel.
-    simplenews_send_status_update();
-
-    // Verify mails.
-    $mails = $this->drupalGetMails();
-    $this->assertEqual(5, count($mails), t('All mails were sent.'));
-    foreach ($mails as $mail) {
-      $this->assertEqual($mail['subject'], '[Drupal newsletter] ' . $node->title, t('Mail has correct subject'));
-      $this->assertTrue(isset($this->subscribers[$mail['to']]), t('Found valid recipient'));
-      unset($this->subscribers[$mail['to']]);
-    }
-    $this->assertEqual(0, count($this->subscribers), t('all subscribers have been received a mail'));
-
-    // Create another node.
-    $node = new stdClass();
-    $node->type = 'simplenews';
-    $node->title = $this->randomName();
-    $node->uid = 0;
-    $node->status = 1;
-    $node->language = LANGUAGE_NONE;
-    $node->field_simplenews_term[LANGUAGE_NONE][0]['tid'] = $this->getRandomNewsletter();
-    node_save($node);
-
-    // Send the node.
-    simplenews_add_node_to_spool($node);
-
-    // Make sure that they have been added.
-    $this->assertEqual(simplenews_count_spool(), 5);
-
-    // Mark them as pending, fake a currently running send process.
-    $this->assertEqual(count(simplenews_get_spool(2)), 2);
-
-    // Those two should be excluded from the count now.
-    $this->assertEqual(simplenews_count_spool(), 3);
-
-    // Get two additional spool entries.
-    $this->assertEqual(count(simplenews_get_spool(2)), 2);
-
-    // Now only one should be returned by the count.
-    $this->assertEqual(simplenews_count_spool(), 1);
+//    simplenews_clear_spool();
+//    // Update sent status for newsletter admin panel.
+//    simplenews_send_status_update();
+//
+//    // Verify mails.
+//    $mails = $this->drupalGetMails();
+//    $this->assertEqual(5, count($mails), t('All mails were sent.'));
+//    foreach ($mails as $mail) {
+//      $this->assertEqual($mail['subject'], '[Drupal newsletter] ' . $node->title, t('Mail has correct subject'));
+//      $this->assertTrue(isset($this->subscribers[$mail['to']]), t('Found valid recipient'));
+//      unset($this->subscribers[$mail['to']]);
+//    }
+//    $this->assertEqual(0, count($this->subscribers), t('all subscribers have been received a mail'));
+//
+//    // Create another node.
+//    $node = new stdClass();
+//    $node->type = 'simplenews';
+//    $node->title = $this->randomName();
+//    $node->uid = 0;
+//    $node->status = 1;
+//    $node->language = LANGUAGE_NONE;
+//    $node->field_simplenews_term[LANGUAGE_NONE][0]['tid'] = $this->getRandomNewsletter();
+//    node_save($node);
+//
+//    // Send the node.
+//    simplenews_add_node_to_spool($node);
+//
+//    // Make sure that they have been added.
+//    $this->assertEqual(simplenews_count_spool(), 5);
+//
+//    // Mark them as pending, fake a currently running send process.
+//    $this->assertEqual(count(simplenews_get_spool(2)), 2);
+//
+//    // Those two should be excluded from the count now.
+//    $this->assertEqual(simplenews_count_spool(), 3);
+//
+//    // Get two additional spool entries.
+//    $this->assertEqual(count(simplenews_get_spool(2)), 2);
+//
+//    // Now only one should be returned by the count.
+//    $this->assertEqual(simplenews_count_spool(), 1);
   }
 
   /**

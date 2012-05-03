@@ -23,11 +23,11 @@ function simplenews_add_node_to_spool($node) {
   $select->innerJoin('simplenews_subscription', 't', 's.snid = t.snid');
   $select->addField('s', 'mail');
   $select->addField('s', 'snid');
-  $select->addField('t', 'tid');
+  $select->addField('t', 'newsletter_id');
   $select->addExpression($node->nid, 'nid');
   $select->addExpression(SIMPLENEWS_SUBSCRIPTION_STATUS_SUBSCRIBED, 'status');
   $select->addExpression(REQUEST_TIME, 'timestamp');
-  $select->condition('t.tid', $node->simplenews->tid);
+  $select->condition('t.newsletter_id', simplenews_issue_newsletter_id($node));
   $select->condition('t.status', SIMPLENEWS_SUBSCRIPTION_STATUS_SUBSCRIBED);
   $select->condition('s.activated', SIMPLENEWS_SUBSCRIPTION_ACTIVE);
 
