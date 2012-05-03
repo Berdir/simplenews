@@ -302,7 +302,7 @@ function simplenews_node_type_delete($info) {
 function simplenews_node_type_update($info) {
   drupal_static_reset('simplenews_get_content_types');
   if (simplenews_check_node_types($info->type)) {
-    simplenews_add_term_field($info);
+    simplenews_add_issue_fields($info);
   }
   else {
     // Don't remove the field. This leads to data loss.
@@ -317,7 +317,7 @@ function simplenews_node_type_insert($info) {
   // Avoid using simplenews_check_node_type() because the node type cache
   // has not been cleared yet.
   if (variable_get('simplenews_content_type_' . $info->type, FALSE)) {
-    simplenews_add_term_field($info);
+    simplenews_add_issue_fields($info);
   }
 }
 
@@ -539,18 +539,34 @@ function simplenews_get_content_types() {
  *
  * @ingroup issue
  */
-function simplenews_add_term_field($type) {
+function simplenews_add_issue_fields($type) {
+  // Newsletter reference
   $field_name = variable_get('simplenews_category_field', 'simplenews_newsletter');
   $field = field_info_field($field_name);
   $instance = field_info_instance('node', $field_name, $type->type);
   if (empty($field)) {
     $field = array(
       'field_name' => $field_name,
-      'type' => 'simplenews_newsletter_reference',
+      'type' => 'entityreference',
       'cardinality' => 1,
       'entity_types' => array('node'),
-      'translatable' => TRUE,
-      'settings' => array(),
+      'translatable' => FALSE,
+      'settings' => array(
+        'target_type' => 'simplenews_newsletter',
+        'handler' => 'base',
+        'handler_submit' => 'Change handler',
+        'handler_settings' => array(
+          'sort' => array(
+            'type' => 'property',
+            'property' => 'weight',
+          ),
+          'behaviors' => array(
+            'views-select-list' => array(
+              'status' => 1,
+            ),
+          ),
+        ),
+      ),
     );
     $field = field_create_field($field);
   }
@@ -562,9 +578,100 @@ function simplenews_add_term_field($type) {
       'entity_type' => 'node',
       'required' => TRUE,
       'widget' => array(
-        'type' => 'simplenews_issue',
+        'type' => 'options_select',
       ),
-      //'settings' => array(),
+      'display' => array(
+        'default' => array(
+          'label' => 'hidden',
+          'type' => 'entityreference_label',
+        ),
+        'teaser' => array(
+          'label' => 'hidden',
+          'type' => 'hidden',
+        ),
+        'email_plain' => array(
+          'label' => 'hidden',
+          'type' => 'hidden',
+        ),
+        'email_html' => array(
+          'label' => 'hidden',
+          'type' => 'hidden',
+        ),
+        'email_textalt' => array(
+          'label' => 'hidden',
+          'type' => 'hidden',
+        ),
+      ),
+    );
+    field_create_instance($instance);
+  }
+  // Issue status
+  $field_name = variable_get('simplenews_issue_field', 'simplenews_issue');
+  $field = field_info_field($field_name);
+  $instance = field_info_instance('node', $field_name, $type->type);
+  if (empty($field)) {
+    $field = array(
+      'field_name' => $field_name,
+      'type' => 'number_integer',
+      'cardinality' => 1,
+      'entity_types' => array('node'),
+      'translatable' => FALSE,
+      'settings' => array(),
+    );
+    $field = field_create_field($field);
+  }
+  if (empty($instance)) {
+    $instance = array(
+      'label' => t('Status'),
+      'field_name' => $field_name,
+      'bundle' => $type->type,
+      'entity_type' => 'node',
+      'display' => array(
+        'default' => array(
+          'label' => 'hidden',
+          'type' => 'hidden',
+        ),
+        'teaser' => array(
+          'label' => 'hidden',
+          'type' => 'hidden',
+        ),
+        'email_plain' => array(
+          'label' => 'hidden',
+          'type' => 'hidden',
+        ),
+        'email_html' => array(
+          'label' => 'hidden',
+          'type' => 'hidden',
+        ),
+        'email_textalt' => array(
+          'label' => 'hidden',
+          'type' => 'hidden',
+        ),
+      ),
+    );
+    field_create_instance($instance);
+  }
+  // Issue count
+  $field_name = variable_get('simplenews_sent_count_field', 'simplenews_sent_count');
+  $field = field_info_field($field_name);
+  $instance = field_info_instance('node', $field_name, $type->type);
+  if (empty($field)) {
+    $field = array(
+      'field_name' => $field_name,
+      'type' => 'number_integer',
+      'cardinality' => 1,
+      'entity_types' => array('node'),
+      'translatable' => FALSE,
+      'settings' => array(),
+    );
+    $field = field_create_field($field);
+  }
+  if (empty($instance)) {
+    $instance = array(
+      'label' => t('Sent subscriber count'),
+      'field_name' => $field_name,
+      'bundle' => $type->type,
+      'entity_type' => 'node',
       'display' => array(
         'default' => array(
           'label' => 'hidden',
@@ -621,7 +728,7 @@ function simplenews_remove_term_field($type) {
  */
 function simplenews_get_category_field($bundle_name) {
   $fields_info = field_info_fields();
-  $field_name = variable_get('simplenews_category_field', 'field_simplenews_term');
+  $field_name = variable_get('simplenews_category_field', 'simplenews_newsletter');
   $instances = field_info_instances('node', $bundle_name);
   if (isset($instances[$field_name])) {
     return $fields_info[$field_name];
@@ -735,6 +842,7 @@ function simplenews_entity_info() {
       'entity keys' => array(
         'id' => 'newsletter_id',
       ),
+      'label callback' => 'entity_class_label',
       'view modes' => array(
         'full' => array(
           'label' => t('Default'),
@@ -1058,10 +1166,10 @@ function simplenews_block_info() {
   // Only list a block if the newsletter is not 'hidden' and marked to provide a block.
   foreach (simplenews_newsletter_get_public(array('block' => '1')) as $newsletter) {
     //@todo 1. without form -> by role; 2. with form -> user caching with refresh on subscribe/unsubscribe (option as setting) or no caching
-    $blocks[$newsletter->tid] = array(
+    $blocks[$newsletter->newsletter_id] = array(
       'info' => t('Newsletter: @title', array('@title' => _simplenews_newsletter_name($newsletter))),
       // @todo Use block's own settings?
-      'cache' => variable_get('simplenews_block_f_' . $newsletter->tid, 1) ? DRUPAL_NO_CACHE : DRUPAL_CACHE_PER_ROLE,
+      'cache' => variable_get('simplenews_block_f_' . $newsletter->newsletter_id, 1) ? DRUPAL_NO_CACHE : DRUPAL_CACHE_PER_ROLE,
     );
   }
   return $blocks;
@@ -1808,7 +1916,7 @@ function simplenews_newsletter_get_public($condistions = array()) {
     $query->propertyCondition($key, $value);
   }
   $result = $query->execute();
-  return isset($result['simplenews_newsletter']) ? simplenews_newsletter_load_multiple(array_key_exists($result['simplenews_newsletter'])) : NULL;
+  return isset($result['simplenews_newsletter']) ? simplenews_newsletter_load_multiple(array_keys($result['simplenews_newsletter'])) : NULL;
 }
 
 /**
@@ -2438,6 +2546,27 @@ function simplenews_newsletter_update_sent_status($node, $status = SIMPLENEWS_ST
 //  simplenews_newsletter_save($newsletter);
 }
 
+function simplenews_issue_get_status($node) {
+  if ($status = field_get_items('node', $node, variable_get('simplenews_issue_field', 'simplenews_issue'))) {
+    return $status[0]['value'];
+  }
+  return SIMPLENEWS_STATUS_SEND_NOT;
+}
+
+function simplenews_issue_get_sent_count($node) {
+  if ($sent_count = field_get_items('node', $node, variable_get('simplenews_sent_count_field', 'simplenews_sent_count'))) {
+    return $sent_count[0]['value'];
+  }
+  return 0;
+}
+
+function simplenews_issue_get_newsletter_id($node) {
+  if ($newsletter_id = field_get_items('node', $node, variable_get('simplenews_category_field', 'simplenews_newsletter'))) {
+    return $newsletter_id[0]['value'];
+  }
+  return 0;
+}
+
 /**
  * Implements hook_field_extra_fields().
  */
@@ -2788,86 +2917,3 @@ function simplenews_confirmation_get_changes_list($subscriber, &$changes = NULL,
   }
   return $changes_list;
 }
-
-/**
- * Implements hook_field_info()
- */
-function simplenews_field_info() {
-  return array(
-    'simplenews_newsletter_reference' => array(
-      'label' => t('Newsletter reference'),
-      'description' => t('Simplenews newsletter related data.'),
-      'settings' => array(),
-      'instance_settings' => array(),
-      'default_widget' => 'simplenews_issue',
-//      'default_formatter' => 'simplenews_newsletter_default',
-    ),
-  );
-}
-
-/**
- * Implements hook_field_schema()
- */
-function simplenews_field_schema($field) {
-    $schema['columns'] = array(
-      'newsletter_id' => array(
-        'description' => 'The newsletter {simplenews_newsletter}.newsletter_id this issue belongs to.',
-        'type' => 'int',
-        'not null' => TRUE,
-      ),
-      'status' => array(
-        'description' => 'sent status of the newsletter issue (0 = not sent; 1 = pending; 2 = sent, 3 = send on publish).',
-        'type' => 'int',
-        'size' => 'tiny',
-        'not null' => TRUE,
-        'default' => 0,
-      ),
-      'sent_subscriber_count' => array(
-        'description' => 'The count of subscribers to the newsletter when it was sent.',
-        'type' => 'int',
-        'not null' => TRUE,
-        'default' => 0,
-      ),
-    );
-    $schema['indexes'] = array(
-      'newsletter' => array('newsletter_id'),
-    );
-    $schema['foreign keys'] = array(
-      'newsletter' => array(
-        'table' => 'simplenews_newsletter',
-        'columns' => array('newsletter_id' => 'newsletter_id'),
-      ),
-    );
-    return $schema;
-}
-
-/**
- * Implements hook_field_is_empty()
- */
-function simplenews_field_is_empty($item, $field) {
-  return empty($item['newsletter_id']);
-}
-
-/**
- * Implements hook_field_widget_info()
- */
-function simplenews_field_widget_info() {
-  return array(
-    'simplenews_issue' => array(
-      'label' => t('Simplenews issue'),
-      'description' => t('Default widget for the simplenews issue field.'),
-      'field types' => array('simplenews_issue'),
-    ),
-  );
-}
-
-function simplenews_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
-  $widget = $element;
-  $widget += array(
-    '#type' => 'select',
-    '#title' => t('Newsletter catecory'),
-    '#options' => simplenews_newsletter_list(),
-  );
-  return $widget;
-}
-

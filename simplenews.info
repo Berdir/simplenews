@@ -3,7 +3,8 @@ description = Send newsletters to subscribed email addresses.
 package = Mail
 core = 7.x
 configure = admin/config/services/simplenews
-dependencies[] = taxonomy
+dependencies[] = entity
+dependencies[] = entityreference
 
 test_dependencies[] = i18n_taxonomy
 

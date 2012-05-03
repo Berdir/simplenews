@@ -315,26 +315,26 @@ function simplenews_build_issue_filter_query(SelectQueryInterface $query) {
  */
 function simplenews_admin_categories() {
   $form['#tree'] = TRUE;
-  if ($categories = simplenews_categories_load_multiple(array(), array('show_all' => TRUE))) {
-    foreach ($categories as $category) {
-      $form[$category->tid]['#category'] = $category;
-      $form[$category->tid]['name'] = array('#markup' => check_plain(_simplenews_newsletter_name($category)));
-      $form[$category->tid]['weight'] = array('#type' => 'weight', '#delta' => 10, '#default_value' => $category->weight);
-      $form[$category->tid]['edit'] = array(
+  if ($newsletters = simplenews_newsletter_get_public()) {
+    foreach ($newsletters as $newsletter) {
+      $form[$newsletter->newsletter_id]['#category'] = $newsletter;
+      $form[$newsletter->newsletter_id]['name'] = array('#markup' => check_plain(_simplenews_newsletter_name($newsletter)));
+      $form[$newsletter->newsletter_id]['weight'] = array('#type' => 'weight', '#delta' => 10, '#default_value' => $newsletter->weight);
+      $form[$newsletter->newsletter_id]['edit'] = array(
         '#type' => 'link',
         '#title' => t('edit newsletter category'),
-        '#href' => "admin/config/services/simplenews/categories/$category->tid/edit",
+        '#href' => "admin/config/services/simplenews/categories/$newsletter->newsletter_id/edit",
       );
     }
   }
 
   // Only make this form include a submit button and weight if more than one
   // category exists.
-  if (count($categories) > 1) {
+  if (count($newsletters) > 1) {
     $form['submit'] = array('#type' => 'submit', '#value' => t('Save'));
   }
-  elseif (!empty($categories)) {
-    $form[$category->tid]['weight'] = array('#type' => 'value', '#value' => 0);
+  elseif (!empty($newsletters)) {
+    $form[$newsletter->newsletter_id]['weight'] = array('#type' => 'value', '#value' => 0);
   }
   return $form;
 }
@@ -1833,19 +1833,9 @@ function simplenews_node_tab_page($node) {
  * @todo
  */
 function simplenews_node_tab_send_form($form, &$form_state, $node) {
-  // First check if there already is a loaded simplenews object.
-  if (!empty($node->simplenews)) {
-    $simplenews_values = $node->simplenews;
-  }
-  // If not, try to load it based on the node id.
-  elseif ($loaded = simplenews_newsletter_load($node->nid)) {
-    $simplenews_values = $loaded;
-  }
-  // If that fails too, fall back to the defaults.
-  else {
-    $simplenews_values = (object) _simplenews_get_node_form_defaults($node);
-  }
 
+  $status = simplenews_issue_get_status($node);
+  
   $form = array();
   // We will need the node
   $form['nid'] = array(
@@ -1896,7 +1886,7 @@ function simplenews_node_tab_send_form($form, &$form_state, $node) {
       $form['simplenews']['send'] = array(
         '#type' => 'radios',
         '#title' => t('Send newsletter'),
-        '#default_value' => isset($simplenews_values->send) ? $simplenews_values->send : $send_default,
+        '#default_value' => $send_default,
         '#options' => $options,
         '#attributes' => array(
           'class' => array('simplenews-command-send'),

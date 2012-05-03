@@ -399,9 +399,8 @@ function _simplenews_install_nodetype() {
     node_type_save($type);
     node_add_body_field($type);
   }
-  if (!field_info_instance('node', 'simplenews_newsletter', $type->type)) {
-    simplenews_add_term_field($type);
-  }
+
+  simplenews_add_issue_fields($type);
 
 
   variable_set('simplenews_content_type_' . $type->type, TRUE);
@@ -409,12 +408,14 @@ function _simplenews_install_nodetype() {
 
 function _simplenews_init_default_newsletter() {
   $newsletter = simplenews_newsletter_get_all();
-  $newsletter = reset($newsletter);
+  if (is_array($newsletter)) {
+    $newsletter = reset($newsletter);
+  }
   if (!$newsletter) {
     $newsletter = entity_create('simplenews_newsletter', array(
       'name' => t('@site_name newsletter', array('@site_name' => variable_get('site_name', 'Drupal'))),
       'description' => t('@site_name newsletter categories.', array('@site_name' => variable_get('site_name', 'Drupal'))),
-    ));
+      ));
     $newsletter->save();
   }
 }
