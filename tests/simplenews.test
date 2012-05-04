@@ -16,7 +16,7 @@ class SimplenewsTestCase extends DrupalWebTestCase {
   public function setUp($modules = array()) {
 
     // Provide default site email.
-    ini_set('sendmail_from', 'user@example.com');
+    ini_set('sendmail_from', 'simpletest@example.com');
 
     $modules = array_merge(array('number', 'ctools', 'entity', 'entityreference', 'simplenews'), $modules);
     parent::setUp($modules);
@@ -999,7 +999,7 @@ class SimpleNewsAdministrationTestCase extends SimplenewsTestCase {
   /**
    * Test various combinations of newsletter category settings.
    */
-  function ztestCategorySettings() {
+  function testCategorySettings() {
 
     // Allow registration of new accounts without approval.
     variable_set('user_register', 1);
@@ -1547,7 +1547,7 @@ class SimpleNewsAdministrationTestCase extends SimplenewsTestCase {
   /**
    * Test content type configuration.
    */
-  function ztestContentTypes() {
+  function testContentTypes() {
     $admin_user = $this->drupalCreateUser(array('administer blocks', 'administer content types', 'administer nodes', 'access administration pages', 'administer permissions', 'administer newsletters', 'administer simplenews subscriptions', 'bypass node access', 'send newsletter'));
     $this->drupalLogin($admin_user);
 
@@ -1578,7 +1578,7 @@ class SimpleNewsAdministrationTestCase extends SimplenewsTestCase {
     $mails = $this->drupalGetMails();
     $this->assertEqual('simplenews_test', $mails[0]['id']);
     // @todo: Test with a custom test mail address.
-    $this->assertEqual('user@example.com', $mails[0]['to']);
+    $this->assertEqual('simpletest@example.com', $mails[0]['to']);
     $this->assertEqual(t('[Drupal newsletter] @title', array('@title' => $edit['title'])), $mails[0]['subject']);
 
     // Update the content type, remove the simpletest checkbox.
