@@ -1976,7 +1976,7 @@ class SimplenewsSendTestCase extends SimplenewsTestCase {
   /**
    * Creates and sends a node using the API.
    */
-  function ztestProgrammaticNewsletter() {
+  function testProgrammaticNewsletter() {
     // Create a very basic node.
     $node = new stdClass();
     $node->type = 'simplenews';
@@ -2038,7 +2038,7 @@ class SimplenewsSendTestCase extends SimplenewsTestCase {
   /**
    * Send a newsletter using cron.
    */
-  function ztestSendNowNoCron() {
+  function testSendNowNoCron() {
     // Disable cron.
     variable_set('simplenews_use_cron', FALSE);
 
@@ -2048,7 +2048,6 @@ class SimplenewsSendTestCase extends SimplenewsTestCase {
 
     $edit = array(
       'title' => $this->randomName(),
-      'simplenews_newsletter[und]' => $this->getRandomNewsletter(),
     );
     $this->drupalPost(NULL, $edit, ('Save'));
     $this->assertTrue(preg_match('|node/(\d+)$|', $this->getUrl(), $matches), 'Node created');
@@ -2085,7 +2084,7 @@ class SimplenewsSendTestCase extends SimplenewsTestCase {
   /**
    * Send a newsletter using cron.
    */
-  function ztestSendMultipleNoCron() {
+  function testSendMultipleNoCron() {
     // Disable cron.
     variable_set('simplenews_use_cron', FALSE);
 
@@ -2097,7 +2096,6 @@ class SimplenewsSendTestCase extends SimplenewsTestCase {
 
       $edit = array(
         'title' => $this->randomName(),
-        'simplenews_newsletter[und]' => $this->getRandomNewsletter(),
         // The last newsletter shouldn't be published.
         'status' => $i != 2,
       );
@@ -2142,7 +2140,7 @@ class SimplenewsSendTestCase extends SimplenewsTestCase {
   /**
    * Send a newsletter using cron and a low throttle.
    */
-  function ztestSendNowCronThrottle() {
+  function testSendNowCronThrottle() {
 
     variable_set('simplenews_throttle', 3);
 
@@ -2152,7 +2150,6 @@ class SimplenewsSendTestCase extends SimplenewsTestCase {
 
     $edit = array(
       'title' => $this->randomName(),
-      'simplenews_newsletter[und]' => $this->getRandomNewsletter(),
     );
     $this->drupalPost(NULL, $edit, ('Save'));
     $this->assertTrue(preg_match('|node/(\d+)$|', $this->getUrl(), $matches), 'Node created');
@@ -2215,7 +2212,7 @@ class SimplenewsSendTestCase extends SimplenewsTestCase {
   /**
    * Send a newsletter without using cron.
    */
-  function ztestSendNowCron() {
+  function testSendNowCron() {
 
     // Verify that the newsletter settings are shown.
     $this->drupalGet('node/add/simplenews');
@@ -2223,7 +2220,6 @@ class SimplenewsSendTestCase extends SimplenewsTestCase {
 
     $edit = array(
       'title' => $this->randomName(),
-      'simplenews_newsletter[und]' => $this->getRandomNewsletter(),
     );
     // Try preview first.
     $this->drupalPost(NULL, $edit, t('Preview'));
@@ -2285,7 +2281,7 @@ class SimplenewsSendTestCase extends SimplenewsTestCase {
   /**
    * Send a newsletter on publish without using cron.
    */
-  function ztestSendPublishNoCron() {
+  function testSendPublishNoCron() {
     // Disable cron.
     variable_set('simplenews_use_cron', FALSE);
 
@@ -2295,7 +2291,6 @@ class SimplenewsSendTestCase extends SimplenewsTestCase {
 
     $edit = array(
       'title' => $this->randomName(),
-      'simplenews_newsletter[und]' => $this->getRandomNewsletter(),
       'status' => FALSE,
     );
     $this->drupalPost(NULL, $edit, ('Save'));
@@ -2341,7 +2336,7 @@ class SimplenewsSendTestCase extends SimplenewsTestCase {
     $this->assertEqual(0, count($this->subscribers), t('all subscribers have been received a mail'));
   }
 
-  function ztestUpdateNewsletter() {
+  function testUpdateNewsletter() {
     // Create a second newsletter.
     $this->drupalGet('admin/config/services/simplenews');
     $this->clickLink(t('Add newsletter category'));
