@@ -1834,7 +1834,7 @@ function simplenews_node_tab_page($node) {
  */
 function simplenews_node_tab_send_form($form, &$form_state, $node) {
 
-  $status = simplenews_issue_get_status($node);
+  $status = simplenews_issue_status($node);
   
   $form = array();
   // We will need the node
@@ -1863,7 +1863,7 @@ function simplenews_node_tab_send_form($form, &$form_state, $node) {
   else {
     // Show newsletter sending options if newsletter has not been send yet.
     // If send a notification is shown.
-    if ($simplenews_values->status == SIMPLENEWS_STATUS_SEND_NOT || $simplenews_values->status == SIMPLENEWS_STATUS_SEND_PUBLISH) {
+    if ($status == SIMPLENEWS_STATUS_SEND_NOT || $status == SIMPLENEWS_STATUS_SEND_PUBLISH) {
 
       $options = array(
         SIMPLENEWS_COMMAND_SEND_TEST => t('Send one test newsletter to the test address'),
@@ -1877,7 +1877,7 @@ function simplenews_node_tab_send_form($form, &$form_state, $node) {
         $options[SIMPLENEWS_COMMAND_SEND_NOW] = t('Send newsletter');
       }
 
-      if ($simplenews_values->status == SIMPLENEWS_STATUS_SEND_PUBLISH) {
+      if ($status == SIMPLENEWS_STATUS_SEND_PUBLISH) {
         $send_default = SIMPLENEWS_STATUS_SEND_PUBLISH;
       }
       else {
@@ -1920,7 +1920,7 @@ function simplenews_node_tab_send_form($form, &$form_state, $node) {
           'disabled' => 'disabled',
         ),
       );
-      $form['simplenews']['none']['#title'] = ($simplenews_values->status == SIMPLENEWS_STATUS_SEND_READY) ? t('This newsletter has been sent') : t('This newsletter is pending');
+      $form['simplenews']['none']['#title'] = ($status == SIMPLENEWS_STATUS_SEND_READY) ? t('This newsletter has been sent') : t('This newsletter is pending');
       return $form;
     }
     $form['submit'] = array(

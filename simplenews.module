@@ -534,6 +534,7 @@ function simplenews_issue_fields_add($type) {
           'sort' => array(
             'type' => 'property',
             'property' => 'weight',
+            'direction' => 'ASC',
           ),
           'behaviors' => array(
             'views-select-list' => array(
@@ -2457,9 +2458,9 @@ function simplenews_newsletter_update_sent_status($node, $status = SIMPLENEWS_ST
   if (module_exists('translation') && translation_supported_type($node->type) && $node->tnid > 0) {
     if ($translations = translation_node_get_translations($node->tnid)) {
       foreach ($translations as $translation) {
-        $node = node_load($translation->nid);
-        simplenews_issue_status($node, SIMPLENEWS_STATUS_SEND_PENDING);
-        node_save($node);
+        $tnode = node_load($translation->nid);
+        simplenews_issue_status($tnode, SIMPLENEWS_STATUS_SEND_PENDING);
+        node_save($tnode);
       }
     }
   }
