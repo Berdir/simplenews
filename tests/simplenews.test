@@ -77,7 +77,7 @@ class SimplenewsTestCase extends DrupalWebTestCase {
   /**
    * Select randomly one of the available newsletters.
    *
-   * @return newsletter tid.
+   * @return newsletter newsletter_id.
    */
   function getRandomNewsletter() {
     if ($newsletters = array_keys(simplenews_newsletter_get_all())) {
@@ -89,7 +89,7 @@ class SimplenewsTestCase extends DrupalWebTestCase {
   /**
    * Enable newsletter subscription block.
    *
-   * @param integer $tid
+   * @param integer $newsletter_id
    *   newsletter term id
    * @param array $settings
    *  ['message'] = Block message
@@ -99,11 +99,11 @@ class SimplenewsTestCase extends DrupalWebTestCase {
    *  ['issue count'] = {1, 2, 3, ...}Number of issues to display
    *  ['rss feed'] = {1, 0} Display RSS-feed icon
    */
-  function setupSubscriptionBlock($tid, $settings = array()) {
+  function setupSubscriptionBlock($newsletter_id, $settings = array()) {
     $bid = db_select('block')
       ->fields('block', array('bid'))
       ->condition('module', 'simplenews')
-      ->condition('delta', $tid)
+      ->condition('delta', $newsletter_id)
       ->execute();
 
     // Check to see if the box was created by checking that it's in the database..
@@ -113,34 +113,34 @@ class SimplenewsTestCase extends DrupalWebTestCase {
     $edit = array();
     $edit['regions[bartik]'] = 'sidebar_first';
     if (isset($settings['message'])) {
-      $edit['simplenews_block_m_' . $tid] = $settings['message'];
+      $edit['simplenews_block_m_' . $newsletter_id] = $settings['message'];
     }
     if (isset($settings['form'])) {
-      $edit['simplenews_block_f_' . $tid] = $settings['form'];
+      $edit['simplenews_block_f_' . $newsletter_id] = $settings['form'];
     }
     if (isset($settings['link to previous'])) {
-      $edit['simplenews_block_l_' . $tid] = $settings['link to previous'];
+      $edit['simplenews_block_l_' . $newsletter_id] = $settings['link to previous'];
     }
     if (isset($settings['previous issues'])) {
-      $edit['simplenews_block_i_status_' . $tid] = $settings['previous issues'];
+      $edit['simplenews_block_i_status_' . $newsletter_id] = $settings['previous issues'];
     }
     if (isset($settings['issue count'])) {
-      $edit['simplenews_block_i_' . $tid] = $settings['issue count'];
+      $edit['simplenews_block_i_' . $newsletter_id] = $settings['issue count'];
       // @todo check the count
     }
     if (isset($settings['rss feed'])) {
-      $edit['simplenews_block_r_' . $tid] = $settings['rss feed'];
+      $edit['simplenews_block_r_' . $newsletter_id] = $settings['rss feed'];
     }
 
     // Simplify confirmation form submission by hiding the subscribe block on
     // that page. Same for the newsletter/subscriptions page.
     $edit['pages'] = "newsletter/confirm/*\nnewsletter/subscriptions";
 
-    $this->drupalPost('admin/structure/block/manage/simplenews/' . $tid . '/configure', $edit, t('Save block'));
+    $this->drupalPost('admin/structure/block/manage/simplenews/' . $newsletter_id . '/configure', $edit, t('Save block'));
     $this->assertText('The block configuration has been saved.', 'The newsletter block configuration has been saved.');
   }
 
-  function setUpSubscribers($count = 100, $tid = 1) {
+  function setUpSubscribers($count = 100, $newsletter_id = 1) {
     // Subscribe users.
     $this->subscribers = array();
     for ($i = 0; $i < $count; $i++) {
@@ -152,8 +152,8 @@ class SimplenewsTestCase extends DrupalWebTestCase {
     $this->clickLink(t('Mass subscribe'));
     $edit = array(
       'emails' => implode(',', $this->subscribers),
-      // @todo: Don't hardcode the default tid.
-      'newsletters[' . $tid . ']' => TRUE,
+      // @todo: Don't hardcode the default newsletter_id.
+      'newsletters[' . $newsletter_id . ']' => TRUE,
     );
     $this->drupalPost(NULL, $edit, t('Subscribe'));
   }
@@ -212,8 +212,8 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
     $edit = array(
       'mail' => $mail,
     );
-    foreach ($enable as $tid) {
-      $edit['newsletters[' . $tid . ']'] = TRUE;
+    foreach ($enable as $newsletter_id) {
+      $edit['newsletters[' . $newsletter_id . ']'] = TRUE;
     }
     $this->drupalPost('newsletter/subscriptions', $edit, t('Subscribe'));
     $this->assertText(t('You will receive a confirmation e-mail shortly containing further instructions on how to complete your subscription.'), t('Subscription confirmation e-mail sent.'));
@@ -222,9 +222,9 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
     $body = $mails[0]['body'];
 
     // Verify listed changes.
-    foreach ($categories as $tid => $category) {
+    foreach ($categories as $newsletter_id => $category) {
       $pos = strpos($body, t('Subscribe to @name', array('@name' => $category->name)));
-      if (in_array($tid, $enable)) {
+      if (in_array($newsletter_id, $enable)) {
         $this->assertTrue($pos);
       }
       else {
@@ -241,8 +241,8 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
     $this->assertRaw(t('Are you sure you want to confirm the following subscription changes for %user?', array('%user' => simplenews_mask_mail($mail))), t('Subscription confirmation found.'));
 
     // Verify listed changes.
-    foreach ($categories as $tid => $category) {
-      if (in_array($tid, $enable)) {
+    foreach ($categories as $newsletter_id => $category) {
+      if (in_array($newsletter_id, $enable)) {
         $this->assertText(t('Subscribe to @name', array('@name' => $category->name)));
       }
       else {
@@ -254,9 +254,9 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
     $this->assertRaw(t('Subscription changes confirmed for %user.', array('%user' => $mail)), t('Anonymous subscriber added to newsletter'));
 
     // Verify subscription changes.
-    foreach ($categories as $tid => $category) {
-      $is_subscribed = simplenews_user_is_subscribed($mail, $tid);
-      if (in_array($tid, $enable)) {
+    foreach ($categories as $newsletter_id => $category) {
+      $is_subscribed = simplenews_user_is_subscribed($mail, $newsletter_id);
+      if (in_array($newsletter_id, $enable)) {
         $this->assertTrue($is_subscribed);
       }
       else {
@@ -266,7 +266,7 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
 
     // Go to the manage page and submit without changes.
     $subscriber = simplenews_subscriber_load_by_mail($mail);
-    $hash = simplenews_generate_hash($subscriber->mail, $subscriber->snid, $tid);
+    $hash = simplenews_generate_hash($subscriber->mail, $subscriber->snid, $newsletter_id);
     $this->drupalPost('newsletter/subscriptions/' . $hash, array(), t('Update'));
     $mails = $this->drupalGetMails();
     $body = $mails[1]['body'];
@@ -282,8 +282,8 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
     $edit = array(
       'mail' => $mail,
     );
-    foreach ($disable as $tid) {
-      $edit['newsletters[' . $tid . ']'] = TRUE;
+    foreach ($disable as $newsletter_id) {
+      $edit['newsletters[' . $newsletter_id . ']'] = TRUE;
     }
     $this->drupalPost('newsletter/subscriptions', $edit, t('Unsubscribe'));
     $this->assertText(t('You will receive a confirmation e-mail shortly containing further instructions on how to cancel your subscription.'), t('Subscription confirmation e-mail sent.'));
@@ -292,9 +292,9 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
     $body = $mails[2]['body'];
 
     // Verify listed changes.
-    foreach ($categories as $tid => $category) {
+    foreach ($categories as $newsletter_id => $category) {
       $pos = strpos($body, t('Unsubscribe from @name', array('@name' => $category->name)));
-      if (in_array($tid, $disable)) {
+      if (in_array($newsletter_id, $disable)) {
         $this->assertTrue($pos);
       }
       else {
@@ -311,8 +311,8 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
     $this->assertRaw(t('Are you sure you want to confirm the following subscription changes for %user?', array('%user' => simplenews_mask_mail($mail))), t('Subscription confirmation found.'));
 
     // Verify listed changes.
-    foreach ($categories as $tid => $category) {
-      if (in_array($tid, $disable)) {
+    foreach ($categories as $newsletter_id => $category) {
+      if (in_array($newsletter_id, $disable)) {
         $this->assertText(t('Unsubscribe from @name', array('@name' => $category->name)));
       }
       else {
@@ -326,9 +326,9 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
     // Verify subscription changes.
     drupal_static_reset('simplenews_user_is_subscribed');
     $still_enabled = array_diff($enable, $disable);
-    foreach ($categories as $tid => $category) {
-      $is_subscribed = simplenews_user_is_subscribed($mail, $tid);
-      if (in_array($tid, $still_enabled)) {
+    foreach ($categories as $newsletter_id => $category) {
+      $is_subscribed = simplenews_user_is_subscribed($mail, $newsletter_id);
+      if (in_array($newsletter_id, $still_enabled)) {
         $this->assertTrue($is_subscribed);
       }
       else {
@@ -337,10 +337,10 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
     }
 
     // Make sure that a single change results in a non-multi confirmation mail.
-    $tid = reset($disable);
+    $newsletter_id = reset($disable);
     $edit = array(
       'mail' => $mail,
-      'newsletters[' . $tid . ']' => TRUE,
+      'newsletters[' . $newsletter_id . ']' => TRUE,
     );
     $this->drupalPost('newsletter/subscriptions', $edit, t('Subscribe'));
     $mails = $this->drupalGetMails();
@@ -355,7 +355,7 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
     variable_set('simplenews_use_combined', 'always');
     $edit = array(
       'mail' => $mail,
-      'newsletters[' . $tid . ']' => TRUE,
+      'newsletters[' . $newsletter_id . ']' => TRUE,
     );
     $this->drupalPost('newsletter/subscriptions', $edit, t('Subscribe'));
     $mails = $this->drupalGetMails();
@@ -371,8 +371,8 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
     $edit = array(
       'mail' => $mail,
     );
-    foreach ($disable as $tid) {
-      $edit['newsletters[' . $tid . ']'] = TRUE;
+    foreach ($disable as $newsletter_id) {
+      $edit['newsletters[' . $newsletter_id . ']'] = TRUE;
     }
     $this->drupalPost('newsletter/subscriptions', $edit, t('Subscribe'));
     $this->assertText(t('You will receive a confirmation e-mail shortly containing further instructions on how to complete your subscription.'), t('Subscription confirmation e-mail sent.'));
@@ -391,8 +391,8 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
     $edit = array(
       'mail' => $mail,
     );
-    foreach (array_keys($categories) as $tid) {
-      $edit['newsletters[' . $tid . ']'] = TRUE;
+    foreach (array_keys($categories) as $newsletter_id) {
+      $edit['newsletters[' . $newsletter_id . ']'] = TRUE;
     }
     $this->drupalPost('newsletter/subscriptions', $edit, t('Unsubscribe'));
     $this->assertText(t('You will receive a confirmation e-mail shortly containing further instructions on how to cancel your subscription.'));
@@ -410,8 +410,8 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
 
     // Verify subscription changes.
     drupal_static_reset('simplenews_user_is_subscribed');
-    foreach (array_keys($categories) as $tid) {
-      $this->assertFalse(simplenews_user_is_subscribed($mail, $tid));
+    foreach (array_keys($categories) as $newsletter_id) {
+      $this->assertFalse(simplenews_user_is_subscribed($mail, $newsletter_id));
     }
 
     // Call confirmation url after it is allready used.
@@ -453,8 +453,8 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
       'previous issues' => FALSE,
       'rss feed' => TRUE,
     );
-    $tid = $this->getRandomNewsletter();
-    $this->setupSubscriptionBlock($tid, $block_settings);
+    $newsletter_id = $this->getRandomNewsletter();
+    $this->setupSubscriptionBlock($newsletter_id, $block_settings);
 
     $this->drupalLogout();
 
@@ -476,7 +476,7 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
     $this->assertText(t('You will receive a confirmation e-mail shortly containing further instructions on how to complete your subscription.'), t('Subscription confirmation e-mail sent.'));
 
     $subscriber = simplenews_subscriber_load_by_mail($mail);
-    $subscription = db_query('SELECT * FROM {simplenews_subscription} WHERE snid = :snid AND tid = :tid', array(':snid' => $subscriber->snid, ':tid' => $tid))->fetchObject();
+    $subscription = db_query('SELECT * FROM {simplenews_subscription} WHERE snid = :snid AND newsletter_id = :newsletter_id', array(':snid' => $subscriber->snid, ':newsletter_id' => $newsletter_id))->fetchObject();
     $this->assertEqual(SIMPLENEWS_SUBSCRIPTION_STATUS_UNCONFIRMED, $subscription->status, t('Subscription is unconfirmed'));
 
     $mails = $this->drupalGetMails();
@@ -489,7 +489,7 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
     $this->assertTrue($found, t('Confirmation URL found: @url', array('@url' => $confirm_url)));
 
     $this->drupalGet($confirm_url);
-    $newsletter = taxonomy_term_load($tid);
+    $newsletter = taxonomy_term_load($newsletter_id);
     $this->assertRaw(t('Are you sure you want to add %user to the %newsletter mailing list?', array('%user' => simplenews_mask_mail($mail), '%newsletter' => $newsletter->name)), t('Subscription confirmation found.'));
 
     $this->drupalPost(NULL, array(), t('Subscribe'));
@@ -531,7 +531,7 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
 
     $mail = $this->randomEmail(8, 'testmail');
     $edit = array(
-      "newsletters[$tid]" => '1',
+      "newsletters[$newsletter_id]" => '1',
       'mail' => $mail,
     );
     $this->drupalPost('newsletter/subscriptions', $edit, t('Subscribe'));
@@ -546,7 +546,7 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
     $this->assertTrue($found, t('Confirmation URL found: @url', array('@url' => $confirm_url)));
 
     $this->drupalGet($confirm_url);
-    $newsletter = taxonomy_term_load($tid);
+    $newsletter = taxonomy_term_load($newsletter_id);
     $this->assertRaw(t('Are you sure you want to add %user to the %newsletter mailing list?', array('%user' => simplenews_mask_mail($mail), '%newsletter' => $newsletter->name)), t('Subscription confirmation found.'));
 
     $this->drupalPost($confirm_url, NULL, t('Subscribe'));
@@ -561,7 +561,7 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
 
     // Disable the category block.
     $edit = array(
-      'blocks[simplenews_' . $tid . '][region]' => -1,
+      'blocks[simplenews_' . $newsletter_id . '][region]' => -1,
     );
     $this->drupalPost(NULL, $edit, t('Save blocks'));
 
@@ -577,7 +577,7 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
 
     // Now fill out the form and try again. The e-mail should still be listed.
     $edit = array(
-      'newsletters[' . $tid . ']' => TRUE,
+      'newsletters[' . $newsletter_id . ']' => TRUE,
     );
     $this->drupalPost(NULL, $edit, t('Subscribe'));
     $this->assertText(t('You will receive a confirmation e-mail shortly containing further instructions on how to complete your subscription.'));
@@ -591,7 +591,7 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
     $this->assertTrue($found, t('Confirmation URL found: @url', array('@url' => $confirm_url)));
 
     $this->drupalGet($confirm_url);
-    $newsletter = taxonomy_term_load($tid);
+    $newsletter = taxonomy_term_load($newsletter_id);
     $this->assertRaw(t('Are you sure you want to add %user to the %newsletter mailing list?', array('%user' => simplenews_mask_mail($mail), '%newsletter' => $newsletter->name)), t('Subscription confirmation found.'));
 
     $this->drupalPost($confirm_url, NULL, t('Subscribe'));
@@ -600,13 +600,13 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
     // Try to subscribe again, this should not re-set the status to unconfirmed.
     $edit = array(
       'mail' => $mail,
-      'newsletters[' . $tid . ']' => TRUE,
+      'newsletters[' . $newsletter_id . ']' => TRUE,
     );
     $this->drupalPost(NULL, $edit, t('Subscribe'));
     $this->assertText(t('You will receive a confirmation e-mail shortly containing further instructions on how to complete your subscription.'));
 
     $subscriber = simplenews_subscriber_load_by_mail($mail);
-    $this->assertEqual(SIMPLENEWS_SUBSCRIPTION_STATUS_SUBSCRIBED, $subscriber->newsletter_subscription[$tid]->status);
+    $this->assertEqual(SIMPLENEWS_SUBSCRIPTION_STATUS_SUBSCRIBED, $subscriber->newsletter_subscription[$newsletter_id]->status);
 
     // Now the same with the newsletter/subscriptions page.
     $mail = $this->randomEmail(8, 'testmail');
@@ -618,7 +618,7 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
 
     // Now fill out the form and try again.
     $edit = array(
-      'newsletters[' . $tid . ']' => TRUE,
+      'newsletters[' . $newsletter_id . ']' => TRUE,
     );
     $this->drupalPost(NULL, $edit, t('Subscribe'));
     $this->assertText(t('You will receive a confirmation e-mail shortly containing further instructions on how to complete your subscription.'));
@@ -631,7 +631,7 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
     $this->assertTrue($found, t('Confirmation URL found: @url', array('@url' => $confirm_url)));
 
     $this->drupalGet($confirm_url);
-    $newsletter = taxonomy_term_load($tid);
+    $newsletter = taxonomy_term_load($newsletter_id);
     $this->assertRaw(t('Are you sure you want to add %user to the %newsletter mailing list?', array('%user' => simplenews_mask_mail($mail), '%newsletter' => $newsletter->name)), t('Subscription confirmation found.'));
 
     $this->drupalPost($confirm_url, NULL, t('Subscribe'));
@@ -646,7 +646,7 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
 
     // Now fill out the form and try again.
     $edit = array(
-      'newsletters[' . $tid . ']' => TRUE,
+      'newsletters[' . $newsletter_id . ']' => TRUE,
     );
     $this->drupalPost(NULL, $edit, t('Unsubscribe'));
     $this->assertText(t('You will receive a confirmation e-mail shortly containing further instructions on how to cancel your subscription.'));
@@ -660,7 +660,7 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
     $this->assertTrue($found, t('Confirmation URL found: @url', array('@url' => $confirm_url)));
 
     $this->drupalGet($confirm_url);
-    $newsletter = taxonomy_term_load($tid);
+    $newsletter = taxonomy_term_load($newsletter_id);
     $this->assertRaw(t('Are you sure you want to remove %user from the %newsletter mailing list?', array('%user' => simplenews_mask_mail($mail), '%newsletter' => $newsletter->name)), t('Subscription confirmation found.'));
 
     $this->drupalPost($confirm_url, NULL, t('Unsubscribe'));
@@ -669,20 +669,20 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
     // Visit the newsletter/subscriptions page with the hash.
     $subscriber = simplenews_subscriber_load_by_mail($mail);
 
-    $hash = simplenews_generate_hash($subscriber->mail, $subscriber->snid, $tid);
+    $hash = simplenews_generate_hash($subscriber->mail, $subscriber->snid, $newsletter_id);
     $this->drupalGet('newsletter/subscriptions/' . $hash);
     $this->assertText(t('Subscriptions for @mail', array('@mail' => $mail)));
 
     $edit = array(
-      'newsletters[' . $tid . ']' => TRUE,
+      'newsletters[' . $newsletter_id . ']' => TRUE,
     );
     $this->drupalPost(NULL, $edit, t('Update'));
 
     // Make sure the user is not yet subscribed.
     $subscriber = simplenews_subscriber_load_by_mail($mail);
 
-    $this->assertTrue(empty($subscriber->tids));
-    $this->assertEqual(SIMPLENEWS_SUBSCRIPTION_STATUS_UNCONFIRMED, $subscriber->newsletter_subscription[$tid]->status);
+    $this->assertTrue(empty($subscriber->newsletter_ids));
+    $this->assertEqual(SIMPLENEWS_SUBSCRIPTION_STATUS_UNCONFIRMED, $subscriber->newsletter_subscription[$newsletter_id]->status);
 
     $mails = $this->drupalGetMails();
     $body = $mails[7]['body'];
@@ -692,7 +692,7 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
     $this->assertTrue($found, t('Confirmation URL found: @url', array('@url' => $confirm_url)));
 
     $this->drupalGet($confirm_url);
-    $newsletter = taxonomy_term_load($tid);
+    $newsletter = taxonomy_term_load($newsletter_id);
     $this->assertRaw(t('Are you sure you want to add %user to the %newsletter mailing list?', array('%user' => simplenews_mask_mail($mail), '%newsletter' => $newsletter->name)), t('Subscription confirmation found.'));
 
     $this->drupalPost($confirm_url, NULL, t('Subscribe'));
@@ -701,22 +701,22 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
     // Make sure the subscription is confirmed now.
     $subscriber = simplenews_subscriber_load_by_mail($mail);
 
-    $this->assertTrue(isset($subscriber->tids[$tid]));
-    $this->assertEqual(SIMPLENEWS_SUBSCRIPTION_STATUS_SUBSCRIBED, $subscriber->newsletter_subscription[$tid]->status);
+    $this->assertTrue(isset($subscriber->newsletter_ids[$newsletter_id]));
+    $this->assertEqual(SIMPLENEWS_SUBSCRIPTION_STATUS_SUBSCRIBED, $subscriber->newsletter_subscription[$newsletter_id]->status);
 
     // Attemt to fetch the page using an invalid hash format.
     $this->drupalGet('newsletter/subscriptions/' . strrev($hash));
     $this->assertResponse(404);
 
     // Attemt to fetch the page using a wrong hash but correct format.
-    $this->drupalGet('newsletter/subscriptions/' . simplenews_generate_hash($subscriber->mail . 'a', $subscriber->snid, $tid));
+    $this->drupalGet('newsletter/subscriptions/' . simplenews_generate_hash($subscriber->mail . 'a', $subscriber->snid, $newsletter_id));
     $this->assertResponse(404);
 
     // Attempt to unsubscribe a non-existing subscriber.
     $mail = $this->randomEmail();
     $edit = array(
       'mail' => $mail,
-      'newsletters[' . $tid . ']' => TRUE,
+      'newsletters[' . $newsletter_id . ']' => TRUE,
     );
     $this->drupalPost('newsletter/subscriptions', $edit, t('Unsubscribe'));
     $this->assertText(t('You will receive a confirmation e-mail shortly containing further instructions on how to cancel your subscription.'));
@@ -765,8 +765,8 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
     $this->drupalPost(NULL, $edit, t('Save'));
 
     // @todo: Don't hardcode this.
-    $tid = 2;
-    $this->setupSubscriptionBlock($tid, $block_settings);
+    $newsletter_id = 2;
+    $this->setupSubscriptionBlock($newsletter_id, $block_settings);
 
     $this->drupalLogout();
 
@@ -783,17 +783,17 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
     $this->assertText(t('You have been subscribed.'), t('Anonymous subscriber added to newsletter'));
 
     $subscriber = simplenews_subscriber_load_by_mail($mail);
-    $this->assertEqual(SIMPLENEWS_SUBSCRIPTION_STATUS_SUBSCRIBED, $subscriber->newsletter_subscription[$tid]->status);
+    $this->assertEqual(SIMPLENEWS_SUBSCRIPTION_STATUS_SUBSCRIBED, $subscriber->newsletter_subscription[$newsletter_id]->status);
 
     // Unsubscribe again.
     $edit = array(
       'mail' => $mail,
-      'newsletters[' . $tid . ']' => TRUE,
+      'newsletters[' . $newsletter_id . ']' => TRUE,
     );
     $this->drupalPost('newsletter/subscriptions', $edit, t('Unsubscribe'));
 
     $subscriber = simplenews_subscriber_load_by_mail($mail);
-    $this->assertEqual(SIMPLENEWS_SUBSCRIPTION_STATUS_UNSUBSCRIBED, $subscriber->newsletter_subscription[$tid]->status);
+    $this->assertEqual(SIMPLENEWS_SUBSCRIPTION_STATUS_UNSUBSCRIBED, $subscriber->newsletter_subscription[$newsletter_id]->status);
   }
 
   /**
@@ -828,8 +828,8 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
       'previous issues' => FALSE,
       'rss feed' => TRUE,
     );
-    $tid = $this->getRandomNewsletter();
-    $this->setupSubscriptionBlock($tid, $block_settings);
+    $newsletter_id = $this->getRandomNewsletter();
+    $this->setupSubscriptionBlock($newsletter_id, $block_settings);
     $this->drupalLogout();
 
     $subscriber_user = $this->drupalCreateUser(array('subscribe to newsletters'));
@@ -847,7 +847,7 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
     // Assert confirmation message
 
     $edit = array(
-      "newsletters[$tid]" => 0,
+      "newsletters[$newsletter_id]" => 0,
     );
     $this->drupalPost('newsletter/subscriptions', $edit, t('Update'));
     $this->assertRaw(t('The newsletter subscriptions for %mail have been updated.', array('%mail' => $subscriber_user->mail)), t('Authenticated user unsubscribed on the subscriptions page.'));
@@ -857,7 +857,7 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
     // Assert confirmation message
 
     $edit = array(
-      "newsletters[$tid]" => '1',
+      "newsletters[$newsletter_id]" => '1',
     );
     $this->drupalPost('newsletter/subscriptions', $edit, t('Update'));
     $this->assertRaw(t('The newsletter subscriptions for %mail have been updated.', array('%mail' => $subscriber_user->mail)), t('Authenticated user subscribed on the subscriptions page.'));
@@ -867,14 +867,14 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
     // Assert confirmation message
 
     $edit = array(
-      "newsletters[$tid]" => FALSE,
+      "newsletters[$newsletter_id]" => FALSE,
     );
     $url = 'user/' . $subscriber_user->uid . '/edit/simplenews';
     $this->drupalPost($url, $edit, t('Save'));
     $this->assertRaw(t('The changes have been saved.', array('%mail' => $subscriber_user->mail)), t('Authenticated user unsubscribed on the account page.'));
 
     $subscriber = simplenews_subscriber_load_by_mail($subscriber_user->mail);
-    $subscription = db_query('SELECT * FROM {simplenews_subscription} WHERE snid = :snid AND tid = :tid', array(':snid' => $subscriber->snid, ':tid' => $tid))->fetchObject();
+    $subscription = db_query('SELECT * FROM {simplenews_subscription} WHERE snid = :snid AND newsletter_id = :newsletter_id', array(':snid' => $subscriber->snid, ':newsletter_id' => $newsletter_id))->fetchObject();
     $this->assertEqual(SIMPLENEWS_SUBSCRIPTION_STATUS_UNSUBSCRIBED, $subscription->status, t('Subscription is unsubscribed'));
 
     // 5. Subscribe authenticated via account page
@@ -882,7 +882,7 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
     // Assert confirmation message
 
     $edit = array(
-      "newsletters[$tid]" => '1',
+      "newsletters[$newsletter_id]" => '1',
     );
     $url = 'user/' . $subscriber_user->uid . '/edit/simplenews';
     $this->drupalPost($url, $edit, t('Save'));
@@ -896,7 +896,7 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
 
     // Disable the category block.
     $edit = array(
-      'blocks[simplenews_' . $tid . '][region]' => -1,
+      'blocks[simplenews_' . $newsletter_id . '][region]' => -1,
     );
     $this->drupalPost(NULL, $edit, t('Save blocks'));
 
@@ -918,25 +918,25 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
     $this->assertText(t('The newsletter subscriptions for @mail have been updated.', array('@mail' => $subscriber_user2->mail)));
 
     // Nothing should have happened.
-    $this->assertNoFieldChecked('edit-newsletters-' . $tid);
+    $this->assertNoFieldChecked('edit-newsletters-' . $newsletter_id);
 
     // Now fill out the form and try again.
     $edit = array(
-      'newsletters[' . $tid . ']' => TRUE,
+      'newsletters[' . $newsletter_id . ']' => TRUE,
     );
     $this->drupalPost(NULL, $edit, t('Update'));
     $this->assertText(t('The newsletter subscriptions for @mail have been updated.', array('@mail' => $subscriber_user2->mail)));
 
-    $this->assertFieldChecked('edit-newsletters-' . $tid);
+    $this->assertFieldChecked('edit-newsletters-' . $newsletter_id);
 
     // Unsubscribe.
     $edit = array(
-      'newsletters[' . $tid . ']' => FALSE,
+      'newsletters[' . $newsletter_id . ']' => FALSE,
     );
     $this->drupalPost(NULL, $edit, t('Update'));
     $this->assertText(t('The newsletter subscriptions for @mail have been updated.', array('@mail' => $subscriber_user2->mail)));
 
-    $this->assertNoFieldChecked('edit-newsletters-' . $tid);
+    $this->assertNoFieldChecked('edit-newsletters-' . $newsletter_id);
 
     // And now the same for the newsletter/subscriptions page.
     $subscriber_user3 = $this->drupalCreateUser(array('subscribe to newsletters'));
@@ -947,25 +947,25 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
     $this->assertText(t('The newsletter subscriptions for @mail have been updated.', array('@mail' => $subscriber_user3->mail)));
 
     // Nothing should have happened.
-    $this->assertNoFieldChecked('edit-newsletters-' . $tid);
+    $this->assertNoFieldChecked('edit-newsletters-' . $newsletter_id);
 
     // Now fill out the form and try again.
     $edit = array(
-      'newsletters[' . $tid . ']' => TRUE,
+      'newsletters[' . $newsletter_id . ']' => TRUE,
     );
     $this->drupalPost('newsletter/subscriptions', $edit, t('Update'));
     $this->assertText(t('The newsletter subscriptions for @mail have been updated.', array('@mail' => $subscriber_user3->mail)));
 
-    $this->assertFieldChecked('edit-newsletters-' . $tid);
+    $this->assertFieldChecked('edit-newsletters-' . $newsletter_id);
 
     // Unsubscribe.
     $edit = array(
-      'newsletters[' . $tid . ']' => FALSE,
+      'newsletters[' . $newsletter_id . ']' => FALSE,
     );
     $this->drupalPost('newsletter/subscriptions', $edit, t('Update'));
     $this->assertText(t('The newsletter subscriptions for @mail have been updated.', array('@mail' => $subscriber_user3->mail)));
 
-    $this->assertNoFieldChecked('edit-newsletters-' . $tid);
+    $this->assertNoFieldChecked('edit-newsletters-' . $newsletter_id);
   }
 
 }
@@ -997,231 +997,233 @@ class SimpleNewsAdministrationTestCase extends SimplenewsTestCase {
   /**
    * Test various combinations of newsletter category settings.
    */
-  function xtestCategorySettings() {
+  function testCategorySettings() {
 
     // Allow registration of new accounts without approval.
     variable_set('user_register', 1);
     variable_set('user_email_verification', FALSE);
 
     // Allow authenticated users to subscribe.
-//    $this->setAuthenticatedUserSubscription(TRUE);
-//
-//    $admin_user = $this->drupalCreateUser(array(
-//      'administer blocks',
-//      'administer content types',
-//      'administer nodes',
-//      'access administration pages',
-//      'administer permissions',
-//      'administer newsletters',
-//      'administer simplenews subscriptions',
-//      'create simplenews content',
-//      'send newsletter',
-//      ));
-//    $this->drupalLogin($admin_user);
-//
-//    $this->drupalGet('admin/config/services/simplenews');
-//
-//    // Create a category for all possible setting combinations.
-//    $new_account = array('none', 'off', 'on', 'silent');
-//    $opt_inout = array('hidden', 'single', 'double');
-//    $block = array('block' => TRUE, 'noblock' => FALSE);
-//
-//    foreach ($new_account as $new_account_setting) {
-//      foreach ($opt_inout as $opt_inout_setting) {
-//        foreach ($block as $name => $value) {
-//          $this->clickLink(t('Add newsletter category'));
-//          $edit = array(
-//            'name' => implode('-', array($new_account_setting, $opt_inout_setting, $name)),
-//            'description' => $this->randomString(20),
-//            'new_account' => $new_account_setting,
-//            'opt_inout' => $opt_inout_setting,
-//            'block' => $value,
-//            'priority' => rand(0, 5),
-//            'receipt' => rand(0, 1) ? TRUE : FALSE,
-//            'from_name' => $this->randomName(),
-//            'from_address' => $this->randomEmail(),
-//          );
-//          $this->drupalPost(NULL, $edit, t('Save'));
-//        }
-//      }
-//    }
-//
-//    drupal_static_reset('simplenews_categories_load_multiple');
-//    $categories = simplenews_categories_load_multiple();
-//
-//    // Check block settings.
-//    $this->drupalGet('admin/structure/block');
-//
-//    //blocks[simplenews_42][region]
-//    foreach ($categories as $category) {
-//      if (strpos($category->name, '-') === FALSE) {
-//        continue;
-//      }
-//      list($new_account_setting, $opt_inout_setting, $block) = explode('-', $category->name);
-//      if ($block == 'block' && $opt_inout_setting != 'hidden') {
-//        $this->assertField('blocks[simplenews_' . $category->tid . '][region]', t('Block is displayed for category'));
-//      }
-//      else {
-//        $this->assertNoField('blocks[simplenews_' . $category->tid . '][region]', t('Block is not displayed for category'));
-//      }
-//    }
-//
-//    // Check registration form.
-//    $this->drupalLogout();
-//    $this->drupalGet('user/register');
-//    foreach ($categories as $category) {
-//      if (strpos($category->name, '-') === FALSE) {
-//        continue;
-//      }
-//
-//      // Explicitly subscribe to the off-double-block newsletter.
-//      if ($category->name == 'off-double-block') {
-//        $off_double_block_tid = $category->tid;
-//      }
-//
-//      list($new_account_setting, $opt_inout_setting, $block) = explode('-', $category->name);
-//      if ($category->new_account == 'on' && $category->opt_inout != 'hidden') {
-//        $this->assertFieldChecked('edit-newsletters-' . $category->tid);
-//      }
-//      elseif ($category->new_account == 'off' && $category->opt_inout != 'hidden') {
-//        $this->assertNoFieldChecked('edit-newsletters-' . $category->tid);
-//      }
-//      else {
-//        $this->assertNoField('newsletters[' . $category->tid . ']', t('Hidden or silent newsletter category is not shown.'));
-//      }
-//    }
-//
-//    // Register a new user through the form.
-//    $edit = array(
-//      'name' => $this->randomName(),
-//      'mail' => $this->randomEmail(),
-//      'pass[pass1]' => $pass = $this->randomName(),
-//      'pass[pass2]' => $pass,
-//      'newsletters[' . $off_double_block_tid . ']' => $off_double_block_tid,
-//    );
-//    $this->drupalPost(NULL, $edit, t('Create new account'));
-//
-//    // Verify confirmation messages.
-//    $this->assertText(t('Registration successful. You are now logged in.'));
-//    foreach ($categories as $category) {
-//      // Check confirmation message for all on and non-hidden newsletters and
-//      // the one that was explicitly selected.
-//      if (($category->new_account == 'on' && $category->opt_inout != 'hidden') || $category->name == 'off-double-block') {
-//        $this->assertText(t('You have been subscribed to @name.', array('@name' => $category->name)));
-//      }
-//      else {
-//        // All other newsletters must not show a message, e.g. those which were
-//        // subscribed silently.
-//        $this->assertNoText(t('You have been subscribed to @name.', array('@name' => $category->name)));
-//      }
-//    }
-//
-//    // Log out again.
-//    $this->drupalLogout();
-//
-//    // Get the user id and do a login through the drupalLogin() function.
-//    $uid = db_query('SELECT uid FROM {users} WHERE name = :name', array(':name' => $edit['name']))->fetchField();
-//
-//    $user = user_load($uid);
-//    // Set the password so that the login works.
-//    $user->pass_raw = $edit['pass[pass1]'];
-//
-//    // Verify newsletter subscription pages.
-//    $this->drupalLogin($user);
-//    foreach (array('newsletter/subscriptions', 'user/' . $user->uid . '/edit/simplenews') as $path) {
-//      $this->drupalGet($path);
-//      foreach ($categories as $category) {
-//        if (strpos($category->name, '-') === FALSE) {
-//          continue;
-//        }
-//        list($new_account_setting, $opt_inout_setting, $block) = explode('-', $category->name);
-//        if ($category->opt_inout == 'hidden') {
-//          $this->assertNoField('newsletters[' . $category->tid . ']', t('Hidden newsletter category is not shown.'));
-//        }
-//        elseif ($category->new_account == 'on' || $category->name == 'off-double-block' || $category->new_account == 'silent') {
-//          // All on, silent and the explicitly selected category should be checked.
-//          $this->assertFieldChecked('edit-newsletters-' . $category->tid);
-//        }
-//        else {
-//          $this->assertNoFieldChecked('edit-newsletters-' . $category->tid);
-//        }
-//      }
-//    }
-//
-//    // Unsubscribe from a newsletter category.
-//    $edit = array(
-//      'newsletters[' . $off_double_block_tid . ']' => FALSE,
-//    );
-//    $this->drupalPost(NULL, $edit, t('Save'));
-//    $this->assertNoFieldChecked('edit-newsletters-' . $off_double_block_tid);
-//
-//    // Get a category which has the block enabled.
-//    foreach ($categories as $category) {
-//      // The default category is missing the from mail address. Use another one.
-//      if ($category->block == TRUE && $category->tid != 1 && $category->opt_inout != 'hidden') {
-//        $edit_category = $category;
-//        break;
-//      }
-//    }
-//
-//    $this->drupalLogin($admin_user);
-//
-//    $this->setupSubscriptionBlock($edit_category->tid, $settings = array(
-//      'issue count' => 2,
-//      'previous issues' => 1,
-//    ));
-//
-//    // Create a bunch of newsletters.
-//    $generated_names = array();
-//    $date = strtotime('monday this week');
-//    for ($index = 0; $index < 3; $index++) {
-//      $name = $this->randomName();
-//      $generated_names[] = $name;
-//      $this->drupalGet('node/add/simplenews');
-//      $edit = array(
-//        'title' => $name,
-//        'field_simplenews_term[und]' => $edit_category->tid,
-//        'date' => date('c', strtotime('+' . $index . ' day', $date)),
-//      );
-//      $this->drupalPost(NULL, $edit, ('Save'));
-//      $this->clickLink(t('Newsletter'));
-//      $this->drupalPost(NULL, array('simplenews[send]' => SIMPLENEWS_COMMAND_SEND_NOW), t('Submit'));
-//    }
-//
-//    // Display the two recent issues.
-//    $this->drupalGet('');
-//    $this->assertText(t('Previous issues'), 'Should display recent issues.');
-//
-//    $displayed_issues = $this->xpath("//div[@class='issues-list']/div/ul/li/a");
-//
-//    $this->assertEqual(count($displayed_issues), 2, 'Displys two recent issues.');
-//
-//    $this->assertFalse(in_array($generated_names[0], $displayed_issues));
-//    $this->assertTrue(in_array($generated_names[1], $displayed_issues));
-//    $this->assertTrue(in_array($generated_names[2], $displayed_issues));
-//
-//    $this->drupalGet('admin/config/services/simplenews/categories/' . $edit_category->tid . '/edit');
-//    $this->assertFieldByName('name', $edit_category->name, t('Category name is displayed when editing'));
-//    $this->assertFieldByName('description', $edit_category->description, t('Category description is displayed when editing'));
-//
-//    $edit = array('block' => FALSE);
-//    $this->drupalPost(NULL, $edit, t('Save'));
-//
-//    $updated_category = simplenews_category_load($edit_category->tid);
-//    $this->assertEqual(0, $updated_category->block, t('Block for category disabled'));
-//
-//    $this->drupalGet('admin/structure/block');
-//    $this->assertNoText($edit_category->name, t('Category block was removed'));
-//
-//    // Delete a category.
-//    $this->drupalGet('admin/config/services/simplenews/categories/' . $edit_category->tid . '/edit');
-//    $edit = array();
-//    $this->drupalPost(NULL, $edit, t('Delete'));
-//    $this->drupalPost(NULL, $edit, t('Delete'));
-//
-//    // Verify that the category has been deleted.
-//    $this->assertFalse(simplenews_category_load($edit_category->tid));
-//    $this->assertFalse(db_query('SELECT tid FROM {simplenews_category} WHERE tid = :tid', array(':tid' => $edit_category->tid))->fetchField());
+    $this->setAuthenticatedUserSubscription(TRUE);
+
+    $admin_user = $this->drupalCreateUser(array(
+      'administer blocks',
+      'administer content types',
+      'administer nodes',
+      'access administration pages',
+      'administer permissions',
+      'administer newsletters',
+      'administer simplenews subscriptions',
+      'create simplenews content',
+      'send newsletter',
+      ));
+    $this->drupalLogin($admin_user);
+
+    $this->drupalGet('admin/config/services/simplenews');
+
+    // Create a category for all possible setting combinations.
+    $new_account = array('none', 'off', 'on', 'silent');
+    $opt_inout = array('hidden', 'single', 'double');
+    $block = array('block' => TRUE, 'noblock' => FALSE);
+
+    foreach ($new_account as $new_account_setting) {
+      foreach ($opt_inout as $opt_inout_setting) {
+        foreach ($block as $name => $value) {
+          $this->clickLink(t('Add newsletter category'));
+          $edit = array(
+            'name' => implode('-', array($new_account_setting, $opt_inout_setting, $name)),
+            'description' => $this->randomString(20),
+            'new_account' => $new_account_setting,
+            'opt_inout' => $opt_inout_setting,
+            'block' => $value,
+            'priority' => rand(0, 5),
+            'receipt' => rand(0, 1) ? TRUE : FALSE,
+            'from_name' => $this->randomName(),
+            'from_address' => $this->randomEmail(),
+          );
+          $this->drupalPost(NULL, $edit, t('Save'));
+        }
+      }
+    }
+
+    drupal_static_reset('simplenews_categories_load_multiple');
+    $newsletters = simplenews_newsletter_get_all();
+
+    // Check block settings.
+    $this->drupalGet('admin/structure/block');
+
+    //blocks[simplenews_42][region]
+    foreach ($newsletters as $newsletter) {
+      if (strpos($newsletter->name, '-') === FALSE) {
+        continue;
+      }
+      list($new_account_setting, $opt_inout_setting, $block) = explode('-', $newsletter->name);
+      if ($block == 'block' && $opt_inout_setting != 'hidden') {
+        $this->assertField('blocks[simplenews_' . $newsletter->newsletter_id . '][region]', t('Block is displayed for category'));
+      }
+      else {
+        $this->assertNoField('blocks[simplenews_' . $newsletter->newsletter_id . '][region]', t('Block is not displayed for category'));
+      }
+    }
+
+    // Check registration form.
+    $this->drupalLogout();
+    $this->drupalGet('user/register');
+    foreach ($newsletters as $newsletter) {
+      if (strpos($newsletter->name, '-') === FALSE) {
+        continue;
+      }
+
+      // Explicitly subscribe to the off-double-block newsletter.
+      if ($newsletter->name == 'off-double-block') {
+        $off_double_block_newsletter_id = $newsletter->newsletter_id;
+      }
+
+      list($new_account_setting, $opt_inout_setting, $block) = explode('-', $newsletter->name);
+      if ($newsletter->new_account == 'on' && $newsletter->opt_inout != 'hidden') {
+        $this->assertFieldChecked('edit-newsletters-' . $newsletter->newsletter_id);
+      }
+      elseif ($newsletter->new_account == 'off' && $newsletter->opt_inout != 'hidden') {
+        $this->assertNoFieldChecked('edit-newsletters-' . $newsletter->newsletter_id);
+      }
+      else {
+        $this->assertNoField('newsletters[' . $newsletter->newsletter_id . ']', t('Hidden or silent newsletter category is not shown.'));
+      }
+    }
+
+    // Register a new user through the form.
+    $edit = array(
+      'name' => $this->randomName(),
+      'mail' => $this->randomEmail(),
+      'pass[pass1]' => $pass = $this->randomName(),
+      'pass[pass2]' => $pass,
+      'newsletters[' . $off_double_block_newsletter_id . ']' => $off_double_block_newsletter_id,
+    );
+    $this->drupalPost(NULL, $edit, t('Create new account'));
+
+    // Verify confirmation messages.
+    $this->assertText(t('Registration successful. You are now logged in.'));
+    foreach ($newsletters as $newsletter) {
+      // Check confirmation message for all on and non-hidden newsletters and
+      // the one that was explicitly selected.
+      if (($newsletter->new_account == 'on' && $newsletter->opt_inout != 'hidden') || $newsletter->name == 'off-double-block') {
+        $this->assertText(t('You have been subscribed to @name.', array('@name' => $newsletter->name)));
+      }
+      else {
+        // All other newsletters must not show a message, e.g. those which were
+        // subscribed silently.
+        $this->assertNoText(t('You have been subscribed to @name.', array('@name' => $newsletter->name)));
+      }
+    }
+
+    // Log out again.
+    $this->drupalLogout();
+
+    // Get the user id and do a login through the drupalLogin() function.
+    $uid = db_query('SELECT uid FROM {users} WHERE name = :name', array(':name' => $edit['name']))->fetchField();
+
+    $user = user_load($uid);
+    // Set the password so that the login works.
+    $user->pass_raw = $edit['pass[pass1]'];
+
+    // Verify newsletter subscription pages.
+    $this->drupalLogin($user);
+    foreach (array('newsletter/subscriptions', 'user/' . $user->uid . '/edit/simplenews') as $path) {
+      $this->drupalGet($path);
+      foreach ($newsletters as $newsletter) {
+        if (strpos($newsletter->name, '-') === FALSE) {
+          continue;
+        }
+        list($new_account_setting, $opt_inout_setting, $block) = explode('-', $newsletter->name);
+        if ($newsletter->opt_inout == 'hidden') {
+          $this->assertNoField('newsletters[' . $newsletter->newsletter_id . ']', t('Hidden newsletter category is not shown.'));
+        }
+        elseif ($newsletter->new_account == 'on' || $newsletter->name == 'off-double-block' || $newsletter->new_account == 'silent') {
+          // All on, silent and the explicitly selected category should be checked.
+          $this->assertFieldChecked('edit-newsletters-' . $newsletter->newsletter_id);
+        }
+        else {
+          $this->assertNoFieldChecked('edit-newsletters-' . $newsletter->newsletter_id);
+        }
+      }
+    }
+
+    // Unsubscribe from a newsletter category.
+    $edit = array(
+      'newsletters[' . $off_double_block_newsletter_id . ']' => FALSE,
+    );
+    $this->drupalPost(NULL, $edit, t('Save'));
+    $this->assertNoFieldChecked('edit-newsletters-' . $off_double_block_newsletter_id);
+
+    // Get a category which has the block enabled.
+    foreach ($newsletters as $newsletter) {
+      // The default category is missing the from mail address. Use another one.
+      if ($newsletter->block == TRUE && $newsletter->newsletter_id != 1 && $newsletter->opt_inout != 'hidden') {
+        $edit_newsletter = $newsletter;
+        break;
+      }
+    }
+
+    $this->drupalLogin($admin_user);
+
+    $this->setupSubscriptionBlock($edit_newsletter->newsletter_id, $settings = array(
+      'issue count' => 2,
+      'previous issues' => 1,
+    ));
+
+    // Create a bunch of newsletters.
+    $generated_names = array();
+    $date = strtotime('monday this week');
+    for ($index = 0; $index < 3; $index++) {
+      $name = $this->randomName();
+      $generated_names[] = $name;
+      $this->drupalGet('node/add/simplenews');
+      $edit = array(
+        'title' => $name,
+        'simplenews_newsletter[und]' => $edit_newsletter->newsletter_id,
+        'date' => date('c', strtotime('+' . $index . ' day', $date)),
+      );
+      $this->drupalPost(NULL, $edit, ('Save'));
+      $this->clickLink(t('Newsletter'));
+      $this->drupalPost(NULL, array('simplenews[send]' => SIMPLENEWS_COMMAND_SEND_NOW), t('Submit'));
+    }
+
+    // Display the two recent issues.
+    $this->drupalGet('');
+    $this->assertText(t('Previous issues'), 'Should display recent issues.');
+
+    $displayed_issues = $this->xpath("//div[@class='issues-list']/div/ul/li/a");
+
+    $this->assertEqual(count($displayed_issues), 2, 'Displys two recent issues.');
+
+    $this->assertFalse(in_array($generated_names[0], $displayed_issues));
+    $this->assertTrue(in_array($generated_names[1], $displayed_issues));
+    $this->assertTrue(in_array($generated_names[2], $displayed_issues));
+
+    $this->drupalGet('admin/config/services/simplenews/categories/' . $edit_newsletter->newsletter_id . '/edit');
+    $this->assertFieldByName('name', $edit_newsletter->name, t('Category name is displayed when editing'));
+    $this->assertFieldByName('description', $edit_newsletter->description, t('Category description is displayed when editing'));
+
+    $edit = array('block' => FALSE);
+    $this->drupalPost(NULL, $edit, t('Save'));
+
+    entity_get_controller('simplenews_newsletter')->resetCache();
+    $updated_newsletter = simplenews_newsletter_load($edit_newsletter->newsletter_id);
+    $this->assertEqual(0, $updated_newsletter->block, t('Block for category disabled'));
+
+    $this->drupalGet('admin/structure/block');
+    $this->assertNoText($edit_newsletter->name, t('Category block was removed'));
+
+    // Delete a category.
+    $this->drupalGet('admin/config/services/simplenews/categories/' . $edit_newsletter->newsletter_id . '/edit');
+    $edit = array();
+    $this->drupalPost(NULL, $edit, t('Delete'));
+    $this->drupalPost(NULL, $edit, t('Delete'));
+
+    // Verify that the category has been deleted.
+    entity_get_controller('simplenews_newsletter')->resetCache();
+    $this->assertFalse(simplenews_newsletter_load($edit_newsletter->newsletter_id));
+    $this->assertFalse(db_query('SELECT newsletter_id FROM {simplenews_newsletter} WHERE newsletter_id = :newsletter_id', array(':newsletter_id' => $edit_newsletter->newsletter_id))->fetchField());
   }
 
   /**
@@ -1247,8 +1249,8 @@ class SimpleNewsAdministrationTestCase extends SimplenewsTestCase {
     $categories = simplenews_categories_load_multiple();
 
     $groups = array();
-    foreach (array_keys($categories) as $tid) {
-      $groups[$tid] = array($tid);
+    foreach (array_keys($categories) as $newsletter_id) {
+      $groups[$newsletter_id] = array($newsletter_id);
     }
     $groups['all'] = array_keys($groups);
 
@@ -1279,8 +1281,8 @@ class SimpleNewsAdministrationTestCase extends SimplenewsTestCase {
         // Implode with a different, supported delimiter for each group.
         'emails' => implode($delimiters[$i++], $subscribers[$key]),
       );
-      foreach ($group as $tid) {
-        $edit['newsletters[' . $tid . ']'] = TRUE;
+      foreach ($group as $newsletter_id) {
+        $edit['newsletters[' . $newsletter_id . ']'] = TRUE;
       }
       $this->drupalPost(NULL, $edit, t('Subscribe'));
     }
@@ -1306,7 +1308,7 @@ class SimpleNewsAdministrationTestCase extends SimplenewsTestCase {
     $subscribers_flat = array_merge($subscribers[$first], $subscribers['all']);
 
     $edit = array(
-      'list' => 'tid-' . $first,
+      'list' => 'newsletter_id-' . $first,
     );
     $this->drupalPost(NULL, $edit, t('Filter'));
 
@@ -1356,7 +1358,7 @@ class SimpleNewsAdministrationTestCase extends SimplenewsTestCase {
 
     // Limit to first category, the all mail shouldn't be shown anymore.
     $edit = array(
-      'list' => 'tid-' . $first,
+      'list' => 'newsletter_id-' . $first,
     );
     $this->drupalPost(NULL, $edit, t('Filter'));
     $this->assertNoText($first_mail);
@@ -1419,7 +1421,7 @@ class SimpleNewsAdministrationTestCase extends SimplenewsTestCase {
     $this->assertTrue(in_array($unconfirmed[0], $exported_mails));
     $this->assertTrue(in_array($unconfirmed[1], $exported_mails));
 
-    // Make sure the user is subscribed to the first tid.
+    // Make sure the user is subscribed to the first newsletter_id.
     simplenews_subscribe_user($user_mail, $first, FALSE);
     module_load_include('inc', 'simplenews', 'includes/simplenews.admin');
     $before_count = simplenews_count_subscriptions($first);
@@ -1484,8 +1486,8 @@ class SimpleNewsAdministrationTestCase extends SimplenewsTestCase {
 
     // Verify that all related data has been deleted.
     $this->assertFalse(simplenews_category_load($first));
-    $this->assertFalse(db_query('SELECT tid FROM {simplenews_category} WHERE tid = :tid', array(':tid' => $first))->fetchField());
-    $this->assertFalse(db_query('SELECT * FROM {block} WHERE module = :module AND delta = :tid', array(':module' => 'simplenews', ':tid' => $first))->fetchField());
+    $this->assertFalse(db_query('SELECT newsletter_id FROM {simplenews_category} WHERE newsletter_id = :newsletter_id', array(':newsletter_id' => $first))->fetchField());
+    $this->assertFalse(db_query('SELECT * FROM {block} WHERE module = :module AND delta = :newsletter_id', array(':module' => 'simplenews', ':newsletter_id' => $first))->fetchField());
 
 
     // Verify that all subscriptions of that category have been removed.
@@ -1530,12 +1532,12 @@ class SimpleNewsAdministrationTestCase extends SimplenewsTestCase {
     $this->drupalGet('admin/people/simplenews/users/edit/' . $subscriber->snid);
     $this->assertText(t('Subscriptions for @mail', array('@mail' => $subscriber->mail)));
     $edit = array(
-      'newsletters[' . reset($subscriber->tids) . ']' => FALSE,
+      'newsletters[' . reset($subscriber->newsletter_ids) . ']' => FALSE,
     );
     $this->drupalPost(NULL, $edit, t('Update'));
     drupal_static_reset('simplenews_subscriber_load_multiple');
     drupal_static_reset('simplenews_user_is_subscribed');
-    $this->assertFalse(simplenews_user_is_subscribed($subscriber->mail, reset($subscriber->tids), t('Subscriber not subscribed anymore.')));
+    $this->assertFalse(simplenews_user_is_subscribed($subscriber->mail, reset($subscriber->newsletter_ids), t('Subscriber not subscribed anymore.')));
 
     // @todo Test Admin subscriber edit preferred language $subscription->language
   }
@@ -1680,15 +1682,15 @@ class SimpleNewsI18nTestCase extends SimplenewsTestCase {
     // @todo: simplenews_category_save() should probably take care of this.
     // Currently done separately in simplenews_admin_category_form_submit()
     // for the admin UI.
-    $tid = $this->getRandomNewsletter();
-    $term = taxonomy_term_load($tid);
+    $newsletter_id = $this->getRandomNewsletter();
+    $term = taxonomy_term_load($newsletter_id);
     taxonomy_term_save($term);
 
-    $tid = array_shift(simplenews_categories_load_multiple())->tid;
+    $newsletter_id = array_shift(simplenews_categories_load_multiple())->newsletter_id;
     // Translate term to spanish.
-    list($textgroup, $context) = i18n_string_context(array('taxonomy', 'term', $tid, 'name'));
+    list($textgroup, $context) = i18n_string_context(array('taxonomy', 'term', $newsletter_id, 'name'));
     i18n_string_textgroup($textgroup)->update_translation($context, 'es', $es_name = $this->randomName());
-    list($textgroup, $context) = i18n_string_context(array('taxonomy', 'term', $tid, 'description'));
+    list($textgroup, $context) = i18n_string_context(array('taxonomy', 'term', $newsletter_id, 'description'));
     i18n_string_textgroup($textgroup)->update_translation($context, 'es', $es_description = $this->randomName());
 
     // Visit newsletter selection page in english.
@@ -1704,10 +1706,10 @@ class SimpleNewsI18nTestCase extends SimplenewsTestCase {
     // Sign up two users, one in english, another in spanish.
     $english_mail = $this->randomEmail();
     $spanish_mail = $this->randomEmail();
-    $tid = $this->getRandomNewsletter();
+    $newsletter_id = $this->getRandomNewsletter();
 
-    simplenews_subscribe_user($english_mail, $tid, FALSE, 'english', 'en');
-    simplenews_subscribe_user($spanish_mail, $tid, FALSE, 'spanish', 'es');
+    simplenews_subscribe_user($english_mail, $newsletter_id, FALSE, 'english', 'en');
+    simplenews_subscribe_user($spanish_mail, $newsletter_id, FALSE, 'spanish', 'es');
 
     // Translate category.
     $vocabulary = taxonomy_vocabulary_load(variable_get('simplenews_vid', 0));
@@ -1719,12 +1721,12 @@ class SimpleNewsI18nTestCase extends SimplenewsTestCase {
     // @todo: simplenews_category_save() should probably take care of this.
     // Currently done separately in simplenews_admin_category_form_submit()
     // for the admin UI.
-    $tid = $this->getRandomNewsletter();
-    $term = taxonomy_term_load($tid);
+    $newsletter_id = $this->getRandomNewsletter();
+    $term = taxonomy_term_load($newsletter_id);
     taxonomy_term_save($term);
 
     // Translate term to spanish.
-    list($textgroup, $context) = i18n_string_context(array('taxonomy', 'term', $tid, 'name'));
+    list($textgroup, $context) = i18n_string_context(array('taxonomy', 'term', $newsletter_id, 'name'));
     i18n_string_textgroup($textgroup)->update_translation($context, 'es', $es_name = $this->randomName());
 
     // Enable translation for newsletters.
@@ -1859,7 +1861,7 @@ class SimpleNewsUpgradePath61TestCase extends UpgradePathTestCase {
   /**
    * Test a successful upgrade.
    */
-  public function xtestSimplenewsUpgrade() {
+  public function testSimplenewsUpgrade() {
     // Delete everything except taxnomy and simplenews from system to
     // prevent their update functions to be run.
     $this->uninstallModulesExcept(array('taxonomy', 'simplenews'));
@@ -1915,7 +1917,7 @@ class SimpleNewsUpgradePath62TestCase extends UpgradePathTestCase {
   /**
    * Test a successful upgrade.
    */
-  public function xtestSimplenewsUpgrade() {
+  public function testSimplenewsUpgrade() {
     // Delete everything except taxnomy and simplenews from system to
     // prevent their update functions to be run.
     $this->uninstallModulesExcept(array('taxonomy', 'simplenews'));
@@ -2617,7 +2619,7 @@ class SimplenewsSourceTestCase extends SimplenewsTestCase {
     $this->assertEqual(99, count($this->drupalGetMails()));
 
     // Test that tokens are correctly replaced.
-    $tid = $this->getRandomNewsletter();
+    $newsletter_id = $this->getRandomNewsletter();
     foreach (array_slice($this->drupalGetMails(), 0, 3) as $mail) {
       // Make sure that the same mail was used in the body token as it has been
       // sent to. Also verify that the mail is plaintext.
@@ -2629,7 +2631,7 @@ class SimplenewsSourceTestCase extends SimplenewsTestCase {
       $this->assertTrue(strpos($mail['body'], t('Unsubscribe from this newsletter')));
       // Make sure the mail has the correct unsubscribe hash.
       $subscriber = simplenews_subscriber_load_by_mail($mail['to']);
-      $hash = simplenews_generate_hash($mail['to'], $subscriber->snid, $tid);
+      $hash = simplenews_generate_hash($mail['to'], $subscriber->snid, $newsletter_id);
       $this->assertTrue(strpos($mail['body'], $hash), 'Correct hash is used in footer');
       $this->assertTrue(strpos($mail['headers']['List-Unsubscribe'], $hash), 'Correct hash is used in header');
     }

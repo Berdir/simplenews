@@ -391,28 +391,12 @@ function theme_simplenews_admin_categories($variables) {
  * @see simplenews_admin_category_form_validate()
  * @see simplenews_admin_category_form_submit()
  */
-function simplenews_admin_category_form($form, &$form_state, $edit = array()) {
-  if (!is_array($edit)) {
-    $edit = (array) $edit;
+function simplenews_admin_category_form($form, &$form_state, SimplenewsNewsletter $newsletter = NULL) {
+  if (is_null($newsletter)) {
+    $newsletter = entity_create('simplenews_newsletter', array());
   }
-  $edit += array(
-    'newsletter_id' => 0,
-    'name' => '',
-    'description' => '',
-    'weight' => '0',
-    'new_account' => 'none',
-    'opt_inout' => 'double',
-    'block' => 1,
-    'format' => variable_get('simplenews_format', 'plain'),
-    'priority' => variable_get('simplenews_priority', SIMPLENEWS_PRIORITY_NONE),
-    'receipt' => variable_get('simplenews_receipt', 0),
-    'from_name' => variable_get('simplenews_from_name', variable_get('site_name', 'Drupal')),
-    'email_subject' => '[[simplenews-category:name]] [node:title]',
-    'from_address' => variable_get('simplenews_from_address', variable_get('site_mail', ini_get('sendmail_from'))),
-    'hyperlinks' => 1,
-  );
 
-  $form['#category'] = (object) $edit;
+  $form_state['newsletter'] = $newsletter;
   // Check whether we need a deletion confirmation form.
   if (isset($form_state['confirm_delete']) && isset($form_state['values']['newsletter_id'])) {
     $category = simplenews_category_load($form_state['values']['newsletter_id']);
@@ -420,23 +404,23 @@ function simplenews_admin_category_form($form, &$form_state, $edit = array()) {
   }
   $form['newsletter_id'] = array(
     '#type' => 'value',
-    '#value' => $edit['newsletter_id'],
+    '#value' => $newsletter->newsletter_id,
   );
   $form['name'] = array(
     '#type' => 'textfield',
     '#title' => t('Name'),
-    '#default_value' => $edit['name'],
+    '#default_value' => $newsletter->name,
     '#maxlength' => 255,
     '#required' => TRUE,
   );
   $form['description'] = array(
     '#type' => 'textfield',
     '#title' => t('Description'),
-    '#default_value' => $edit['description'],
+    '#default_value' => $newsletter->description,
   );
   $form['weight'] = array(
     '#type' => 'hidden',
-    '#value' => $edit['weight'],
+    '#value' => $newsletter->weight,
   );
   $form['subscription'] = array(
     '#type' => 'fieldset',
@@ -455,7 +439,7 @@ function simplenews_admin_category_form($form, &$form_state, $edit = array()) {
     '#type' => 'select',
     '#title' => t('Subscribe new account'),
     '#options' => $options,
-    '#default_value' => $edit['new_account'],
+    '#default_value' => $newsletter->new_account,
     '#description' => t('None: This newsletter is not listed on the user registration page.<br />Default on: This newsletter is listed on the user registion page and is selected by default.<br />Default off: This newsletter is listed on the user registion page and is not selected by default.<br />Silent: A new user is automatically subscribed to this newsletter. The newsletter is not listed on the user registration page.'),
   );
 
@@ -469,7 +453,7 @@ function simplenews_admin_category_form($form, &$form_state, $edit = array()) {
     '#type' => 'select',
     '#title' => t('Opt-in/out method'),
     '#options' => $options,
-    '#default_value' => $edit['opt_inout'],
+    '#default_value' => $newsletter->opt_inout,
     '#description' => t('Hidden: This newsletter does not appear on subscription forms. No unsubscription footer in newsletter.<br /> Single: Users are (un)subscribed immediately, no confirmation email is sent.<br />Double: When (un)subscribing at a subscription form, anonymous users receive an (un)subscription confirmation email. Authenticated users are (un)subscribed immediately.'),
   );
 
@@ -477,7 +461,7 @@ function simplenews_admin_category_form($form, &$form_state, $edit = array()) {
   $form['subscription']['block'] = array(
     '#type' => 'checkbox',
     '#title' => t('Subscription block'),
-    '#default_value' => $edit['block'],
+    '#default_value' => $newsletter->block,
     '#description' => t('A subscription block will be provided for this newsletter category. Anonymous and authenticated users can subscribe and unsubscribe using this block.'),
   );
 
@@ -493,7 +477,7 @@ function simplenews_admin_category_form($form, &$form_state, $edit = array()) {
     $form['email']['format'] = array(
       '#type' => 'radios',
       '#title' => t('Email format'),
-      '#default_value' => $edit['format'],
+      '#default_value' => $newsletter->format,
       '#options' => $format_options,
     );
   }
@@ -503,21 +487,21 @@ function simplenews_admin_category_form($form, &$form_state, $edit = array()) {
       '#value' => key($format_options),
     );
     $form['email']['format_text'] = array(
-      '#markup' => t('Newsletter emails will be sent in %format format.', array('%format' => $edit['format'])),
+      '#markup' => t('Newsletter emails will be sent in %format format.', array('%format' => $newsletter->format)),
     );
   }
 
   $form['email']['priority'] = array(
     '#type' => 'select',
     '#title' => t('Email priority'),
-    '#default_value' => $edit['priority'],
+    '#default_value' => $newsletter->priority,
     '#options' => simplenews_get_priority(),
   );
   $form['email']['receipt'] = array(
     '#type' => 'checkbox',
     '#title' => t('Request receipt'),
     '#return_value' => 1,
-    '#default_value' => $edit['receipt'],
+    '#default_value' => $newsletter->receipt,
   );
 
   // Email sender name
@@ -531,7 +515,7 @@ function simplenews_admin_category_form($form, &$form_state, $edit = array()) {
     '#title' => t('From name'),
     '#size' => 60,
     '#maxlength' => 64,
-    '#default_value' => $edit['from_name'],
+    '#default_value' => $newsletter->from_name,
   );
 
   // Email subject
@@ -559,7 +543,7 @@ function simplenews_admin_category_form($form, &$form_state, $edit = array()) {
     '#size' => 60,
     '#maxlength' => 128,
     '#required' => TRUE,
-    '#default_value' => $edit['email_subject'],
+    '#default_value' => $newsletter->email_subject,
   );
 
   // Email from address
@@ -569,7 +553,7 @@ function simplenews_admin_category_form($form, &$form_state, $edit = array()) {
     '#size' => 60,
     '#maxlength' => 128,
     '#required' => TRUE,
-    '#default_value' => $edit['from_address'],
+    '#default_value' => $newsletter->from_address,
   );
 
   // Type of hyperlinks
@@ -583,7 +567,7 @@ function simplenews_admin_category_form($form, &$form_state, $edit = array()) {
     '#type' => 'radios',
     '#title' => t('Hyperlink conversion'),
     '#options' => array(t('Append hyperlinks as a numbered reference list'), t('Display hyperlinks inline with the text')),
-    '#default_value' => $edit['hyperlinks'],
+    '#default_value' => $newsletter->hyperlinks,
   );
 
   $form['actions'] = array('#type' => 'actions');
@@ -593,7 +577,7 @@ function simplenews_admin_category_form($form, &$form_state, $edit = array()) {
     '#weight' => 50,
   );
 
-  if ($edit['newsletter_id']) {
+  if ($newsletter->newsletter_id) {
     $form['actions']['delete'] = array(
       '#type' => 'submit',
       '#value' => t('Delete'),
@@ -627,7 +611,8 @@ function simplenews_admin_category_form_submit($form, &$form_state) {
     return;
   }
 
-  $newsletter = entity_create('simplenews_newsletter', $form_state['values']);
+  $newsletter = $form_state['newsletter'];
+  entity_form_submit_build_entity('simplenews_newsletter', $newsletter, $form, $form_state);
 
   switch (simplenews_newsletter_save($newsletter)) {
     case SAVED_NEW:
@@ -674,8 +659,7 @@ function simplenews_admin_category_delete_submit($form, &$form_state) {
 
   // Delete newsletter category and associated taxonomy term.
   // Subscriptions are deleted by simplenews_simplenews_category_delete()
-  simplenews_category_delete($newsletter_id);
-  taxonomy_term_delete($newsletter_id);
+  simplenews_newsletter_delete($newsletter_id);
   drupal_set_message(t('Newsletter category %name has been deleted.', array('%name' => $name)));
 
   $form_state['redirect'] = 'admin/config/services/simplenews';

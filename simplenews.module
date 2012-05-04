@@ -132,14 +132,14 @@ function simplenews_menu() {
     'type' => MENU_DEFAULT_LOCAL_TASK,
   );
 
-  $items['admin/config/services/simplenews/categories/%simplenews_category/edit'] = array(
+  $items['admin/config/services/simplenews/categories/%simplenews_newsletter/edit'] = array(
     'title' => 'Newsletters',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('simplenews_admin_category_form', 5),
     'access arguments' => array('administer newsletters'),
     'file' => 'includes/simplenews.admin.inc',
   );
-  $items['admin/config/services/simplenews/categories/%simplenews_category/delete'] = array(
+  $items['admin/config/services/simplenews/categories/%simplenews_newsletter/delete'] = array(
     'title' => 'Newsletters',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('simplenews_admin_category_delete', 5),
@@ -1742,18 +1742,20 @@ function simplenews_subscriber_delete(stdClass $subscriber) {
  * @todo Replace this list by a View.
  */
 function simplenews_recent_newsletters($newsletter_id, $count = 5) {
-  $titles = '';
-  $query = db_select('node', 'n');
-  $query->innerJoin('simplenews_newsletter', 'sn', 'n.nid = sn.nid');
-  $query->fields('n', array('nid', 'title'))
-    ->condition('sn.newsletter_id', $newsletter_id)
-    ->condition('n.status', NODE_PUBLISHED)
-    ->condition('sn.status', SIMPLENEWS_STATUS_SEND_NOT, '<>')
-    ->orderBy('n.created', 'DESC')
-    ->range(0, $count);
+  $query = new EntityFieldQuery;
+  $result = $query
+    ->entityCondition('entity_type', 'node')
+    ->propertyCondition('status', NODE_PUBLISHED)
+    ->fieldCondition(variable_get('simplenews_category_field', 'simplenews_newsletter'), 'target_id', $newsletter_id)
+    ->fieldCondition(variable_get('simplenews_category_field', 'simplenews_issue'), 'value', SIMPLENEWS_STATUS_SEND_NOT, '<>')
+    ->propertyOrderBy('created', 'DESC')
+    ->range(0, $count)
+    ->execute();
   $titles = array();
-  foreach ($query->execute() as $item) {
-    $titles[$item->nid]['data'] = l($item->title, 'node/' . $item->nid);
+  if (!empty($result['node'])) {
+    foreach (node_load_multiple(array_keys($result['node'])) as $item) {
+      $titles[$item->nid]['data'] = l($item->title, 'node/' . $item->nid);
+    }
   }
   return $titles;
 }
@@ -1854,18 +1856,18 @@ function simplenews_newsletter_list() {
  * Does not include newsletters with the opt-out/opt-in setting set to hidden.
  * It is possible to apply additional conditions.
  *
- * @param $condistions Aditional contitions.
+ * @param $conditions Aditional contitions.
  * @return array Filtered newsletter entities.
  *
  * @ingroup newsletter
  */
-function simplenews_newsletter_get_public($condistions = array()) {
+function simplenews_newsletter_get_public($conditions = array()) {
   $query = new EntityFieldQuery;
   $query
     ->entityCondition('entity_type', 'simplenews_newsletter')
     ->propertyCondition('opt_inout', SIMPLENEWS_OPT_INOUT_HIDDEN, '<>')
     ->propertyOrderBy('weight');
-  foreach ($condistions as $key => $value) {
+  foreach ($conditions as $key => $value) {
     $query->propertyCondition($key, $value);
   }
   $result = $query->execute();
