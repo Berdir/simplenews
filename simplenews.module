@@ -552,7 +552,7 @@ function simplenews_issue_fields_add($type) {
       'field_name' => $field_name,
       'bundle' => $type->type,
       'entity_type' => 'node',
-      'required' => TRUE,
+      'required' => FALSE,
       'widget' => array(
         'type' => 'options_select',
       ),
@@ -1910,7 +1910,7 @@ function simplenews_newsletter_load_multiple($ids = array(), $conditions = array
  * @ingroup newsletter
  */
 function simplenews_newsletter_save($newsletter) {
-  entity_save('simplenews_newsletter', $newsletter);
+  return entity_save('simplenews_newsletter', $newsletter);
 }
 
 /**

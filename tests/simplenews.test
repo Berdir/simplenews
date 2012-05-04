@@ -2285,7 +2285,7 @@ class SimplenewsSendTestCase extends SimplenewsTestCase {
   /**
    * Send a newsletter on publish without using cron.
    */
-  function testSendPublishNoCron() {
+  function ztestSendPublishNoCron() {
     // Disable cron.
     variable_set('simplenews_use_cron', FALSE);
 
@@ -2341,8 +2341,8 @@ class SimplenewsSendTestCase extends SimplenewsTestCase {
     $this->assertEqual(0, count($this->subscribers), t('all subscribers have been received a mail'));
   }
 
-  function xtestUpdateNewsletter() {
-    // Create a second category.
+  function testUpdateNewsletter() {
+    // Create a second newsletter.
     $this->drupalGet('admin/config/services/simplenews');
     $this->clickLink(t('Add newsletter category'));
     $edit = array(
@@ -2350,34 +2350,43 @@ class SimplenewsSendTestCase extends SimplenewsTestCase {
       'description' => $this->randomString(20),
     );
     $this->drupalPost(NULL, $edit, t('Save'));
+    $this->assertText(t('Created new newsletter category @name.', array('@name' => $edit['name'])));
 
     $this->drupalGet('node/add/simplenews');
-    $this->assertText(t('Newsletter category'));
+    $this->assertText(t('Newsletter'));
+
+    $first_newsletter_id = $this->getRandomNewsletter();
 
     $edit = array(
       'title' => $this->randomName(),
-      // @todo avoid hardcoding the term id.
-      'field_simplenews_term[und]' => 1,
+      'simplenews_newsletter[und]' => $first_newsletter_id,
     );
     $this->drupalPost(NULL, $edit, ('Save'));
     $this->assertTrue(preg_match('|node/(\d+)$|', $this->getUrl(), $matches), 'Node created.');
     $node = node_load($matches[1]);
 
     // Verify newsletter.
-    $newsletter = simplenews_newsletter_load($node->nid);
-    $this->assertEqual(SIMPLENEWS_STATUS_SEND_NOT, $newsletter->status, t('Newsletter sending not started.'));
-    $this->assertEqual(1, $newsletter->tid, t('Newsletter has tid 1'));
+    entity_get_controller('node')->resetCache();
+    $node = node_load($node->nid);
+    $this->assertEqual(SIMPLENEWS_STATUS_SEND_NOT, simplenews_issue_status($node), t('Newsletter sending not started.'));
+    $this->assertEqual($first_newsletter_id, simplenews_issue_newsletter_id($node), t('Newsletter has newsletter_id ' . $first_newsletter_id . '.'));
+
+    do {
+      $second_newsletter_id = $this->getRandomNewsletter();
+    } while ($first_newsletter_id == $second_newsletter_id);
+
 
     $this->clickLink(t('Edit'));
     $update = array(
-      'field_simplenews_term[und]' => 2,
+      'simplenews_newsletter[und]' => $second_newsletter_id,
     );
     $this->drupalPost(NULL, $update, t('Save'));
 
     // Verify newsletter.
-    $newsletter = simplenews_newsletter_load($node->nid);
-    $this->assertEqual(SIMPLENEWS_STATUS_SEND_NOT, $newsletter->status, t('Newsletter sending not started.'));
-    $this->assertEqual(2, $newsletter->tid, t('Newsletter has tid 2.'));
+    entity_get_controller('node')->resetCache();
+    $node = node_load($node->nid);
+    $this->assertEqual(SIMPLENEWS_STATUS_SEND_NOT, simplenews_issue_status($node), t('Newsletter sending not started.'));
+    $this->assertEqual($second_newsletter_id, simplenews_issue_newsletter_id($node), t('Newsletter has newsletter_id ' . $second_newsletter_id . '.'));
   }
 
   /**

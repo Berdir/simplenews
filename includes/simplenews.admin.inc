@@ -627,32 +627,22 @@ function simplenews_admin_category_form_submit($form, &$form_state) {
     return;
   }
 
-  $category = (object) $form_state['values'];
+  $newsletter = entity_create('simplenews_newsletter', $form_state['values']);
 
-  // Create or update taxonomy term.
-  $term = new stdClass();
-  $term->newsletter_id = $form_state['values']['newsletter_id'];
-  $term->vid = variable_get('simplenews_vid', 0);
-  $term->name = $form_state['values']['name'];
-  $term->description = $form_state['values']['description'];
-  $term->weight = $form_state['values']['weight'];
-  taxonomy_term_save($term);
-  $category->newsletter_id = $term->newsletter_id;
-
-  switch (simplenews_category_save($category)) {
+  switch (simplenews_newsletter_save($newsletter)) {
     case SAVED_NEW:
-      drupal_set_message(t('Created new newsletter category %name.', array('%name' => _simplenews_newsletter_name($category))));
-      watchdog('simplenews', 'Created new newsletter category %name.', array('%name' => _simplenews_newsletter_name($category), WATCHDOG_NOTICE, l(t('edit'), 'admin/config/services/simplenews/categories/' . $category->newsletter_id . '/edit')));
+      drupal_set_message(t('Created new newsletter category %name.', array('%name' => _simplenews_newsletter_name($newsletter))));
+      watchdog('simplenews', 'Created new newsletter category %name.', array('%name' => _simplenews_newsletter_name($newsletter), WATCHDOG_NOTICE, l(t('edit'), 'admin/config/services/simplenews/categories/' . $newsletter->newsletter_id . '/edit')));
       break;
 
     case SAVED_UPDATED:
-      drupal_set_message(t('Updated newsletter category %name.', array('%name' => _simplenews_newsletter_name($category))));
-      watchdog('simplenews', 'Updated newsletter category %name.', array('%name' => _simplenews_newsletter_name($category)), WATCHDOG_NOTICE, l(t('edit'), 'admin/config/services/simplenews/categories/' . $category->newsletter_id . '/edit'));
+      drupal_set_message(t('Updated newsletter category %name.', array('%name' => _simplenews_newsletter_name($newsletter))));
+      watchdog('simplenews', 'Updated newsletter category %name.', array('%name' => _simplenews_newsletter_name($newsletter)), WATCHDOG_NOTICE, l(t('edit'), 'admin/config/services/simplenews/categories/' . $newsletter->newsletter_id . '/edit'));
       break;
   }
 
-  $form_state['values']['newsletter_id'] = $category->newsletter_id;
-  $form_state['newsletter_id'] = $category->newsletter_id;
+  $form_state['values']['newsletter_id'] = $newsletter->newsletter_id;
+  $form_state['newsletter_id'] = $newsletter->newsletter_id;
   $form_state['redirect'] = 'admin/config/services/simplenews';
 }
 
