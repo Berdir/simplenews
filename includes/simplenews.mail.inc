@@ -16,6 +16,9 @@
  * @ingroup issue
  */
 function simplenews_add_node_to_spool($node) {
+  if(!simplenews_issue_newsletter_id($node)) {
+    throw new Exception('No newsletter asigned to issue.');
+  }
   // To send the newsletter, the node id and target email addresses
   // are stored in the spool.
   // Only subscribed recipients are stored in the spool (status = 1).

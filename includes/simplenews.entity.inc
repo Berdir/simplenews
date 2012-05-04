@@ -35,6 +35,13 @@ class SimplenewsNewsletter extends Entity {
     }
   }
 
+  public function __sleep() {
+    // TODO: fix this and remove hack.
+    $vars = get_object_vars($this);
+    unset($vars['entityInfo'], $vars['idKey'], $vars['nameKey'], $vars['statusKey']);
+    return array_combine(array_keys($vars), (array_keys($vars)));
+  }
+
   protected function defaultLabel() {
     return $this->name;
   }
