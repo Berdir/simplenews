@@ -757,11 +757,9 @@ function _simplenews_node_form(&$form, $form_state) {
 
   // Display warning if the node is currently being sent.
   if (!empty($form['#node']->nid)) {
-//    TODO: Use field.
-//    $newsletter = simplenews_newsletter_load($form['#node']->nid);
-//    if ($newsletter && $newsletter->status == SIMPLENEWS_STATUS_SEND_PENDING) {
-//      drupal_set_message(t('This newsletter issue is currently being sent. Any changes will be reflected in the e-mails which have not been sent yet.'), 'warning');
-//    }
+    if (simplenews_issue_status(node_load($form['#node']->nid)) == SIMPLENEWS_STATUS_SEND_PENDING) {
+      drupal_set_message(t('This newsletter issue is currently being sent. Any changes will be reflected in the e-mails which have not been sent yet.'), 'warning');
+    }
   }
 
   if (module_exists('token')) {
@@ -2544,16 +2542,9 @@ function simplenews_field_extra_fields() {
 function simplenews_node_access($node, $op, $account) {
   if ($op == 'delete') {
     // Check if a newsletter is pending
-    $query = db_select('simplenews_newsletter', 'n');
-    $query->fields('n', array('status'));
-    $query->condition('n.nid', $node->nid);
-    $result = $query->execute();
-    if ($result->rowCount()) {
-      $status = $result->fetch();
-      if ($status->status == SIMPLENEWS_STATUS_SEND_PENDING) {
-        drupal_set_message(t('You can\'t delete this newsletter because it has not been sent to all its subscribers.'), 'warning');
-        return NODE_ACCESS_DENY;
-      }
+    if (simplenews_issue_status($node) == SIMPLENEWS_STATUS_SEND_PENDING) {
+      drupal_set_message(t('You can\'t delete this newsletter because it has not been sent to all its subscribers.'), 'warning');
+      return NODE_ACCESS_DENY;
     }
   }
   return NODE_ACCESS_IGNORE;
