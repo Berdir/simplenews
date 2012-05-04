@@ -80,7 +80,7 @@ class SimplenewsTestCase extends DrupalWebTestCase {
    * @return newsletter tid.
    */
   function getRandomNewsletter() {
-    if( $newsletters = array_keys(simplenews_newsletter_get_all())) {
+    if ($newsletters = array_keys(simplenews_newsletter_get_all())) {
       return $newsletters[array_rand($newsletters)];
     }
     return 0;
@@ -2085,7 +2085,7 @@ class SimplenewsSendTestCase extends SimplenewsTestCase {
   /**
    * Send a newsletter using cron.
    */
-  function testSendMultipleNoCron() {
+  function ztestSendMultipleNoCron() {
     // Disable cron.
     variable_set('simplenews_use_cron', FALSE);
 
@@ -2142,16 +2142,17 @@ class SimplenewsSendTestCase extends SimplenewsTestCase {
   /**
    * Send a newsletter using cron and a low throttle.
    */
-  function xtestSendNowCronThrottle() {
+  function testSendNowCronThrottle() {
 
     variable_set('simplenews_throttle', 3);
 
     // Verify that the newsletter settings are shown.
     $this->drupalGet('node/add/simplenews');
-    $this->assertText(t('Newsletter category'));
+    $this->assertText(t('Newsletter'));
 
     $edit = array(
       'title' => $this->randomName(),
+      'simplenews_newsletter[und]' => $this->getRandomNewsletter(),
     );
     $this->drupalPost(NULL, $edit, ('Save'));
     $this->assertTrue(preg_match('|node/(\d+)$|', $this->getUrl(), $matches), 'Node created');
@@ -2163,15 +2164,15 @@ class SimplenewsSendTestCase extends SimplenewsTestCase {
     $this->assertNoText(t('Send newsletter when published'), t('Send on publish is not shown for published nodes.'));
 
     // Verify state.
-    $newsletter = simplenews_newsletter_load($node->nid);
-    $this->assertEqual(SIMPLENEWS_STATUS_SEND_NOT, $newsletter->status, t('Newsletter not sent yet.'));
+    entity_get_controller('node')->resetCache();
+    $this->assertEqual(SIMPLENEWS_STATUS_SEND_NOT, simplenews_issue_status(node_load($node->nid)), t('Newsletter not sent yet.'));
 
     // Send now.
     $this->drupalPost(NULL, array('simplenews[send]' => SIMPLENEWS_COMMAND_SEND_NOW), t('Submit'));
 
     // Verify state.
-    $newsletter = simplenews_newsletter_load($node->nid);
-    $this->assertEqual(SIMPLENEWS_STATUS_SEND_PENDING, $newsletter->status, t('Newsletter sending pending.'));
+    entity_get_controller('node')->resetCache();
+    $this->assertEqual(SIMPLENEWS_STATUS_SEND_PENDING, simplenews_issue_status(node_load($node->nid)), t('Newsletter sending pending.'));
 
     // Verify that no mails have been sent yet.
     $mails = $this->drupalGetMails();
@@ -2184,9 +2185,8 @@ class SimplenewsSendTestCase extends SimplenewsTestCase {
     simplenews_cron();
 
     // Verify state.
-    $newsletter = simplenews_newsletter_load($node->nid);
-
-    $this->assertEqual(SIMPLENEWS_STATUS_SEND_PENDING, $newsletter->status, t('Newsletter sending pending.'));
+    entity_get_controller('node')->resetCache();
+    $this->assertEqual(SIMPLENEWS_STATUS_SEND_PENDING, simplenews_issue_status(node_load($node->nid)), t('Newsletter sending pending.'));
 
     $spooled = db_query('SELECT COUNT(*) FROM {simplenews_mail_spool} WHERE nid = :nid', array(':nid' => $node->nid))->fetchField();
     $this->assertEqual(2, $spooled, t('2 mails remaining in spool.'));
@@ -2195,9 +2195,8 @@ class SimplenewsSendTestCase extends SimplenewsTestCase {
     simplenews_cron();
 
     // Verify state.
-    $newsletter = simplenews_newsletter_load($node->nid);
-
-    $this->assertEqual(SIMPLENEWS_STATUS_SEND_READY, $newsletter->status, t('Newsletter sending finished.'));
+    entity_get_controller('node')->resetCache();
+    $this->assertEqual(SIMPLENEWS_STATUS_SEND_READY, simplenews_issue_status(node_load($node->nid)), t('Newsletter sending finished.'));
 
     $spooled = db_query('SELECT COUNT(*) FROM {simplenews_mail_spool} WHERE nid = :nid', array(':nid' => $node->nid))->fetchField();
     $this->assertEqual(0, $spooled, t('No mails remaining in spool.'));
