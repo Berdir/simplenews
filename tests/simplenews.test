@@ -2215,7 +2215,7 @@ class SimplenewsSendTestCase extends SimplenewsTestCase {
   /**
    * Send a newsletter without using cron.
    */
-  function testSendNowCron() {
+  function ztestSendNowCron() {
 
     // Verify that the newsletter settings are shown.
     $this->drupalGet('node/add/simplenews');
@@ -2285,16 +2285,17 @@ class SimplenewsSendTestCase extends SimplenewsTestCase {
   /**
    * Send a newsletter on publish without using cron.
    */
-  function xtestSendPublishNoCron() {
+  function testSendPublishNoCron() {
     // Disable cron.
     variable_set('simplenews_use_cron', FALSE);
 
     // Verify that the newsletter settings are shown.
     $this->drupalGet('node/add/simplenews');
-    $this->assertText(t('Newsletter category'));
+    $this->assertText(t('Newsletter'));
 
     $edit = array(
       'title' => $this->randomName(),
+      'simplenews_newsletter[und]' => $this->getRandomNewsletter(),
       'status' => FALSE,
     );
     $this->drupalPost(NULL, $edit, ('Save'));
@@ -2306,15 +2307,15 @@ class SimplenewsSendTestCase extends SimplenewsTestCase {
     $this->assertText(t('Send newsletter when published'), t('Send on publish is shown'));
 
     // Verify state.
-    $newsletter = simplenews_newsletter_load($node->nid);
-    $this->assertEqual(SIMPLENEWS_STATUS_SEND_NOT, $newsletter->status, t('Newsletter not sent yet.'));
+    entity_get_controller('node')->resetCache();
+    $this->assertEqual(SIMPLENEWS_STATUS_SEND_NOT, simplenews_issue_status(node_load($node->nid)), t('Newsletter not sent yet.'));
 
     // Send now.
     $this->drupalPost(NULL, array('simplenews[send]' => SIMPLENEWS_COMMAND_SEND_PUBLISH), t('Submit'));
 
     // Verify state.
-    $newsletter = simplenews_newsletter_load($node->nid);
-    $this->assertEqual(SIMPLENEWS_STATUS_SEND_PUBLISH, $newsletter->status, t('Newsletter set up for sending on publish.'));
+    entity_get_controller('node')->resetCache();
+    $this->assertEqual(SIMPLENEWS_STATUS_SEND_PUBLISH, simplenews_issue_status(node_load($node->nid)), t('Newsletter set up for sending on publish.'));
 
     $this->clickLink(t('Edit'));
     $update = array(
@@ -2326,8 +2327,8 @@ class SimplenewsSendTestCase extends SimplenewsTestCase {
     simplenews_mail_attempt_immediate_send(array(), FALSE);
 
     // Verify state.
-    $newsletter = simplenews_newsletter_load($node->nid);
-    $this->assertEqual(SIMPLENEWS_STATUS_SEND_READY, $newsletter->status, t('Newsletter sending finished'));
+    entity_get_controller('node')->resetCache();
+    $this->assertEqual(SIMPLENEWS_STATUS_SEND_READY, simplenews_issue_status(node_load($node->nid)), t('Newsletter sending finished'));
     // @todo test sent subscriber count.
     // Verify mails.
     $mails = $this->drupalGetMails();

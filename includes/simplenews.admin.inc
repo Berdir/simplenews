@@ -1985,12 +1985,8 @@ function simplenews_node_tab_send_form_submit($form, &$form_state) {
 
   // If the selected command is send on publish, just set the newsletter status.
   if ($values['simplenews']['send'] == SIMPLENEWS_COMMAND_SEND_PUBLISH) {
-    $newsletter = simplenews_newsletter_load($node->nid);
-    if (!$newsletter) {
-      $newsletter = simplenews_newsletter_defaults($node);
-    }
-    $newsletter->status = SIMPLENEWS_STATUS_SEND_PUBLISH;
-    simplenews_newsletter_save($newsletter);
+    simplenews_issue_status($node, SIMPLENEWS_STATUS_SEND_PUBLISH);
+    node_save($node);
     drupal_set_message(t('The newsletter will be sent when the content is published.'));
   }
 }
