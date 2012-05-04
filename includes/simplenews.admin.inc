@@ -345,7 +345,7 @@ function simplenews_admin_categories_submit($form, &$form_state) {
   foreach ($form_state['values'] as $newsletter_id => $category) {
     if (is_numeric($newsletter_id) && $form[$newsletter_id]['#category']->weight != $category['weight']) {
       $form[$newsletter_id]['#category']->weight = $category['weight'];
-      simplenews_category_save($form[$newsletter_id]['#category']);
+      simplenews_newsletter_save($form[$newsletter_id]['#category']);
     }
   }
   drupal_set_message(t('Your configuration has been saved.'));
@@ -388,10 +388,10 @@ function theme_simplenews_admin_categories($variables) {
 /**
  * Menu callback: newsletter admin form for newsletter add/edit.
  *
- * @see simplenews_admin_category_form_validate()
- * @see simplenews_admin_category_form_submit()
+ * @see simplenews_admin_newsletter_form_validate()
+ * @see simplenews_admin_newsletter_form_submit()
  */
-function simplenews_admin_category_form($form, &$form_state, SimplenewsNewsletter $newsletter = NULL) {
+function simplenews_admin_newsletter_form($form, &$form_state, SimplenewsNewsletter $newsletter = NULL) {
   if (is_null($newsletter)) {
     $newsletter = entity_create('simplenews_newsletter', array());
   }
@@ -399,8 +399,8 @@ function simplenews_admin_category_form($form, &$form_state, SimplenewsNewslette
   $form_state['newsletter'] = $newsletter;
   // Check whether we need a deletion confirmation form.
   if (isset($form_state['confirm_delete']) && isset($form_state['values']['newsletter_id'])) {
-    $category = simplenews_category_load($form_state['values']['newsletter_id']);
-    return simplenews_admin_category_delete($form, $form_state, $category);
+    $category = simplenews_newsletter_load($form_state['values']['newsletter_id']);
+    return simplenews_admin_newsletter_delete($form, $form_state, $category);
   }
   $form['newsletter_id'] = array(
     '#type' => 'value',
@@ -590,7 +590,7 @@ function simplenews_admin_category_form($form, &$form_state, SimplenewsNewslette
 /**
  * Form validation callback for a newsletter category form.
  */
-function simplenews_admin_category_form_validate($form, &$form_state) {
+function simplenews_admin_newsletter_form_validate($form, &$form_state) {
   if ($form_state['clicked_button']['#value'] != t('Delete')) {
 
     // Check for valid email address.
@@ -603,7 +603,7 @@ function simplenews_admin_category_form_validate($form, &$form_state) {
 /**
  * Form submit callback for a newsletter category form.
  */
-function simplenews_admin_category_form_submit($form, &$form_state) {
+function simplenews_admin_newsletter_form_submit($form, &$form_state) {
   //dpm($form_state);
   $op = isset($form_state['values']['op']) ? $form_state['values']['op'] : '';
   if ($op == t('Delete')) {
@@ -634,9 +634,9 @@ function simplenews_admin_category_form_submit($form, &$form_state) {
 /**
  * Menu callback: Delete newsletter category.
  *
- * @see simplenews_admin_category_delete_submit()
+ * @see simplenews_admin_newsletter_delete_submit()
  */
-function simplenews_admin_category_delete($form, &$form_state, $category) {
+function simplenews_admin_newsletter_delete($form, &$form_state, $category) {
   // Store some category values for submit handling.
   $form = array();
   $form['newsletter_id'] = array('#type' => 'value', '#value' => $category->newsletter_id);
@@ -653,12 +653,12 @@ function simplenews_admin_category_delete($form, &$form_state, $category) {
 /**
  * Form submit callback for deleting a simplenews category.
  */
-function simplenews_admin_category_delete_submit($form, &$form_state) {
+function simplenews_admin_newsletter_delete_submit($form, &$form_state) {
   $newsletter_id = $form_state['values']['newsletter_id'];
   $name = $form_state['values']['name'];
 
   // Delete newsletter category and associated taxonomy term.
-  // Subscriptions are deleted by simplenews_simplenews_category_delete()
+  // Subscriptions are deleted by simplenews_simplenews_newsletter_delete()
   simplenews_newsletter_delete($newsletter_id);
   drupal_set_message(t('Newsletter category %name has been deleted.', array('%name' => $name)));
 
@@ -841,7 +841,7 @@ function simplenews_subscription_list_export($form, &$form_state) {
     '#required' => TRUE,
   );
 
-  $options = simplenews_category_list();
+  $options = simplenews_newsletter_list();
   $form['newsletters'] = array(
     '#type' => 'checkboxes',
     '#title' => t('Newsletter'),

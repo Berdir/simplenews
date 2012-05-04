@@ -135,14 +135,14 @@ function simplenews_menu() {
   $items['admin/config/services/simplenews/categories/%simplenews_newsletter/edit'] = array(
     'title' => 'Newsletters',
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('simplenews_admin_category_form', 5),
+    'page arguments' => array('simplenews_admin_newsletter_form', 5),
     'access arguments' => array('administer newsletters'),
     'file' => 'includes/simplenews.admin.inc',
   );
   $items['admin/config/services/simplenews/categories/%simplenews_newsletter/delete'] = array(
     'title' => 'Newsletters',
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('simplenews_admin_category_delete', 5),
+    'page arguments' => array('simplenews_admin_newsletter_delete', 5),
     'access arguments' => array('administer newsletters'),
     'file' => 'includes/simplenews.admin.inc',
   );
@@ -150,7 +150,7 @@ function simplenews_menu() {
     'title' => 'Add newsletter category',
     'type' => MENU_LOCAL_ACTION,
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('simplenews_admin_category_form'),
+    'page arguments' => array('simplenews_admin_newsletter_form'),
     'access arguments' => array('administer newsletters'),
     'file' => 'includes/simplenews.admin.inc',
     'weight' => -9,
@@ -341,7 +341,7 @@ function simplenews_node_view($node, $view_mode) {
   );
 
 //  if ($newsletter = simplenews_newsletter_load($node->nid)) {
-//    if ($category = simplenews_category_load($newsletter->newsletter_id)) {
+//    if ($category = simplenews_newsletter_load($newsletter->newsletter_id)) {
 //      $context['category'] = $category;
 //    }
 //  }
@@ -516,7 +516,7 @@ function simplenews_get_content_types() {
  */
 function simplenews_issue_fields_add($type) {
   // Newsletter reference
-  $field_name = variable_get('simplenews_category_field', 'simplenews_newsletter');
+  $field_name = variable_get('simplenews_newsletter_field', 'simplenews_newsletter');
   $field = field_info_field($field_name);
   $instance = field_info_instance('node', $field_name, $type->type);
   if (empty($field)) {
@@ -687,7 +687,7 @@ function simplenews_issue_fields_add($type) {
  * @ingroup issue
  */
 function simplenews_issue_fields_remove($type) {
-  $field_name = variable_get('simplenews_category_field', 'simplenews_newsletter');
+  $field_name = variable_get('simplenews_newsletter_field', 'simplenews_newsletter');
   $instance = field_info_instance('node', $field_name, $type->type);
   if ($instance) {
     field_delete_instance($instance);
@@ -717,7 +717,7 @@ function simplenews_issue_fields_remove($type) {
  */
 function simplenews_get_newsletter_field($bundle_name) {
   $fields_info = field_info_fields();
-  $field_name = variable_get('simplenews_category_field', 'simplenews_newsletter');
+  $field_name = variable_get('simplenews_newsletter_field', 'simplenews_newsletter');
   $instances = field_info_instances('node', $bundle_name);
   if (isset($instances[$field_name])) {
     return $fields_info[$field_name];
@@ -1746,8 +1746,8 @@ function simplenews_recent_newsletters($newsletter_id, $count = 5) {
   $result = $query
     ->entityCondition('entity_type', 'node')
     ->propertyCondition('status', NODE_PUBLISHED)
-    ->fieldCondition(variable_get('simplenews_category_field', 'simplenews_newsletter'), 'target_id', $newsletter_id)
-    ->fieldCondition(variable_get('simplenews_category_field', 'simplenews_issue'), 'value', SIMPLENEWS_STATUS_SEND_NOT, '<>')
+    ->fieldCondition(variable_get('simplenews_newsletter_field', 'simplenews_newsletter'), 'target_id', $newsletter_id)
+    ->fieldCondition(variable_get('simplenews_newsletter_field', 'simplenews_issue'), 'value', SIMPLENEWS_STATUS_SEND_NOT, '<>')
     ->propertyOrderBy('created', 'DESC')
     ->range(0, $count)
     ->execute();
@@ -2507,7 +2507,7 @@ function simplenews_issue_sent_count($node, $value = NULL) {
 }
 
 function simplenews_issue_newsletter_id($node, $value = NULL) {
-  $field = variable_get('simplenews_category_field', 'simplenews_newsletter');
+  $field = variable_get('simplenews_newsletter_field', 'simplenews_newsletter');
   if ($value) {
     return $node->$field = array(
       LANGUAGE_NONE => array(
