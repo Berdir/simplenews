@@ -35,7 +35,7 @@ function simplenews_issue_filters() {
       'newsletter_id-0' => t('Unassigned newsletters'),
     ),
   );
-  foreach (simplenews_category_list() as $newsletter_id => $name) {
+  foreach (simplenews_newsletter_list() as $newsletter_id => $name) {
     $filters['category']['options']['newsletter_id-' . $newsletter_id] = $name;
   }
 
@@ -152,38 +152,38 @@ function simplenews_admin_issues() {
     'operations' => array('data' => t('Operations')),
   );
 
-  $query = db_select('node', 'n')->extend('PagerDefault')->extend('TableSort');
-  simplenews_build_issue_filter_query($query);
-  $query->innerJoin('simplenews_newsletter', 'sn', 'n.nid = sn.nid');
-  $query->leftJoin('simplenews_category', 'sc', 'sn.newsletter_id = sc.newsletter_id');
-  $query->leftJoin('taxonomy_term_data', 't', 'sc.newsletter_id = t.newsletter_id');
-  //$query->leftJoin('users', 'u', 'ss.uid = u.uid');
-  $query->fields('n', array('nid', 'title', 'created', 'status'))
-    ->fields('sn', array('newsletter_id'))
-    ->fields('t', array('name'))
+  // TODO: reenable filtering by newsletter.t r
+  $nids = db_select('node', 'n')
+    ->extend('PagerDefault')
+    ->extend('TableSort')
+    ->condition('n.type', simplenews_get_content_types())
+    ->fields('n', array('nid'))
     ->limit(30)
-    ->orderByHeader($header);
-  $query->addField('sn', 'status', 'sent_status');
+    ->orderByHeader($header)
+    ->execute()
+    ->fetchCol();
 
   $options = array();
   $destination = drupal_get_destination();
 
   module_load_include('inc', 'simplenews', 'includes/simplenews.mail');
-  foreach ($query->execute() as $issue) {
-    $categories = simplenews_category_list();
-    $subscriber_count = simplenews_count_subscriptions($issue->newsletter_id);
-    $pending_count = simplenews_count_spool(array('nid' => $issue->nid));
-    $send_status = $issue->sent_status == SIMPLENEWS_STATUS_SEND_PENDING ? $subscriber_count - $pending_count : theme('simplenews_status', array('source' => 'sent', 'status' => $issue->sent_status));
+  if (!empty($nids)) {
+    foreach (node_load_multiple($nids) as $node) {
+      $categories = simplenews_newsletter_list();
+      $subscriber_count = simplenews_count_subscriptions(simplenews_issue_newsletter_id($node));
+      $pending_count = simplenews_count_spool(array('nid' => $node->nid));
+      $send_status = simplenews_issue_status($node) == SIMPLENEWS_STATUS_SEND_PENDING ? $subscriber_count - $pending_count : theme('simplenews_status', array('source' => 'sent', 'status' => simplenews_issue_status($node)));
 
-    $options[$issue->nid] = array(
-      'title' => l($issue->title, 'node/' . $issue->nid),
-      'category' => $issue->newsletter_id && isset($categories[$issue->newsletter_id]) ? $categories[$issue->newsletter_id] : t('- Unassigned -'),
-      'created' => format_date($issue->created, 'small'),
-      'published' => theme('simplenews_status', array('source' => 'published', 'status' => $issue->status)),
-      'sent' => $send_status,
-      'subscribers' => $subscriber_count,
-      'operations' => l(t('edit'), 'node/' . $issue->nid . '/edit', array('query' => drupal_get_destination())),
-    );
+      $options[$node->nid] = array(
+        'title' => l($node->title, 'node/' . $node->nid),
+        'category' => simplenews_issue_newsletter_id($node) && isset($categories[simplenews_issue_newsletter_id($node)]) ? $categories[simplenews_issue_newsletter_id($node)] : t('- Unassigned -'),
+        'created' => format_date($node->created, 'small'),
+        'published' => theme('simplenews_status', array('source' => 'published', 'status' => $node->status)),
+        'sent' => $send_status,
+        'subscribers' => $subscriber_count,
+        'operations' => l(t('edit'), 'node/' . $node->nid . '/edit', array('query' => drupal_get_destination())),
+      );
+    }
   }
 
   $form['issues'] = array(
@@ -256,8 +256,7 @@ function simplenews_admin_issues_submit($form, &$form_state) {
 function simplenews_issue_send($nids) {
   $sent_nodes = array();
   foreach (node_load_multiple($nids) as $node) {
-    $newsletter = simplenews_newsletter_load($node->nid);
-    if ($newsletter->status != SIMPLENEWS_STATUS_SEND_NOT) {
+    if (simplenews_issue_status($node) != SIMPLENEWS_STATUS_SEND_NOT) {
       continue;
     }
 
@@ -1835,7 +1834,7 @@ function simplenews_node_tab_page($node) {
 function simplenews_node_tab_send_form($form, &$form_state, $node) {
 
   $status = simplenews_issue_status($node);
-  
+
   $form = array();
   // We will need the node
   $form['nid'] = array(

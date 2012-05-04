@@ -2085,7 +2085,7 @@ class SimplenewsSendTestCase extends SimplenewsTestCase {
   /**
    * Send a newsletter using cron.
    */
-  function xtestSendMultipleNoCron() {
+  function testSendMultipleNoCron() {
     // Disable cron.
     variable_set('simplenews_use_cron', FALSE);
 
@@ -2093,10 +2093,11 @@ class SimplenewsSendTestCase extends SimplenewsTestCase {
     $nodes = array();
     for ($i = 0; $i < 3; $i++) {
       $this->drupalGet('node/add/simplenews');
-      $this->assertText(t('Newsletter category'));
+      $this->assertText(t('Newsletter'));
 
       $edit = array(
         'title' => $this->randomName(),
+        'simplenews_newsletter[und]' => $this->getRandomNewsletter(),
         // The last newsletter shouldn't be published.
         'status' => $i != 2,
       );
@@ -2105,8 +2106,7 @@ class SimplenewsSendTestCase extends SimplenewsTestCase {
       $nodes[] = node_load($matches[1]);
 
       // Verify state.
-      $newsletter = simplenews_newsletter_load($matches[1]);
-      $this->assertEqual(SIMPLENEWS_STATUS_SEND_NOT, $newsletter->status, t('Newsletter not sent yet.'));
+      $this->assertEqual(SIMPLENEWS_STATUS_SEND_NOT, simplenews_issue_status(current($nodes)), t('Newsletter not sent yet.'));
     }
 
     // Send the first and last newsletter on the newsletter overview.
@@ -2123,12 +2123,10 @@ class SimplenewsSendTestCase extends SimplenewsTestCase {
     $this->assertText(t('Newsletter @title is unpublished and will be sent on publish.', array('@title' => $unpublished->title)));
 
     // Verify states.
-    $newsletter = simplenews_newsletter_load($first->nid);
-    $this->assertEqual(SIMPLENEWS_STATUS_SEND_READY, $newsletter->status, t('First Newsletter sending finished'));
-    $newsletter = simplenews_newsletter_load($second->nid);
-    $this->assertEqual(SIMPLENEWS_STATUS_SEND_NOT, $newsletter->status, t('Second Newsletter not sent'));
-    $newsletter = simplenews_newsletter_load($unpublished->nid);
-    $this->assertEqual(SIMPLENEWS_STATUS_SEND_PUBLISH, $newsletter->status, t('Newsletter set to send on publish'));
+    entity_get_controller('node')->resetCache();
+    $this->assertEqual(SIMPLENEWS_STATUS_SEND_READY, simplenews_issue_status(node_load($first->nid)), t('First Newsletter sending finished'));
+    $this->assertEqual(SIMPLENEWS_STATUS_SEND_NOT, simplenews_issue_status(node_load($second->nid)), t('Second Newsletter not sent'));
+    $this->assertEqual(SIMPLENEWS_STATUS_SEND_PUBLISH, simplenews_issue_status(node_load($unpublished->nid)), t('Newsletter set to send on publish'));
 
     // Verify mails.
     $mails = $this->drupalGetMails();

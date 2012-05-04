@@ -27,6 +27,14 @@ class SimplenewsNewsletter extends Entity {
   public $block;
   public $weight;
 
+  protected function setUp() {
+    // Hack to get arount the not loaded entity system.
+    // TODO: fix this and remove hack.
+    if (function_exists('entity_get_info')) {
+      parent::setUp();
+    }
+  }
+
   protected function defaultLabel() {
     return $this->name;
   }
