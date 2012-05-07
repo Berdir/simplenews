@@ -187,7 +187,7 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
   /**
    * Subscribe to multiple newsletters at the same time.
    */
-  function xtestSubscribeMultiple() {
+  function testSubscribeMultiple() {
     $admin_user = $this->drupalCreateUser(array('administer blocks', 'administer content types', 'administer nodes', 'access administration pages', 'administer permissions', 'administer newsletters'));
     $this->drupalLogin($admin_user);
     $this->setAnonymousUserSubscription(TRUE);
@@ -203,12 +203,11 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
       $this->drupalPost(NULL, $edit, t('Save'));
     }
 
-    drupal_static_reset('simplenews_newsletter_load_multiple');
-    $categories = simplenews_newsletter_load_multiple();
+    $newsletters = simplenews_newsletter_get_all();
 
     $this->drupalLogout();
 
-    $enable = array_rand($categories, 3);
+    $enable = array_rand($newsletters, 3);
 
     $mail = $this->randomEmail(8, 'testmail');
     $edit = array(
@@ -224,7 +223,7 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
     $body = $mails[0]['body'];
 
     // Verify listed changes.
-    foreach ($categories as $newsletter_id => $newsletter) {
+    foreach ($newsletters as $newsletter_id => $newsletter) {
       $pos = strpos($body, t('Subscribe to @name', array('@name' => $newsletter->name)));
       if (in_array($newsletter_id, $enable)) {
         $this->assertTrue($pos);
@@ -243,7 +242,7 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
     $this->assertRaw(t('Are you sure you want to confirm the following subscription changes for %user?', array('%user' => simplenews_mask_mail($mail))), t('Subscription confirmation found.'));
 
     // Verify listed changes.
-    foreach ($categories as $newsletter_id => $newsletter) {
+    foreach ($newsletters as $newsletter_id => $newsletter) {
       if (in_array($newsletter_id, $enable)) {
         $this->assertText(t('Subscribe to @name', array('@name' => $newsletter->name)));
       }
@@ -256,7 +255,7 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
     $this->assertRaw(t('Subscription changes confirmed for %user.', array('%user' => $mail)), t('Anonymous subscriber added to newsletter'));
 
     // Verify subscription changes.
-    foreach ($categories as $newsletter_id => $newsletter) {
+    foreach ($newsletters as $newsletter_id => $newsletter) {
       $is_subscribed = simplenews_user_is_subscribed($mail, $newsletter_id);
       if (in_array($newsletter_id, $enable)) {
         $this->assertTrue($is_subscribed);
@@ -294,7 +293,7 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
     $body = $mails[2]['body'];
 
     // Verify listed changes.
-    foreach ($categories as $newsletter_id => $newsletter) {
+    foreach ($newsletters as $newsletter_id => $newsletter) {
       $pos = strpos($body, t('Unsubscribe from @name', array('@name' => $newsletter->name)));
       if (in_array($newsletter_id, $disable)) {
         $this->assertTrue($pos);
@@ -313,7 +312,7 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
     $this->assertRaw(t('Are you sure you want to confirm the following subscription changes for %user?', array('%user' => simplenews_mask_mail($mail))), t('Subscription confirmation found.'));
 
     // Verify listed changes.
-    foreach ($categories as $newsletter_id => $newsletter) {
+    foreach ($newsletters as $newsletter_id => $newsletter) {
       if (in_array($newsletter_id, $disable)) {
         $this->assertText(t('Unsubscribe from @name', array('@name' => $newsletter->name)));
       }
@@ -328,7 +327,7 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
     // Verify subscription changes.
     drupal_static_reset('simplenews_user_is_subscribed');
     $still_enabled = array_diff($enable, $disable);
-    foreach ($categories as $newsletter_id => $newsletter) {
+    foreach ($newsletters as $newsletter_id => $newsletter) {
       $is_subscribed = simplenews_user_is_subscribed($mail, $newsletter_id);
       if (in_array($newsletter_id, $still_enabled)) {
         $this->assertTrue($is_subscribed);
@@ -393,7 +392,7 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
     $edit = array(
       'mail' => $mail,
     );
-    foreach (array_keys($categories) as $newsletter_id) {
+    foreach (array_keys($newsletters) as $newsletter_id) {
       $edit['newsletters[' . $newsletter_id . ']'] = TRUE;
     }
     $this->drupalPost('newsletter/subscriptions', $edit, t('Unsubscribe'));
@@ -412,7 +411,7 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
 
     // Verify subscription changes.
     drupal_static_reset('simplenews_user_is_subscribed');
-    foreach (array_keys($categories) as $newsletter_id) {
+    foreach (array_keys($newsletters) as $newsletter_id) {
       $this->assertFalse(simplenews_user_is_subscribed($mail, $newsletter_id));
     }
 
@@ -737,7 +736,7 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
    *   0. Preparation
    *   1. Subscribe anonymous via block
    */
-  function xtestSubscribeAnonymousSingle() {
+  function testSubscribeAnonymousSingle() {
     // 0. Preparation
     // Login admin
     // Create single opt in newsletter.
@@ -810,7 +809,7 @@ class SimplenewsSubscribeTestCase extends SimplenewsTestCase {
    *   5. Subscribe authenticated via account page
    *   6. Subscribe authenticated via multi block
    */
-  function xtestSubscribeAuthenticated() {
+  function testSubscribeAuthenticated() {
     // 0. Preparation
     // Login admin
     // Set permission for anonymous to subscribe
