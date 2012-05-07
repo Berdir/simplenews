@@ -321,7 +321,7 @@ function simplenews_admin_categories() {
       $form[$newsletter->newsletter_id]['weight'] = array('#type' => 'weight', '#delta' => 10, '#default_value' => $newsletter->weight);
       $form[$newsletter->newsletter_id]['edit'] = array(
         '#type' => 'link',
-        '#title' => t('edit newsletter newsletter'),
+        '#title' => t('edit newsletter'),
         '#href' => "admin/config/services/simplenews/categories/$newsletter->newsletter_id/edit",
       );
     }

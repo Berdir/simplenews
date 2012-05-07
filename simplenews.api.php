@@ -32,7 +32,7 @@
  */
 
 /**
- * @defgroup newsletter Newsletter (category)
+ * @defgroup newsletter (category)
  *
  * @todo
  */

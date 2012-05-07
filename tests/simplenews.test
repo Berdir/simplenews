@@ -2537,7 +2537,7 @@ class SimplenewsSourceTestCase extends SimplenewsTestCase {
   /**
    * Tests that sending a minimal implementation of the source interface works.
    */
-  function xtestSendMinimalSourceImplementation() {
+  function testSendMinimalSourceImplementation() {
     // Create a basic plaintext test source and send it.
     $plain_source = new SimplenewsSourceTest('plain');
     simplenews_send_source($plain_source);
@@ -2588,7 +2588,7 @@ class SimplenewsSourceTestCase extends SimplenewsTestCase {
   /**
    * Test sending a newsletter to 100 recipients with caching enabled.
    */
-  function xtestSendCaching() {
+  function testSendCaching() {
 
     $this->setUpSubscribers(100);
     // Enable build caching.
@@ -2644,7 +2644,7 @@ class SimplenewsSourceTestCase extends SimplenewsTestCase {
   /**
    * Send a newsletter with the HTML format.
    */
-  function xtestSendHTML() {
+  function testSendHTML() {
     $this->setUpSubscribers(5);
 
     // Use custom testing mail system to support HTML mails.
@@ -2718,7 +2718,7 @@ class SimplenewsSourceTestCase extends SimplenewsTestCase {
   /**
    * Send a issue with the newsletter set to hidden.
    */
-  function xtestSendHidden() {
+  function testSendHidden() {
     $this->setUpSubscribers(5);
 
     // Set the format to HTML.
@@ -2757,7 +2757,7 @@ class SimplenewsSourceTestCase extends SimplenewsTestCase {
   /**
    * Test with disabled caching.
    */
-  function xtestSendNoCaching() {
+  function testSendNoCaching() {
     $this->setUpSubscribers(100);
     // Disable caching.
     $edit = array(
