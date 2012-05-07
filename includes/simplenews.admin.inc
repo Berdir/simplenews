@@ -28,7 +28,7 @@ function simplenews_admin_newsletter_issues($form, &$form_state, $action = 'sent
  */
 function simplenews_issue_filters() {
   // Newsletter filter
-  $filters['category'] = array(
+  $filters['newsletter'] = array(
     'title' => t('Subscribed to'),
     'options' => array(
       'all' => t('All newsletters'),
@@ -36,7 +36,7 @@ function simplenews_issue_filters() {
     ),
   );
   foreach (simplenews_newsletter_list() as $newsletter_id => $name) {
-    $filters['category']['options']['newsletter_id-' . $newsletter_id] = $name;
+    $filters['newsletter']['options']['newsletter_id-' . $newsletter_id] = $name;
   }
 
   return $filters;
@@ -49,7 +49,7 @@ function simplenews_issue_filters() {
  */
 function simplenews_issue_filter_form() {
   // Current filter selections in $session var; stored at form submission
-  // Example: array('category' => 'all')
+  // Example: array('newsletter' => 'all')
   $session = isset($_SESSION['simplenews_issue_filter']) ? $_SESSION['simplenews_issue_filter'] : _simplenews_issue_filter_default();
   $filters = simplenews_issue_filters();
 
@@ -59,11 +59,11 @@ function simplenews_issue_filter_form() {
   );
 
   // Filter values are default
-  $form['filters']['category'] = array(
+  $form['filters']['newsletter'] = array(
     '#type' => 'select',
-    '#title' => $filters['category']['title'],
-    '#options' => $filters['category']['options'],
-    '#default_value' => $session['category'],
+    '#title' => $filters['newsletter']['title'],
+    '#options' => $filters['newsletter']['options'],
+    '#default_value' => $session['newsletter'],
   );
   $form['filters']['buttons']['submit'] = array(
     '#type' => 'submit',
@@ -86,7 +86,7 @@ function simplenews_issue_filter_form() {
  */
 function _simplenews_issue_filter_default() {
   return array(
-    'category' => 'all',
+    'newsletter' => 'all',
   );
 }
 
@@ -97,7 +97,7 @@ function simplenews_issue_filter_form_submit($form, &$form_state) {
   switch ($form_state['values']['op']) {
     case t('Filter'):
       $_SESSION['simplenews_issue_filter'] = array(
-        'category' => $form_state['values']['category'],
+        'newsletter' => $form_state['values']['newsletter'],
       );
       break;
     case t('Reset'):
@@ -144,7 +144,7 @@ function simplenews_admin_issues() {
   // Table header. Used as tablesort default
   $header = array(
     'title' => array('data' => t('Title'), 'field' => 'n.title'),
-    'category' => array('data' => t('Newsletter category'), 'field' => 'sc.name'),
+    'newsletter' => array('data' => t('Newsletter'), 'field' => 'sc.name'),
     'created' => array('data' => t('Created'), 'field' => 'n.created', 'sort' => 'desc'),
     'published' => array('data' => t('Published')),
     'sent' => array('data' => t('Sent')),
@@ -176,7 +176,7 @@ function simplenews_admin_issues() {
 
       $options[$node->nid] = array(
         'title' => l($node->title, 'node/' . $node->nid),
-        'category' => simplenews_issue_newsletter_id($node) && isset($categories[simplenews_issue_newsletter_id($node)]) ? $categories[simplenews_issue_newsletter_id($node)] : t('- Unassigned -'),
+        'newsletter' => simplenews_issue_newsletter_id($node) && isset($categories[simplenews_issue_newsletter_id($node)]) ? $categories[simplenews_issue_newsletter_id($node)] : t('- Unassigned -'),
         'created' => format_date($node->created, 'small'),
         'published' => theme('simplenews_status', array('source' => 'published', 'status' => $node->status)),
         'sent' => $send_status,
@@ -294,7 +294,7 @@ function simplenews_build_issue_filter_query(SelectQueryInterface $query) {
     foreach ($_SESSION['simplenews_issue_filter'] as $key => $value) {
       switch ($key) {
         case 'list':
-        case 'category':
+        case 'newsletter':
           if ($value != 'all') {
             list($key, $value) = explode('-', $value, 2);
             $query->condition('sn.' . $key, $value);
@@ -316,19 +316,19 @@ function simplenews_admin_categories() {
   $form['#tree'] = TRUE;
   if ($newsletters = simplenews_newsletter_get_public()) {
     foreach ($newsletters as $newsletter) {
-      $form[$newsletter->newsletter_id]['#category'] = $newsletter;
+      $form[$newsletter->newsletter_id]['#newsletter'] = $newsletter;
       $form[$newsletter->newsletter_id]['name'] = array('#markup' => check_plain(_simplenews_newsletter_name($newsletter)));
       $form[$newsletter->newsletter_id]['weight'] = array('#type' => 'weight', '#delta' => 10, '#default_value' => $newsletter->weight);
       $form[$newsletter->newsletter_id]['edit'] = array(
         '#type' => 'link',
-        '#title' => t('edit newsletter category'),
+        '#title' => t('edit newsletter newsletter'),
         '#href' => "admin/config/services/simplenews/categories/$newsletter->newsletter_id/edit",
       );
     }
   }
 
   // Only make this form include a submit button and weight if more than one
-  // category exists.
+  // newsletter exists.
   if (count($newsletters) > 1) {
     $form['submit'] = array('#type' => 'submit', '#value' => t('Save'));
   }
@@ -342,10 +342,10 @@ function simplenews_admin_categories() {
  * Form submit callback for the simplenews categories.
  */
 function simplenews_admin_categories_submit($form, &$form_state) {
-  foreach ($form_state['values'] as $newsletter_id => $category) {
-    if (is_numeric($newsletter_id) && $form[$newsletter_id]['#category']->weight != $category['weight']) {
-      $form[$newsletter_id]['#category']->weight = $category['weight'];
-      simplenews_newsletter_save($form[$newsletter_id]['#category']);
+  foreach ($form_state['values'] as $newsletter_id => $newsletter) {
+    if (is_numeric($newsletter_id) && $form[$newsletter_id]['#newsletter']->weight != $newsletter['weight']) {
+      $form[$newsletter_id]['#newsletter']->weight = $newsletter['weight'];
+      simplenews_newsletter_save($form[$newsletter_id]['#newsletter']);
     }
   }
   drupal_set_message(t('Your configuration has been saved.'));
@@ -363,26 +363,26 @@ function theme_simplenews_admin_categories($variables) {
 
   foreach (element_children($form) as $key) {
     if (isset($form[$key]['name'])) {
-      $category = &$form[$key];
+      $newsletter = &$form[$key];
 
       $row = array();
-      $row[] = drupal_render($category['name']);
-      if (isset($category['weight'])) {
-        $category['weight']['#attributes']['class'] = array('simplenews-category-weight');
-        $row[] = drupal_render($category['weight']);
+      $row[] = drupal_render($newsletter['name']);
+      if (isset($newsletter['weight'])) {
+        $newsletter['weight']['#attributes']['class'] = array('simplenews-newsletter-weight');
+        $row[] = drupal_render($newsletter['weight']);
       }
-      $row[] = drupal_render($category['edit']);
+      $row[] = drupal_render($newsletter['edit']);
       $rows[] = array('data' => $row, 'class' => array('draggable'));
     }
   }
 
-  $header = array(t('Newsletter category name'));
+  $header = array(t('Newsletter name'));
   if (isset($form['submit'])) {
     $header[] = t('Weight');
-    drupal_add_tabledrag('newsletter-category', 'order', 'self', 'simplenews-category-weight');
+    drupal_add_tabledrag('simplenews-newsletter', 'order', 'self', 'simplenews-newsletter-weight');
   }
   $header[] = array('data' => t('Operations'), 'colspan' => '3');
-  return theme('table', array('header' => $header, 'rows' => $rows, 'empty' => t('No newsletter categories. <a href="@link">Add category</a>.', array('@link' => url('admin/config/services/simplenews/add'))), 'attributes' => array('id' => 'newsletter-category'))) . drupal_render_children($form);
+  return theme('table', array('header' => $header, 'rows' => $rows, 'empty' => t('No newsletter categories. <a href="@link">Add newsletter</a>.', array('@link' => url('admin/config/services/simplenews/add'))), 'attributes' => array('id' => 'simplenews-newsletter'))) . drupal_render_children($form);
 }
 
 /**
@@ -399,8 +399,8 @@ function simplenews_admin_newsletter_form($form, &$form_state, SimplenewsNewslet
   $form_state['newsletter'] = $newsletter;
   // Check whether we need a deletion confirmation form.
   if (isset($form_state['confirm_delete']) && isset($form_state['values']['newsletter_id'])) {
-    $category = simplenews_newsletter_load($form_state['values']['newsletter_id']);
-    return simplenews_admin_newsletter_delete($form, $form_state, $category);
+    $newsletter = simplenews_newsletter_load($form_state['values']['newsletter_id']);
+    return simplenews_admin_newsletter_delete($form, $form_state, $newsletter);
   }
   $form['newsletter_id'] = array(
     '#type' => 'value',
@@ -457,12 +457,12 @@ function simplenews_admin_newsletter_form($form, &$form_state, SimplenewsNewslet
     '#description' => t('Hidden: This newsletter does not appear on subscription forms. No unsubscription footer in newsletter.<br /> Single: Users are (un)subscribed immediately, no confirmation email is sent.<br />Double: When (un)subscribing at a subscription form, anonymous users receive an (un)subscription confirmation email. Authenticated users are (un)subscribed immediately.'),
   );
 
-  // Provide subscription block for this category.
+  // Provide subscription block for this newsletter.
   $form['subscription']['block'] = array(
     '#type' => 'checkbox',
     '#title' => t('Subscription block'),
     '#default_value' => $newsletter->block,
-    '#description' => t('A subscription block will be provided for this newsletter category. Anonymous and authenticated users can subscribe and unsubscribe using this block.'),
+    '#description' => t('A subscription block will be provided for this newsletter. Anonymous and authenticated users can subscribe and unsubscribe using this block.'),
   );
 
   $form['email'] = array(
@@ -533,7 +533,7 @@ function simplenews_admin_newsletter_form($form, &$form_state, SimplenewsNewslet
     );
     $form['simplenews_subject']['token_help']['browser'] = array(
       '#theme' => 'token_tree',
-      '#token_types' => array('simplenews-category', 'node', 'simplenews-subscriber'),
+      '#token_types' => array('simplenews-newsletter', 'node', 'simplenews-subscriber'),
     );
   }
 
@@ -588,7 +588,7 @@ function simplenews_admin_newsletter_form($form, &$form_state, SimplenewsNewslet
 }
 
 /**
- * Form validation callback for a newsletter category form.
+ * Form validation callback for a newsletter form.
  */
 function simplenews_admin_newsletter_form_validate($form, &$form_state) {
   if ($form_state['clicked_button']['#value'] != t('Delete')) {
@@ -601,7 +601,7 @@ function simplenews_admin_newsletter_form_validate($form, &$form_state) {
 }
 
 /**
- * Form submit callback for a newsletter category form.
+ * Form submit callback for a newsletter form.
  */
 function simplenews_admin_newsletter_form_submit($form, &$form_state) {
   //dpm($form_state);
@@ -616,13 +616,13 @@ function simplenews_admin_newsletter_form_submit($form, &$form_state) {
 
   switch (simplenews_newsletter_save($newsletter)) {
     case SAVED_NEW:
-      drupal_set_message(t('Created new newsletter category %name.', array('%name' => _simplenews_newsletter_name($newsletter))));
-      watchdog('simplenews', 'Created new newsletter category %name.', array('%name' => _simplenews_newsletter_name($newsletter), WATCHDOG_NOTICE, l(t('edit'), 'admin/config/services/simplenews/categories/' . $newsletter->newsletter_id . '/edit')));
+      drupal_set_message(t('Created new newsletter %name.', array('%name' => _simplenews_newsletter_name($newsletter))));
+      watchdog('simplenews', 'Created new newsletter %name.', array('%name' => _simplenews_newsletter_name($newsletter), WATCHDOG_NOTICE, l(t('edit'), 'admin/config/services/simplenews/categories/' . $newsletter->newsletter_id . '/edit')));
       break;
 
     case SAVED_UPDATED:
-      drupal_set_message(t('Updated newsletter category %name.', array('%name' => _simplenews_newsletter_name($newsletter))));
-      watchdog('simplenews', 'Updated newsletter category %name.', array('%name' => _simplenews_newsletter_name($newsletter)), WATCHDOG_NOTICE, l(t('edit'), 'admin/config/services/simplenews/categories/' . $newsletter->newsletter_id . '/edit'));
+      drupal_set_message(t('Updated newsletter %name.', array('%name' => _simplenews_newsletter_name($newsletter))));
+      watchdog('simplenews', 'Updated newsletter %name.', array('%name' => _simplenews_newsletter_name($newsletter)), WATCHDOG_NOTICE, l(t('edit'), 'admin/config/services/simplenews/categories/' . $newsletter->newsletter_id . '/edit'));
       break;
   }
 
@@ -632,35 +632,35 @@ function simplenews_admin_newsletter_form_submit($form, &$form_state) {
 }
 
 /**
- * Menu callback: Delete newsletter category.
+ * Menu callback: Delete newsletter.
  *
  * @see simplenews_admin_newsletter_delete_submit()
  */
-function simplenews_admin_newsletter_delete($form, &$form_state, $category) {
-  // Store some category values for submit handling.
+function simplenews_admin_newsletter_delete($form, &$form_state, $newsletter) {
+  // Store some newsletter values for submit handling.
   $form = array();
-  $form['newsletter_id'] = array('#type' => 'value', '#value' => $category->newsletter_id);
-  $form['name'] = array('#type' => 'value', '#value' => _simplenews_newsletter_name($category));
+  $form['newsletter_id'] = array('#type' => 'value', '#value' => $newsletter->newsletter_id);
+  $form['name'] = array('#type' => 'value', '#value' => _simplenews_newsletter_name($newsletter));
 
   $form['notice'] = array(
     '#markup' => '<p><strong>' . t('Note: All subscriptions associated with this newsletter will be lost.') . '</strong></p>',
   );
 
-  return confirm_form($form, t('Are you sure you want to delete category %name?', array('%name' => _simplenews_newsletter_name($category))), 'admin/config/services/simplenews', t('This action cannot be undone.'), t('Delete'), t('Cancel')
+  return confirm_form($form, t('Are you sure you want to delete the newsletter %name?', array('%name' => _simplenews_newsletter_name($newsletter))), 'admin/config/services/simplenews', t('This action cannot be undone.'), t('Delete'), t('Cancel')
   );
 }
 
 /**
- * Form submit callback for deleting a simplenews category.
+ * Form submit callback for deleting a simplenews.
  */
 function simplenews_admin_newsletter_delete_submit($form, &$form_state) {
   $newsletter_id = $form_state['values']['newsletter_id'];
   $name = $form_state['values']['name'];
 
-  // Delete newsletter category and associated taxonomy term.
+  // Delete newsletter and associated taxonomy term.
   // Subscriptions are deleted by simplenews_simplenews_newsletter_delete()
   simplenews_newsletter_delete($newsletter_id);
-  drupal_set_message(t('Newsletter category %name has been deleted.', array('%name' => $name)));
+  drupal_set_message(t('Newsletter %name has been deleted.', array('%name' => $name)));
 
   $form_state['redirect'] = 'admin/config/services/simplenews';
   return;
@@ -953,11 +953,11 @@ function simplenews_subscription_list_remove($form, &$form_state) {
     '#tree' => TRUE,
   );
 
-  foreach (simplenews_newsletter_get_all() as $category) {
-    $form['newsletters'][$category->newsletter_id] = array(
+  foreach (simplenews_newsletter_get_all() as $newsletter) {
+    $form['newsletters'][$newsletter->newsletter_id] = array(
       '#type' => 'checkbox',
-      '#title' => check_plain(_simplenews_newsletter_name($category)),
-      '#description' => _simplenews_newsletter_description($category),
+      '#title' => check_plain(_simplenews_newsletter_name($newsletter)),
+      '#description' => _simplenews_newsletter_description($newsletter),
     );
   }
 
@@ -1413,7 +1413,7 @@ function simplenews_admin_settings_subscription($form, &$form_state) {
 
     $form['subscription_mail']['token_help']['browser'] = array(
       '#theme' => 'token_tree',
-      '#token_types' => array('simplenews-category', 'simplenews-subscriber'),
+      '#token_types' => array('simplenews-newsletter', 'simplenews-subscriber'),
     );
   }
 
@@ -1494,7 +1494,7 @@ function simplenews_admin_settings_subscription($form, &$form_state) {
     '#title' => t('Body text for unchanged combined confirmation mail'),
     '#default_value' => simplenews_subscription_confirmation_text('combined_body_unchanged'),
     '#rows' => 5,
-    '#description' => t('This body is used when there are no change requests which have no effect, e.g trying to subscribe when already being subscribed to a category.')
+    '#description' => t('This body is used when there are no change requests which have no effect, e.g trying to subscribe when already being subscribed to a newsletter.')
   );
 
   $form['subscription_mail']['combined']['simplenews_confirm_combined_line_subscribe_unsubscribed'] = array(
@@ -1830,8 +1830,8 @@ function simplenews_node_tab_send_form($form, &$form_state, $node) {
   if (module_exists('translation') && translation_supported_type($node->type)
     && (isset($node->translate) && ($node->tnid > 0) && ($node->tnid != $node->nid))) {
     $form['simplenews']['#description'] = t('This newsletter issue is part of a translation set. Sending this set is controlled from the <a href="@link">translation source newsletter</a>.', array('@link' => url('node/' . $node->tnid)));
-    // @todo Translated nodes must also have the same Category!
-    //      Move the category in here and give the user feedback.
+    // @todo Translated nodes must also have the same newsletter!
+    //      Move the newsletter in here and give the user feedback.
   }
   else {
     // Show newsletter sending options if newsletter has not been send yet.

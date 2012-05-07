@@ -496,10 +496,10 @@ function simplenews_confirm_subscription() {
   drupal_add_html_head($noindex, 'simplenews-noindex');
 
   if ($subscriber = simplenews_subscriber_load_by_hash($code)) {
-    // Extract the category id.
+    // Extract the newsletter id.
     list($snid, $newsletter_id) = explode('t', drupal_substr($code, 10));
     if ($newsletter_id > 0) {
-      $category = simplenews_newsletter_load($newsletter_id);
+      $newsletter = simplenews_newsletter_load($newsletter_id);
     }
     // The confirmation page called with two arguments will display a confirmation question.
     // When called with three of more arguments the user will be directed to the
@@ -507,10 +507,10 @@ function simplenews_confirm_subscription() {
     // to the confirmation page.
     if (empty($arguments)) {
       if ($op == 'remove') {
-        return drupal_get_form('simplenews_confirm_removal_form', $subscriber->mail, $category);
+        return drupal_get_form('simplenews_confirm_removal_form', $subscriber->mail, $newsletter);
       }
       elseif ($op == 'add') {
-        return drupal_get_form('simplenews_confirm_add_form', $subscriber->mail, $category);
+        return drupal_get_form('simplenews_confirm_add_form', $subscriber->mail, $newsletter);
       }
       elseif ($op == 'combined') {
         // Redirect and display message if no changes are available.
@@ -530,7 +530,7 @@ function simplenews_confirm_subscription() {
           $path = $path . '/' . implode('/', $arguments);
           drupal_goto($path);
         }
-        drupal_set_message(t('%user was unsubscribed from the %newsletter mailing list.', array('%user' => $subscriber->mail, '%newsletter' => _simplenews_newsletter_name($category))));
+        drupal_set_message(t('%user was unsubscribed from the %newsletter mailing list.', array('%user' => $subscriber->mail, '%newsletter' => _simplenews_newsletter_name($newsletter))));
         drupal_goto(variable_get('site_frontpage', 'node'));
       }
       elseif ($op == 'add') {
@@ -539,7 +539,7 @@ function simplenews_confirm_subscription() {
           $path = $path . '/' . implode('/', $arguments);
           drupal_goto($path);
         }
-        drupal_set_message(t('%user was added to the %newsletter mailing list.', array('%user' => $subscriber->mail, '%newsletter' => _simplenews_newsletter_name($category))));
+        drupal_set_message(t('%user was added to the %newsletter mailing list.', array('%user' => $subscriber->mail, '%newsletter' => _simplenews_newsletter_name($newsletter))));
         drupal_goto(variable_get('site_frontpage', 'node'));
       }
       elseif ($op == 'combined') {

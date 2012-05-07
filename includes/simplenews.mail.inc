@@ -788,7 +788,7 @@ function simplenews_build_subscribe_mail(&$message, $params) {
 
   $message['subject'] = simplenews_subscription_confirmation_text('subscribe_subject', $langcode);
   $message['subject'] = token_replace($message['subject'], $context, array('sanitize' => FALSE));
-  if (simplenews_user_is_subscribed($context['simplenews_subscriber']->mail, $context['category']->newsletter_id)) {
+  if (simplenews_user_is_subscribed($context['simplenews_subscriber']->mail, $context['newsletter']->newsletter_id)) {
     $body = simplenews_subscription_confirmation_text('subscribe_subscribed', $langcode);
   }
   else {
@@ -818,12 +818,12 @@ function simplenews_build_combined_mail(&$message, $params) {
 
   $changes_list = '';
   $actual_changes = 0;
-  foreach (simplenews_confirmation_get_changes_list($context['simplenews_subscriber'], $changes, $langcode) as $tid => $change) {
+  foreach (simplenews_confirmation_get_changes_list($context['simplenews_subscriber'], $changes, $langcode) as $newsletter_id => $change) {
     $changes_list .= ' - ' . $change . "\n";
 
     // Count the actual changes.
-    $subscribed = simplenews_user_is_subscribed($context['simplenews_subscriber']->mail, $tid);
-    if ($changes[$tid] == 'subscribe' && !$subscribed || $changes[$tid] == 'unsubscribe' && $subscribed) {
+    $subscribed = simplenews_user_is_subscribed($context['simplenews_subscriber']->mail, $newsletter_id);
+    if ($changes[$newsletter_id] == 'subscribe' && !$subscribed || $changes[$newsletter_id] == 'unsubscribe' && $subscribed) {
       $actual_changes++;
     }
   }
@@ -856,7 +856,7 @@ function simplenews_build_unsubscribe_mail(&$message, $params) {
   $message['subject'] = simplenews_subscription_confirmation_text('subscribe_subject', $langcode);
   $message['subject'] = token_replace($message['subject'], $context, array('sanitize' => FALSE));
 
-  if (simplenews_user_is_subscribed($context['simplenews_subscriber']->mail, $context['category']->tid)) {
+  if (simplenews_user_is_subscribed($context['simplenews_subscriber']->mail, $context['newsletter']->newsletter_id)) {
     $body = simplenews_subscription_confirmation_text('unsubscribe_subscribed', $langcode);
     $message['body'][] = token_replace($body, $context, array('sanitize' => FALSE));
   }

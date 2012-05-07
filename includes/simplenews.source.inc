@@ -427,7 +427,7 @@ class SimplenewsSourceNode implements SimplenewsSourceNodeInterface {
   }
 
   /**
-   * Returns the corresponding category.
+   * Returns the corresponding newsletter.
    */
   public function getNewsletter() {
     return $this->newsletter;
@@ -501,7 +501,7 @@ class SimplenewsSourceNode implements SimplenewsSourceNodeInterface {
    */
   function getTokenContext() {
     return array(
-      'category' => $this->getNewsletter(),
+      'newsletter' => $this->getNewsletter(),
       'simplenews_subscriber' => $this->getSubscriber(),
       'node' => $this->getNode(),
     );
@@ -672,7 +672,7 @@ class SimplenewsSourceNode implements SimplenewsSourceNodeInterface {
     if ($cache = $this->cache->get('build', 'body:' . $format)) {
       return $cache;
     }
-    $body = theme('simplenews_newsletter_body', array('build' => $this->build($format), 'category' => $this->getNewsletter(), 'language' => $this->getLanguage(), 'simplenews_subscriber' => $this->getSubscriber()));
+    $body = theme('simplenews_newsletter_body', array('build' => $this->build($format), 'newsletter' => $this->getNewsletter(), 'language' => $this->getLanguage(), 'simplenews_subscriber' => $this->getSubscriber()));
     $this->cache->set('build', 'body:' . $format, $body);
     return $body;
   }
@@ -740,7 +740,7 @@ class SimplenewsSourceNode implements SimplenewsSourceNodeInterface {
     // Build and buffer message footer
     $footer = theme('simplenews_newsletter_footer', array(
       'build' => $this->build($format),
-      'category' => $this->getNewsletter(),
+      'newsletter' => $this->getNewsletter(),
       'context' => $this->getTokenContext(),
       'key' => $this->getKey(),
       'language' => $this->getLanguage(),

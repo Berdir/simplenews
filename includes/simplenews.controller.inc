@@ -16,7 +16,7 @@ class SimplenewsNewsletterController extends EntityAPIController {
       'priority' => variable_get('simplenews_priority', SIMPLENEWS_PRIORITY_NONE),
       'receipt' => variable_get('simplenews_receipt', 0),
       'from_name' => variable_get('simplenews_from_name', variable_get('site_name', 'Drupal')),
-      'email_subject' => '[[simplenews-category:name]] [node:title]',
+      'email_subject' => '[[simplenews-newsletter:name]] [node:title]',
       'from_address' => variable_get('simplenews_from_address', variable_get('site_mail', ini_get('sendmail_from'))),
       'hyperlinks' => 1,
       'new_account' => 'none',
