@@ -773,8 +773,19 @@ function simplenews_update_7006() {
 /**
  * Switch to newsletter entities
  */
-//function simplenews_update_7007() {
-//
-// Load all categories and safe them as newsletters. Preserve tid as primary keys.
-//
-//}
+function simplenews_update_7007() {
+  // Create status field(instance) for newsletter issue content types
+  // Create sent_count field(instance) ...
+  // Move status values from {simplenews_newsletter} to field
+  // Move sent_count values from {simplenews_newsletter} to field
+  // Delete {simplenews_newsletter}
+  // Create entity SimplenewsNewsletter
+  //  Including schema generation
+  // Create entity reference field for newsletter issue content types
+  // Copy terms to entity
+  // Copy term references
+  // Delete term field
+  // Delete terms ?? (if no other term reference exists)
+
+  // Rename variables
+}
