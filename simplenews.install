@@ -654,9 +654,37 @@ function simplenews_update_7000() {
   }
 
 
-
+  
   // @todo Add return text about checking of Newsletter Category settings.
   // @todo Add return text about Block checkboxes
+
+  // Convert old content type settings.
+  module_load_include('module', 'node');
+  module_load_include('module', 'simplenews');
+
+  // Update the machine name of the simplenews vocabulary.
+  if ($vid = variable_get('simplenews_vid', '')) {
+    db_update('taxonomy_vocabulary')
+      ->fields(array(
+        'machine_name' => 'newsletter',
+      ))
+      ->condition('vid', $vid)
+      ->execute();
+    $field_name = 'taxonomy_vocabulary_' . $vid;
+    variable_set('simplenews_category_field', $field_name);
+    $field = field_info_field($field_name);
+    $field['settings']['allowed_values'][0]['vocabulary'] = 'newsletter';
+    field_update_field($field);
+  }
+  variable_del('simplenews_vid');
+
+  $content_types = variable_get('simplenews_content_types');
+  if (!empty($content_types)) {
+    foreach ($content_types as $simplenews_content_type) {
+      variable_set('simplenews_content_type_' . $simplenews_content_type, TRUE);
+    }
+  }
+  variable_del('simplenews_content_types');
 }
 
 /**
