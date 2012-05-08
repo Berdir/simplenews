@@ -515,7 +515,19 @@ function simplenews_get_content_types() {
  * @ingroup issue
  */
 function simplenews_issue_fields_add($type) {
-  // Newsletter reference
+  simplenews_issue_newsletter_field_add($type);
+  simplenews_issue_status_field_add($type);
+  simplenews_issue_sent_count_field_add($type);
+}
+
+/**
+ * Add field for newsletter
+ *
+ * @param $type A node type object.
+ *
+ * @ingroup issue
+ */
+function simplenews_issue_newsletter_field_add($type){
   $field_name = variable_get('simplenews_newsletter_field', 'simplenews_newsletter');
   $field = field_info_field($field_name);
   $instance = field_info_instance('node', $field_name, $type->type);
@@ -584,7 +596,16 @@ function simplenews_issue_fields_add($type) {
     );
     field_create_instance($instance);
   }
-  // Issue status
+}
+
+/**
+ * Add field for status
+ *
+ * @param $type A node type object.
+ *
+ * @ingroup issue
+ */
+function simplenews_issue_status_field_add($type){
   $field_name = variable_get('simplenews_issue_field', 'simplenews_issue');
   $field = field_info_field($field_name);
   $instance = field_info_instance('node', $field_name, $type->type);
@@ -630,7 +651,16 @@ function simplenews_issue_fields_add($type) {
     );
     field_create_instance($instance);
   }
-  // Issue count
+}
+
+/**
+ * Add field for status
+ *
+ * @param $type A node type object.
+ *
+ * @ingroup issue
+ */
+function simplenews_issue_sent_count_field_add($type){
   $field_name = variable_get('simplenews_sent_count_field', 'simplenews_sent_count');
   $field = field_info_field($field_name);
   $instance = field_info_instance('node', $field_name, $type->type);
