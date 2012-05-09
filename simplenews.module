@@ -529,8 +529,8 @@ function simplenews_issue_fields_add($type) {
  */
 function simplenews_issue_newsletter_field_add($type){
   $field_name = variable_get('simplenews_newsletter_field', 'simplenews_newsletter');
-  $field = field_info_field($field_name);
-  $instance = field_info_instance('node', $field_name, $type->type);
+  debug($field = field_info_field($field_name), 'field');
+  debug($instance = field_info_instance('node', $field_name, $type->type), 'instance');
   if (empty($field)) {
     $field = array(
       'field_name' => $field_name,

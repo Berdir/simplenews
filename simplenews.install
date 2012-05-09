@@ -774,18 +774,184 @@ function simplenews_update_7006() {
  * Switch to newsletter entities
  */
 function simplenews_update_7007() {
-  // Create status field(instance) for newsletter issue content types
-  // Create sent_count field(instance) ...
-  // Move status values from {simplenews_newsletter} to field
-  // Move sent_count values from {simplenews_newsletter} to field
-  // Delete {simplenews_newsletter}
-  // Create entity SimplenewsNewsletter
-  //  Including schema generation
-  // Create entity reference field for newsletter issue content types
+  // Add fields and field instances for all simplenews content types.
+  // Remember the manipulated types for later usage.
+  $simplenews_content_types = array();
+  foreach (node_type_get_types() as $type) {
+    if (variable_get('simplenews_content_type_' . $type->type, FALSE)) {
+      $simplenews_content_types[] = $type;
+      simplenews_issue_status_field_add($type);
+      simplenews_issue_sent_count_field_add($type);
+    }
+  }
+//
+  // Copy issue status and sent count to the created fields.
+  $attributes = array();
+  $attributes[] = 'nid';
+  if (db_field_exists('simplenews_newsletter', 'sent_subscriber_count')){
+    $attributes[] = 'sent_subscriber_count';
+  }
+  if (db_field_exists('simplenews_newsletter', 'status')){
+    $attributes[] = 'status';
+  }
+  $issue_data = db_query('SELECT ' . implode(', ', $attributes) . ' FROM {simplenews_newsletter}')->fetchAllAssoc('nid');
+  foreach ($issue_data as $nid => $data) {
+    $node = node_load($nid);
+    if (isset($data->status)) {
+      simplenews_issue_status($node, $data->status);
+    }
+    if (isset($data->sent_subscriber_count)) {
+      simplenews_issue_sent_count($node, $data->sent_subscriber_count);
+    }
+    node_save($node);
+  }
+
+  // Delete {simplenews_newsletter}.
+  db_drop_table('simplenews_newsletter');
+
+  // Create schema for entity SimplenewsNewsletter.
+  $table = array(
+    'description' => 'Simplenews newsletter categories.',
+    'fields' => array(
+      'newsletter_id' => array(
+        'description' => '...',
+        'type' => 'serial',
+        'not null' => TRUE,
+      ),
+      'name' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'The newsletter name.',
+        'translatable' => TRUE,
+      ),
+      'description' => array(
+        'type' => 'text',
+        'not null' => FALSE,
+        'size' => 'big',
+        'description' => 'A description of the newsletter.',
+        'translatable' => TRUE,
+      ),
+      'format' => array(
+        'type' => 'varchar',
+        'length' => 8,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'Format of the newsletter email (plain, html).',
+      ),
+      'priority' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'size' => 'tiny',
+        'description' => 'Email priority according to RFC 2156 and RFC 5231 (0 = none; 1 = highest; 2 = high; 3 = normal; 4 = low; 5 = lowest).',
+      ),
+      'receipt' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'size' => 'tiny',
+        'description' => 'Boolean indicating request for email receipt confirmation according to RFC 2822.',
+      ),
+      'from_name' => array(
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'Sender name for newsletter emails.',
+      ),
+      'email_subject' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'Subject of newsletter email. May contain tokens.',
+      ),
+      'from_address' => array(
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'Sender address for newsletter emails',
+      ),
+      'hyperlinks' => array(
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Flag indicating type of hyperlink conversion (1 = hyperlinks are in-line; 0 = hyperlinks are placed at email bottom).',
+      ),
+      'new_account' => array(
+        'type' => 'varchar',
+        'length' => 12,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'How to treat subscription at account creation (none = None; on = Default on; off = Default off; silent = Invisible subscription).',
+      ),
+      'opt_inout' => array(
+        'type' => 'varchar',
+        'length' => 12,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'How to treat subscription confirmation (hidden = Newsletter is hidden from the user; single = Single opt-in; double = Double opt-in).',
+      ),
+      'block' => array(
+        'description' => 'For this category a subscription block is available.',
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'weight' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'The weight of this term in relation to other terms.',
+      ),
+    ),
+    'primary key' => array('newsletter_id'),
+  );
+   db_create_table('simplenews_newsletter', $table);
+
+   // TODO: Finish upgrade path.
+  // Add field and field instance for newslleter entity reference.
+//  foreach ($simplenews_content_types as $type) {
+//    // TODO: For some reason the field is not created.
+//    simplenews_issue_newsletter_field_add($type);
+//  }
   // Copy terms to entity
-  // Copy term references
+//  $term_newsletter_map = array();
+//  if ($tree = taxonomy_get_tree(variable_get('simplenews_vid', ''))) {
+//    $categories = simplenews_categories_load_multiple();
+//    foreach ($tree as $term) {
+//      // Create a newsletter for each newsletter taxonomy term.
+//      if (!isset($categories[$term->tid])) {
+//        $category = $categories[$term->tid];
+//        $values = db_query('SELECT * FROM {simplenews_category} where tid = :tid', array(':tid' => $term->tid))->fetchAssoc();
+//        $values['name'] = $category['name'];
+//        $values['description'] = $category['description'];
+//        $newsletter = entity_create('simplenews_newsletter', $values);
+//        entity_save($newsletter);
+//        $term_newsletter_map[$term->tid] = $newsletter->newsletter_id;
+//      }
+//    }
+//  }
+
+//  // Copy term references
+//  $issue_data = db_query('SELECT nid, $tid FROM {simplenews_newsletter} ')->fetchAllKeyed();
+//  foreach ($issue_data as $nid => $tid) {
+//    $node = node_load($nid);
+//    simplenews_issue_newsletter_id($node, $term_newsletter_map[$tid]);
+//    node_save($node);
+//  }
+  // TODO
   // Delete term field
   // Delete terms ?? (if no other term reference exists)
 
   // Rename variables
+  // Delete variables
+  // * simplenews_vid
 }
