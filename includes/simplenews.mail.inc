@@ -16,7 +16,7 @@
  * @ingroup issue
  */
 function simplenews_add_node_to_spool($node) {
-  if(!simplenews_issue_newsletter_id($node)) {
+  if (!simplenews_issue_newsletter_id($node)) {
     throw new Exception('No newsletter asigned to issue.');
   }
   // To send the newsletter, the node id and target email addresses
@@ -39,7 +39,7 @@ function simplenews_add_node_to_spool($node) {
     ->execute();
 
   // Update simplenews newsletter status to send pending.
-  simplenews_newsletter_update_sent_status($node);
+  simplenews_issue_update_sent_status($node);
 }
 
 /**
@@ -577,7 +577,7 @@ function simplenews_send_status_update() {
     }
   }
   // Determine which nodes are send per translation group and per individual node.
-  foreach ($counts as $newsletter_id=> $node_count) {
+  foreach ($counts as $newsletter_id => $node_count) {
     // The sum of emails per tnid is the combined status result for the group of translated nodes.
     // Untranslated nodes have tnid == 0 which will be ignored later.
     $sum[$newsletter_id] = array_sum($node_count);

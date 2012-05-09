@@ -8,7 +8,9 @@
  */
 
 /**
- * Newsletter class.
+ * Class for simplenews_newsleter entity.
+ *
+ * @incroup newsletter
  */
 class SimplenewsNewsletter extends Entity {
 
@@ -27,6 +29,11 @@ class SimplenewsNewsletter extends Entity {
   public $block;
   public $weight;
 
+  /**
+   * Override Entity
+   *
+   * Prevent failure if the entity system ist not fully loaded.
+   */
   protected function setUp() {
     // Hack to get arount the not loaded entity system.
     // TODO: fix this and remove hack.
@@ -35,6 +42,11 @@ class SimplenewsNewsletter extends Entity {
     }
   }
 
+  /**
+   * Override Entity
+   *
+   * Prevent failure if the entity system ist not fully loaded.
+   */
   public function __sleep() {
     // TODO: fix this and remove hack.
     $vars = get_object_vars($this);
@@ -42,14 +54,11 @@ class SimplenewsNewsletter extends Entity {
     return array_combine(array_keys($vars), (array_keys($vars)));
   }
 
-  protected function defaultLabel() {
-    return $this->name;
-  }
-
+  /**
+   * Override Entity
+   */
   protected function defaultUri() {
     return array('path' => 'admin/config/services/simplenews/categories/' . $this->identifier() . '/edit');
   }
 
 }
-
-?>

@@ -261,7 +261,7 @@ function simplenews_issue_send($nids) {
     }
 
     if ($node->status == NODE_NOT_PUBLISHED) {
-      simplenews_newsletter_update_sent_status($node, SIMPLENEWS_COMMAND_SEND_PUBLISH);
+      simplenews_issue_update_sent_status($node, SIMPLENEWS_COMMAND_SEND_PUBLISH);
       drupal_set_message(t('Newsletter %title is unpublished and will be sent on publish.', array('%title' => $node->title)));
       continue;
     }
@@ -314,7 +314,7 @@ function simplenews_build_issue_filter_query(SelectQueryInterface $query) {
  */
 function simplenews_admin_categories() {
   $form['#tree'] = TRUE;
-  if ($newsletters = simplenews_newsletter_get_public()) {
+  if ($newsletters = simplenews_newsletter_get_visible()) {
     foreach ($newsletters as $newsletter) {
       $form[$newsletter->newsletter_id]['#newsletter'] = $newsletter;
       $form[$newsletter->newsletter_id]['name'] = array('#markup' => check_plain(_simplenews_newsletter_name($newsletter)));

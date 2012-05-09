@@ -55,7 +55,7 @@ function simplenews_subscriptions_account_form(&$form, &$form_state, $subscriber
 
   // Get newsletters for subscription form checkboxes.
   // Newsletters with opt-in/out method 'hidden' will not be listed.
-  foreach (simplenews_newsletter_get_public() as $newsletter) {
+  foreach (simplenews_newsletter_get_visible() as $newsletter) {
     $options[$newsletter->newsletter_id] = check_plain(_simplenews_newsletter_name($newsletter));
     $default_value[$newsletter->newsletter_id] = FALSE;
   }
@@ -228,7 +228,7 @@ function simplenews_subscriptions_page_form($form, &$form_state, $code = NULL) {
 
   // Get newsletters for subscription form checkboxes.
   // Newsletters with opt-in/out method 'hidden' will not be listed.
-  foreach (simplenews_newsletter_get_public() as $newsletter) {
+  foreach (simplenews_newsletter_get_visible() as $newsletter) {
     $options[$newsletter->newsletter_id] = check_plain($newsletter->name);
     $default_value[$newsletter->newsletter_id] = FALSE;
   }
@@ -394,7 +394,7 @@ function simplenews_subscriptions_multi_block_form($form, &$form_state) {
 
   // Get newsletters for subscription form checkboxes.
   // Newsletters with opt-in/out method 'hidden' will not be listed.
-  foreach (simplenews_newsletter_get_public() as $newsletter) {
+  foreach (simplenews_newsletter_get_visible() as $newsletter) {
     $options[$newsletter->newsletter_id] = check_plain($newsletter->name);
     $default_value[$newsletter->newsletter_id] = FALSE;
   }
@@ -720,7 +720,7 @@ function simplenews_subscriptions_admin_form($form, &$form_state, $snid) {
 
   // Get newsletters for subscription form checkboxes.
   // Newsletters with opt-in/out method 'hidden' will not be listed.
-  foreach (simplenews_newsletter_get_public() as $newsletter) {
+  foreach (simplenews_newsletter_get_visible() as $newsletter) {
     $options[$newsletter->newsletter_id] = check_plain($newsletter->name);
     $default_value[$newsletter->newsletter_id] = FALSE;
   }

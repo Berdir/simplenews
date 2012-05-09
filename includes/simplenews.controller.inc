@@ -6,8 +6,17 @@
  *
  * @ingroup simplenews
  */
+
+/**
+ * Controller for simplenews_newsletter entity.
+ *
+ * @ingroup newsletter
+ */
 class SimplenewsNewsletterController extends EntityAPIController {
 
+  /**
+   * Override EntityAPIController.
+   */
   public function create(array $values = array()) {
     $values += array(
       'name' => '',
@@ -27,12 +36,21 @@ class SimplenewsNewsletterController extends EntityAPIController {
     return parent::create($values);
   }
 
+  /**
+   * Override EntityAPIController.
+   *
+   * Make sure all subscriptions to the newsletters gets deleted.
+   *
+   * @param $transaction
+   *   Optionally a DatabaseTransaction object to use. Allows overrides to pass
+   *   in their transaction object.
+   */
   public function delete($ids, DatabaseTransaction $transaction = NULL) {
     $names = array();
     foreach (simplenews_newsletter_load_multiple($ids) as $newsletter) {
       $names[$newsletter->newsletter_id] = _simplenews_newsletter_name($newsletter);
     }
-    
+
     parent::delete($ids, $transaction);
 
     foreach ($ids as $id) {
@@ -48,5 +66,3 @@ class SimplenewsNewsletterController extends EntityAPIController {
     }
   }
 }
-
-?>

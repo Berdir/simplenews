@@ -340,11 +340,6 @@ function simplenews_node_view($node, $view_mode) {
     'node' => $node,
   );
 
-//  if ($newsletter = simplenews_newsletter_load($node->nid)) {
-//    if ($category = simplenews_newsletter_load($newsletter->newsletter_id)) {
-//      $context['category'] = $category;
-//    }
-//  }
   // If the current user is a subscriber, extend context.
   if ($GLOBALS['user']->uid > 0 && $subscriber = simplenews_subscriber_load_by_mail($GLOBALS['user']->mail)) {
     $context['simplenews_subscriber'] = $subscriber;
@@ -396,12 +391,6 @@ function simplenews_node_update($node) {
     module_load_include('inc', 'simplenews', 'includes/simplenews.mail');
     simplenews_add_node_to_spool($node);
   }
-  else {
-    // simplenews_update_sent_status() already saves the node, only need to do
-    // it when not sending.
-//    TODO: Use field
-//    simplenews_newsletter_save($node->simplenews);
-  }
 }
 
 /**
@@ -411,8 +400,6 @@ function simplenews_node_delete($node) {
   if (!simplenews_check_node_types($node->type)) {
     return;
   }
-//    TODO: Use Field.
-//  simplenews_newsletter_delete($node);
   // Check if pending emails of this newsletter issue exist and delete these too.
   module_load_include('inc', 'simplenews', 'includes/simplenews.mail');
   $count = simplenews_delete_spool(array('nid' => $node->nid));
@@ -428,38 +415,6 @@ function simplenews_node_delete($node) {
   }
   drupal_set_message(t('Newsletter %title was deleted.', array('%title' => $node->title)));
 }
-
-///**
-// * Implements hook_node_load().
-// */
-//function simplenews_node_load($nodes, $types) {
-//  // We only support Simplenews enabled content types.
-//  if (!simplenews_check_node_types($types)) {
-//    return;
-//  }
-//
-////  TODO: Use field.
-////  $newsletters = simplenews_newsletter_load_multiple(array_keys($nodes));
-//  foreach ($nodes as $nid => $node) {
-//    // We can have multiple nodes where not all of them are simplenews enabled
-//    // content type. So we need to check for each individual node is it
-//    // simplenews enabled.
-//    if (!simplenews_check_node_types($node->type)) {
-//      continue;
-//    }
-//
-//    // Make sure every $node has valid newsletter data as object
-//    $newsletter = array();
-//    if (isset($newsletters[$nid])) {
-//      $newsletter = $newsletters[$nid];
-//    }
-//    if (!$newsletter) {
-////    TODO: Use Field.
-////      $newsletter = (object) simplenews_newsletter_defaults($node);
-//    }
-//    $nodes[$nid]->simplenews = $newsletter;
-//  }
-//}
 
 /**
  * Check if content type(s) is enabled for use as Simplenews newsletter.
@@ -527,10 +482,10 @@ function simplenews_issue_fields_add($type) {
  *
  * @ingroup issue
  */
-function simplenews_issue_newsletter_field_add($type){
+function simplenews_issue_newsletter_field_add($type) {
   $field_name = variable_get('simplenews_newsletter_field', 'simplenews_newsletter');
-  debug($field = field_info_field($field_name), 'field');
-  debug($instance = field_info_instance('node', $field_name, $type->type), 'instance');
+  $field = field_info_field($field_name);
+  $instance = field_info_instance('node', $field_name, $type->type);
   if (empty($field)) {
     $field = array(
       'field_name' => $field_name,
@@ -605,7 +560,7 @@ function simplenews_issue_newsletter_field_add($type){
  *
  * @ingroup issue
  */
-function simplenews_issue_status_field_add($type){
+function simplenews_issue_status_field_add($type) {
   $field_name = variable_get('simplenews_issue_field', 'simplenews_issue');
   $field = field_info_field($field_name);
   $instance = field_info_instance('node', $field_name, $type->type);
@@ -660,7 +615,7 @@ function simplenews_issue_status_field_add($type){
  *
  * @ingroup issue
  */
-function simplenews_issue_sent_count_field_add($type){
+function simplenews_issue_sent_count_field_add($type) {
   $field_name = variable_get('simplenews_sent_count_field', 'simplenews_sent_count');
   $field = field_info_field($field_name);
   $instance = field_info_instance('node', $field_name, $type->type);
@@ -824,6 +779,7 @@ function simplenews_entity_info() {
       'fieldable' => TRUE,
       'entity keys' => array(
         'id' => 'newsletter_id',
+        'label' => 'name',
       ),
       'label callback' => 'entity_class_label',
       'view modes' => array(
@@ -936,9 +892,9 @@ function simplenews_user_insert(&$edit, $account, $newsletter) {
 
   // Process subscription check boxes.
   if (isset($edit['newsletters'])) {
-    $nl_newsletter_ids = array_keys(array_filter($edit['newsletters']));
-    if (!empty($nl_newsletter_ids)) {
-      $newsletters = simplenews_newsletter_load_multiple($nl_newsletter_ids);
+    $newsletter_ids = array_keys(array_filter($edit['newsletters']));
+    if (!empty($newsletter_ids)) {
+      $newsletters = simplenews_newsletter_load_multiple($newsletter_ids);
       foreach ($newsletters as $newsletter) {
         simplenews_subscribe_user($account->mail, $newsletter->newsletter_id, FALSE, 'website', $edit['language']);
         drupal_set_message(t('You have been subscribed to %newsletter.', array('%newsletter' => _simplenews_newsletter_name($newsletter))));
@@ -1100,7 +1056,7 @@ function simplenews_user_view($account, $build_mode) {
     );
     // Collect newsletter to which the current user is subscribed.
     // 'hidden' newsletters are not listed.
-    $newsletters = simplenews_newsletter_get_public();
+    $newsletters = simplenews_newsletter_get_visible();
     $subscription = simplenews_subscriber_load_by_mail($account->mail);
 
     foreach ($newsletters as $newsletter) {
@@ -1147,7 +1103,7 @@ function simplenews_block_info() {
   );
 
   // Only list a block if the newsletter is not 'hidden' and marked to provide a block.
-  foreach (simplenews_newsletter_get_public(array('block' => '1')) as $newsletter) {
+  foreach (simplenews_newsletter_get_visible(array('block' => '1')) as $newsletter) {
     //@todo 1. without form -> by role; 2. with form -> user caching with refresh on subscribe/unsubscribe (option as setting) or no caching
     $blocks[$newsletter->newsletter_id] = array(
       'info' => t('Newsletter: @title', array('@title' => _simplenews_newsletter_name($newsletter))),
@@ -1251,7 +1207,7 @@ function simplenews_block_view($delta = '') {
     return NULL;
   }
   else {
-    $newsletters = simplenews_newsletter_get_public(array('block' => '1'));
+    $newsletters = simplenews_newsletter_get_visible(array('block' => '1'));
 
     // Only display a block if $delta is a valid newsletter term id.
     if (in_array($delta, array_keys($newsletters))) {
@@ -1867,6 +1823,8 @@ function simplenews_newsletter_load($newsletter_id, $reset = FALSE) {
 /**
  * Get list of simplenews categories with translated names.
  *
+ * @todo Maybe refactor this method to simplenews_newsletter_name_list.
+ *
  * @return
  *   array of newsletter names. Translated if required.
  *
@@ -1891,7 +1849,7 @@ function simplenews_newsletter_list() {
  *
  * @ingroup newsletter
  */
-function simplenews_newsletter_get_public($conditions = array()) {
+function simplenews_newsletter_get_visible($conditions = array()) {
   $query = new EntityFieldQuery;
   $query
     ->entityCondition('entity_type', 'simplenews_newsletter')
@@ -2483,9 +2441,9 @@ function simplenews_node_tab_access($node) {
  * @param $status
  *   The new status, defaults to SIMPLENEWS_STATUS_SEND_PENDING.
  *
- * @ingroup newsletter
+ * @ingroup issue
  */
-function simplenews_newsletter_update_sent_status($node, $status = SIMPLENEWS_STATUS_SEND_PENDING) {
+function simplenews_issue_update_sent_status($node, $status = SIMPLENEWS_STATUS_SEND_PENDING) {
   // When this node is selected for translation, all translation of this node
   // will be sent too.
   if (module_exists('translation') && translation_supported_type($node->type) && $node->tnid > 0) {
@@ -2502,6 +2460,17 @@ function simplenews_newsletter_update_sent_status($node, $status = SIMPLENEWS_ST
   node_save($node);
 }
 
+/**
+ * Get or set the status of a newsletter issue.
+ *
+ * If there is $value present, the value is set for the issue.
+ *
+ * @param type $node The issue to get or set the status.
+ * @param type $value The status to be set or NULL.
+ * @return int The newsletter status. Defaults to SIMPLENEWS_STATUS_SEND_NOT.
+ *
+ * @ingroup issue
+ */
 function simplenews_issue_status($node, $value = NULL) {
   $field = variable_get('simplenews_issue_field', 'simplenews_issue');
   if ($value) {
@@ -2513,12 +2482,23 @@ function simplenews_issue_status($node, $value = NULL) {
       ),
     );
   }
-  else if ($status = field_get_items('node', $node, $field)) {
+  elseif ($status = field_get_items('node', $node, $field)) {
     return $status[0]['value'];
   }
   return SIMPLENEWS_STATUS_SEND_NOT;
 }
 
+/**
+ * Get or set the sent count of a newsletter issue.
+ *
+ * If there is $value present, the value is set for issue.
+ *
+ * @param type $node The issue to get or set the status.
+ * @param type $value The sent count to be set or NULL.
+ * @return int The newsletter sent count. Defaults to 0.
+ *
+ * @ingroup issue
+ */
 function simplenews_issue_sent_count($node, $value = NULL) {
   $field = variable_get('simplenews_sent_count_field', 'simplenews_sent_count');
   if ($value) {
@@ -2530,12 +2510,23 @@ function simplenews_issue_sent_count($node, $value = NULL) {
       ),
     );
   }
-  else if ($status = field_get_items('node', $node, $field)) {
+  elseif ($status = field_get_items('node', $node, $field)) {
     return $status[0]['value'];
   }
   return 0;
 }
 
+/**
+ * Get or set the newsletter for an issue.
+ *
+ * If there is $value present, the value is set for issue.
+ *
+ * @param type $node The issue to get or set the status.
+ * @param type $value The newsletter id to be set or NULL.
+ * @return int The newsletter id or 0 if not set.
+ *
+ * @ingroup issue
+ */
 function simplenews_issue_newsletter_id($node, $value = NULL) {
   $field = variable_get('simplenews_newsletter_field', 'simplenews_newsletter');
   if ($value) {
@@ -2547,7 +2538,7 @@ function simplenews_issue_newsletter_id($node, $value = NULL) {
       ),
     );
   }
-  else if ($newsletter_id = field_get_items('node', $node, $field)) {
+  elseif ($newsletter_id = field_get_items('node', $node, $field)) {
     return $newsletter_id[0]['target_id'];
   }
   return 0;

@@ -1247,10 +1247,10 @@ class SimpleNewsAdministrationTestCase extends SimplenewsTestCase {
     // bunch to both.
     $subscribers = array();
     drupal_static_reset('simplenews_newsletter_load_multiple');
-    
+
     $groups = array();
     $newsletters = simplenews_newsletter_get_all();
-    foreach ( $newsletters as $newsletter) {
+    foreach ($newsletters as $newsletter) {
       $groups[$newsletter->newsletter_id] = array($newsletter->newsletter_id);
     }
     $groups['all'] = array_keys($groups);

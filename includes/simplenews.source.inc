@@ -691,7 +691,7 @@ class SimplenewsSourceNode implements SimplenewsSourceNodeInterface {
     return $this->getBodyWithFormat('plain');
   }
 
-   /**
+  /**
    * Get the body with the requested format.
    *
    * @param $format
@@ -931,7 +931,7 @@ class SimplenewsSourceCacheBuild extends SimplenewsSourceCacheStatic {
       return FALSE;
     }
 
-     // Only cache data and build information.
+    // Only cache data and build information.
     return in_array($group, array('data', 'build'));
   }
 
