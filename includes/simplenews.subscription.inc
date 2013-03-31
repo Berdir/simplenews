@@ -229,7 +229,7 @@ function simplenews_subscriptions_page_form($form, &$form_state, $code = NULL) {
   // Get newsletters for subscription form checkboxes.
   // Newsletters with opt-in/out method 'hidden' will not be listed.
   foreach (simplenews_category_get_visible() as $newsletter) {
-    $options[$newsletter->tid] = check_plain($newsletter->name);
+    $options[$newsletter->tid] = check_plain(_simplenews_newsletter_name($newsletter));
     $default_value[$newsletter->tid] = FALSE;
   }
 
@@ -395,7 +395,7 @@ function simplenews_subscriptions_multi_block_form($form, &$form_state) {
   // Get newsletters for subscription form checkboxes.
   // Newsletters with opt-in/out method 'hidden' will not be listed.
   foreach (simplenews_category_get_visible() as $newsletter) {
-    $options[$newsletter->tid] = check_plain($newsletter->name);
+    $options[$newsletter->tid] = check_plain(_simplenews_newsletter_name($newsletter));
     $default_value[$newsletter->tid] = FALSE;
   }
 
@@ -655,7 +655,7 @@ function simplenews_confirm_multi_form_submit($form, &$form_state) {
 /**
  * Mask a mail address.
  *
- * For exampl, name@example.org will be masked as n*****@example.org.
+ * For example, name@example.org will be masked as n*****@e*****.org.
  *
  * @param $mail
  *   A valid mail address to mask.
@@ -664,8 +664,13 @@ function simplenews_confirm_multi_form_submit($form, &$form_state) {
  *   The masked mail address.
  */
 function simplenews_mask_mail($mail) {
-  preg_match('/^(.).*@(.*)$/', $mail, $matches);
-  return preg_replace('/^(.).*@(.*)$/', '$1*****@$2', $mail);
+  if (preg_match('/^(.).*@(.).*(\..+)$/', $mail)) {
+    return preg_replace('/^(.).*@(.).*(\..+)$/', '$1*****@$2*****$3', $mail);
+  }
+  else {
+    // Missing top-level domain.
+    return preg_replace('/^(.).*@(.).*$/', '$1*****@$2*****', $mail);
+  }
 }
 
 /**
@@ -721,7 +726,7 @@ function simplenews_subscriptions_admin_form($form, &$form_state, $snid) {
   // Get newsletters for subscription form checkboxes.
   // Newsletters with opt-in/out method 'hidden' will not be listed.
   foreach (simplenews_category_get_visible() as $newsletter) {
-    $options[$newsletter->tid] = check_plain($newsletter->name);
+    $options[$newsletter->tid] = check_plain(_simplenews_newsletter_name($newsletter));
     $default_value[$newsletter->tid] = FALSE;
   }
 
@@ -755,7 +760,7 @@ function simplenews_subscriptions_admin_form($form, &$form_state, $snid) {
     }
     $form['language'] = array(
       '#type' => 'fieldset',
-      '#title' => 'Preferred language',
+      '#title' => t('Preferred language'),
       '#description' => t('The e-mails will be localized in language chosen. Real users have their preference in account settings.'),
       '#disabled' => FALSE,
     );
