@@ -1,0 +1,30 @@
+language: php
+php:
+  - 5.4
+
+mysql:
+  database: drupal
+  username: root
+  encoding: utf8
+
+before_script:
+ - mysql -e 'create database drupal;'
+ - pyrus channel-discover pear.drush.org
+ - pyrus install drush/drush-devel
+ - phpenv rehash
+ - cd ..
+ - ls -la
+ # --no-cache is must-have due to http://drupal.org/node/1630220
+ - drush dl drupal-7 --dev --no-cache
+ - cd drupal-*
+ - cp -R ../simplenews sites/all/modules/simplenews
+ - drush si standard --db-url=mysql://root:@localhost/drupal --yes
+ - drush en simpletest --yes
+ - drush en simplenews --yes
+ - drush cc all
+ - drush runserver --server=builtin 8080 &
+ - sleep 4
+ - drush vset simpletest_verbose TRUE --yes
+
+script: drush test-run --xml --uri=http://127.0.0.1:8080 SimpleNewsAdministrationTestCase,SimpleNewsI18nTestCase,SimpleNewsUpgradePath61TestCase,SimpleNewsUpgradePath62TestCase,SimplenewsSendTestCase,SimplenewsSourceTestCase,SimplenewsSubscribeTestCase,SimplenewsUnitTest
+  #php scripts/run-tests.sh --php ~/.phpenv/versions/5.4.13/bin/php --url 'http://127.0.0.1:8080' --verbose --file modules/simpletest/simpletest.test

@@ -531,7 +531,7 @@ function simplenews_admin_category_form($form, &$form_state, $edit = array()) {
     '#type' => 'textfield',
     '#title' => t('From name'),
     '#size' => 60,
-    '#maxlength' => 64,
+    '#maxlength' => 128,
     '#default_value' => $edit['from_name'],
   );
 
@@ -633,7 +633,8 @@ function simplenews_admin_category_form_submit($form, &$form_state) {
   // Create or update taxonomy term.
   $term = new stdClass();
   $term->tid = $form_state['values']['tid'];
-  $term->vid = variable_get('simplenews_vid', 0);
+  $term->vocabulary_machine_name = 'newsletter';
+  $term->vid = taxonomy_vocabulary_machine_name_load('newsletter')->vid;
   $term->name = $form_state['values']['name'];
   $term->description = $form_state['values']['description'];
   $term->weight = $form_state['values']['weight'];
@@ -861,7 +862,7 @@ function simplenews_subscription_list_export($form, &$form_state) {
     '#options' => array(
       'subscribed' => t('Subscribed to the newsletter'),
       'unconfirmed' => t('Unconfirmed to the newsletter'),
-      'unsubscribed' => t('UnSubscribed from the newsletter'),
+      'unsubscribed' => t('Unsubscribed from the newsletter'),
     ),
     '#default_value' => $default['subscribed'],
     '#description' => t('Subscriptions matching the selected subscription states will be exported.'),
@@ -1303,7 +1304,7 @@ function simplenews_admin_settings_newsletter($form, &$form_state) {
     '#type' => 'textfield',
     '#title' => t('From name'),
     '#size' => 60,
-    '#maxlength' => 64,
+    '#maxlength' => 128,
     '#default_value' => variable_get('simplenews_from_name', variable_get('site_name', 'Drupal')),
   );
   $form['simplenews_sender_info']['simplenews_from_address'] = array(
@@ -1377,9 +1378,9 @@ function simplenews_admin_settings_mail($form, &$form_state) {
     '#title' => t('Mail spool expiration'),
     '#options' => array(
       0 => t('Immediate'),
-      1 => t('1 day'),
-      7 => t('1 week'),
-      14 => t('2 weeks'),
+      1 => format_plural(1, '1 day', '@count days'),
+      7 => format_plural(1, '1 week', '@count weeks'),
+      14 => format_plural(2, '1 week', '@count weeks'),
     ),
     '#default_value' => variable_get('simplenews_spool_expire', 0),
     '#description' => t('Newsletter mails are spooled. How long must messages be retained in the spool after successful sending. Keeping the message in the spool allows mail statistics (which is not yet implemented). If cron is not used, immediate expiration is advised.'),
@@ -1559,7 +1560,7 @@ function simplenews_admin_settings_subscription($form, &$form_state) {
     '#description' => t('Drupal path or URL of the destination page where after the subscription is confirmed (e.g. node/123). Leave empty to go to the front page.'),
     '#default_value' => variable_get('simplenews_confirm_subscribe_page', ''),
   );
-  $form['simplenews_subscription']['confirm_pages']['simplenews_confirm_unsubscribe_page'] = array(
+  $form['confirm_pages']['simplenews_confirm_unsubscribe_page'] = array(
     '#type' => 'textfield',
     '#title' => t('Unsubscribe confirmation'),
     '#description' => t('Drupal path or URL of the destination page when the subscription removal is confirmed (e.g. node/123). Leave empty to go to the front page.'),
