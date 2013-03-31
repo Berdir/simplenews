@@ -26,5 +26,5 @@ before_script:
  - sleep 4
  - drush vset simpletest_verbose TRUE --yes
 
-script: drush test-run --xml --uri=http://127.0.0.1:8080 SimpleNewsAdministrationTestCase SimpleNewsI18nTestCase SimpleNewsUpgradePath61TestCase SimpleNewsUpgradePath62TestCase SimplenewsSendTestCase SimplenewsSourceTestCase SimplenewsSubscribeTestCase SimplenewsUnitTest
+script: drush test-run --xml --uri=http://127.0.0.1:8080 SimpleNewsAdministrationTestCase,SimpleNewsI18nTestCase,SimpleNewsUpgradePath61TestCase,SimpleNewsUpgradePath62TestCase,SimplenewsSendTestCase,SimplenewsSourceTestCase,SimplenewsSubscribeTestCase,SimplenewsUnitTest
   #php scripts/run-tests.sh --php ~/.phpenv/versions/5.4.13/bin/php --url 'http://127.0.0.1:8080' --verbose --file modules/simpletest/simpletest.test
